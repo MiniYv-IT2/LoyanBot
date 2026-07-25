@@ -22,18 +22,7 @@
 </p>
 
 <!-- STATS_CARD_START -->
-<div align="center">
-
-| Language | Lines | % |
-|:--------:|:----:|:---:|
-| Python | 21,914 | 95.9% |
-| React JSX | 481 | 2.1% |
-| TypeScript | 157 | 0.7% |
-| JavaScript | 60 | 0.3% |
-| JSON | 233 | 1.0% |
-| **Total** | **22,845** | **100%** |
-
-</div>
+<div align="center"><img src="svg/stats-card_zh-CN.svg" alt="Source Code Stats"></div>
 <!-- STATS_CARD_END -->
 
 LLM的多平台聊天机器人框架。通过多个即时通讯应用程序连接到各种大型语言模型- QQ， 微信，Telegram， Discord等。😄可扩展的插件和模块。👍基于Python 3.11+构建，带有基于Quart的web面板。初学者友好-快速学习插件开发。🎉

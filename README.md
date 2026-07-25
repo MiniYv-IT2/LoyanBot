@@ -22,18 +22,7 @@
 </p>
 
 <!-- STATS_CARD_START -->
-<div align="center">
-
-| Language | Lines | % |
-|:--------:|:----:|:---:|
-| Python | 21,914 | 95.9% |
-| React JSX | 481 | 2.1% |
-| TypeScript | 157 | 0.7% |
-| JavaScript | 60 | 0.3% |
-| JSON | 233 | 1.0% |
-| **Total** | **22,845** | **100%** |
-
-</div>
+<div align="center"><img src="svg/stats-card.svg" alt="Source Code Stats"></div>
 <!-- STATS_CARD_END -->
 
 A multi-platform chatbot framework for LLMs. Connect to various large language models via multiple instant messaging apps — QQ, WeChat, Telegram, Discord, and more. 😄 Extensible with plugins and modules. 👍 Built on Python 3.11+ with a Quart-based web panel. Beginner-friendly — learn plugin development quickly. 🎉

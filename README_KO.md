@@ -22,18 +22,7 @@
 </p>
 
 <!-- STATS_CARD_START -->
-<div align="center">
-
-| Language | Lines | % |
-|:--------:|:----:|:---:|
-| Python | 21,914 | 95.9% |
-| React JSX | 481 | 2.1% |
-| TypeScript | 157 | 0.7% |
-| JavaScript | 60 | 0.3% |
-| JSON | 233 | 1.0% |
-| **Total** | **22,845** | **100%** |
-
-</div>
+<div align="center"><img src="svg/stats-card_KO.svg" alt="Source Code Stats"></div>
 <!-- STATS_CARD_END -->
 
 LLMs를 위한 멀티 플랫폼 챗봇 프레임워크입니다.QQ, WeChat, Telegram, Discord 등 여러 인스턴트 메시징 앱을 통해 다양한 대형 언어 모델에 연결하세요.😄 플러그인과 모듈로 확장 가능합니다.쿼트 기반 웹 패널로 Python 3.11+를 기반으로 제작된 👍.초보 친화-플러그인 개발을 빠르게 배웁니다.🎉
