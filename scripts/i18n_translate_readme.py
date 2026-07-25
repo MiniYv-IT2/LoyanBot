@@ -14,9 +14,9 @@ SRC = os.path.join(ROOT, "README.md")
 TARGETS = [
     {"suffix": "_zh-CN", "from": "en", "to": "zh-CHS"},
     {"suffix": "_zh-TW", "from": "en", "to": "zh-CHT"},
-    {"suffix": "_RU",    "from": "en", "to": "ru"},
-    {"suffix": "_fr-FR", "from": "en", "to": "fr"},
-    {"suffix": "_ko-KR", "from": "en", "to": "ko"},
+    {"suffix": "_RU", "from": "en", "to": "ru"},
+    {"suffix": "_FR", "from": "en", "to": "fr"},
+    {"suffix": "_KO", "from": "en", "to": "ko"},
 ]
 
 HAS_HTML = re.compile(r"<[^>]+>")
@@ -46,8 +46,8 @@ TRANSLATION_FIXES = {
     "zh-CN": {"内存与上下文管理": "记忆与上下文管理", "b微信": "微信", "MiniYv- it2": "MiniYv-IT2", "MiniYv‑it2": "MiniYv-IT2"},
     "zh-TW": {"內存與上下文管理": "記憶與上下文管理", "b微信": "微信"},
     "RU": {},
-    "fr-FR": {},
-    "ko-KR": {},
+    "FR": {},
+    "KO": {},
 }
 
 def has_skip_content(line: str) -> bool:

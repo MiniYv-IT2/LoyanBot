@@ -38,32 +38,33 @@ for ext, name in EXTENSIONS:
 ROWS = []
 for ext, name in EXTENSIONS:
     pct = counts[ext] / total * 100 if total else 0
-    bar_w = max(1, int(pct))
     bar_color = COLORS.get(name, "#888")
     ROWS.append(
-        f'<div style="display:flex;align-items:center;margin:3px 0;font-size:13px;">'
-        f'<span style="width:85px;text-align:right;padding-right:8px;color:#555;">{name}</span>'
-        f'<div style="flex:1;height:14px;max-width:200px;">'
-        f'<div style="display:flex;height:14px;width:100%;background:{BAR_BG};">'
-        f'<div style="width:{pct:.1f}%;height:14px;background:{bar_color};"></div>'
-        f'</div>'
-        f'</div>'
-        f'<span style="width:50px;text-align:right;padding-left:6px;color:#888;font-size:12px;">{pct:.1f}%</span>'
-        f'<span style="width:60px;text-align:right;padding-left:4px;color:#999;font-size:12px;">{counts[ext]:,}</span>'
-        f'</div>'
+        f'<tr>'
+        f'<td style="text-align:right;padding:2px 8px;color:#555;white-space:nowrap;font-size:13px;">{name}</td>'
+        f'<td style="padding:2px 0;width:200px;">'
+        f'<table cellpadding="0" cellspacing="0" style="width:200px;height:14px;border:none;background:{BAR_BG};">'
+        f'<tr>'
+        f'<td style="width:{pct:.1f}%;height:14px;background:{bar_color};padding:0;border:none;"></td>'
+        f'<td style="padding:0;border:none;"></td>'
+        f'</tr></table>'
+        f'</td>'
+        f'<td style="text-align:right;padding:2px 6px;color:#888;font-size:12px;white-space:nowrap;">{pct:.1f}%</td>'
+        f'<td style="text-align:right;padding:2px 6px;color:#999;font-size:12px;white-space:nowrap;">{counts[ext]:,}</td>'
+        f'</tr>'
     )
 
 card = (
-    f'<div style="border:1px solid #e0e0e0;border-radius:10px;padding:18px 20px;'
-    f'max-width:460px;margin:14px auto;background:#fef5e7;">\n'
-    f'<div style="font-size:15px;font-weight:600;color:#222;margin-bottom:10px;">'
-    f'Source Code Stats</div>\n'
+    f'<table style="border:1px solid #ddd;padding:10px 14px;'
+    f'max-width:460px;margin:16px auto;background:#fef5e7;">\n'
+    f'<tr><td colspan="4" style="text-align:center;font-size:15px;font-weight:600;color:#222;padding-bottom:8px;">'
+    f'Source Code Stats</td></tr>\n'
     + "\n".join(ROWS) +
-    f'<div style="margin-top:10px;padding-top:8px;border-top:1px solid #eee;'
-    f'font-size:13px;color:#999;">'
-    f'<span style="color:#333;font-weight:600;">{total:,}</span> total · '
-    f'<span style="color:#333;font-weight:600;">{len(EXTENSIONS)}</span> languages'
-    f'</div>\n</div>'
+    f'<tr><td colspan="4" style="text-align:center;font-size:13px;color:#888;padding-top:8px;border-top:1px solid #eee;">'
+    f'<b style="color:#333;">{total:,}</b> total · '
+    f'<b style="color:#333;">{len(EXTENSIONS)}</b> languages'
+    f'</td></tr>\n'
+    f'</table>'
 )
 
 with open(README, encoding="utf-8") as f:

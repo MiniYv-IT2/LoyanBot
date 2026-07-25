@@ -9,8 +9,8 @@
   <a href="README_zh-CN.md">简体中文</a> |
   <a href="README_zh-TW.md">繁體中文</a> |
   <a href="README_RU.md">Русский</a> |
-  <b>Français</b> |
-  <a href="README_ko-KR.md">한국어</a>
+  <a href="README_FR.md">Français</a> |
+  <b>한국어</b>
 </p>
 
 <p align="center">
@@ -32,20 +32,20 @@
 </div>
 <!-- STATS_CARD_END -->
 
-Un framework de chatbot multi-plateforme pour LLMs. Connectez-vous à différents modèles linguistiques de grande taille via plusieurs applications de messagerie instantanée - QQ, WeChat, Telegram, Discord, et plus encore. 😄 Extensible avec des plugins et des modules. 👍 construit sur Python 3.11+ avec un panneau web basé sur Quart-based. Convivial pour les débutants - apprenez le développement de plugin rapidement. 🎉
+LLMs를 위한 멀티 플랫폼 챗봇 프레임워크입니다.QQ, WeChat, Telegram, Discord 등 여러 인스턴트 메시징 앱을 통해 다양한 대형 언어 모델에 연결하세요.😄 플러그인과 모듈로 확장 가능합니다.쿼트 기반 웹 패널로 Python 3.11+를 기반으로 제작된 👍.초보 친화-플러그인 개발을 빠르게 배웁니다.🎉
 
 
-Nous développons LoyanBot, et il faudra encore plusieurs mois avant qu’il soit vraiment prêt pour le déploiement en production. Fonctionnalités actuellement implémentées:
+로얀봇을 개발하고 있으며, 실제 생산 배포 준비가 완료되기까지는 몇 개월이 더 걸릴 것입니다.현재 구현된 기능:
 
 <table>
-<tr><th style="background-color:#8ecac8;color:white;">Category</th><th style="background-color:#8ecac8;color:white;">Status</th></tr>
-<tr><td style="background-color:#f0fff0;">Basic plugin system</td><td style="background-color:#f0fff0;">✅ Done</td></tr>
-<tr><td style="background-color:#f0fff0;">Basic lifecycle management</td><td style="background-color:#f0fff0;">✅ Done</td></tr>
-<tr><td style="background-color:#f0fff0;">Complete pipeline scheduling</td><td style="background-color:#f0fff0;">✅ Done</td></tr>
-<tr><td style="background-color:#f0fff0;">Freshly developed AI brain engine</td><td style="background-color:#f0fff0;">✅ Done</td></tr>
-<tr><td style="background-color:#e8f4ff;">Panel</td><td style="background-color:#e8f4ff;">🔄 In planning</td></tr>
-<tr><td style="background-color:#e8f4ff;">Memory and context management</td><td style="background-color:#e8f4ff;">🔄 In planning</td></tr>
-<tr><td style="background-color:#f5f5f5;">Complete Agent system</td><td style="background-color:#f5f5f5;">⏳ Pending</td></tr>
+<tr><th bgcolor="#8ecac8">Category</th><th bgcolor="#8ecac8">Status</th></tr>
+<tr><td bgcolor="#f0fff0">Basic plugin system</td><td bgcolor="#f0fff0">✅ Done</td></tr>
+<tr><td bgcolor="#f0fff0">Basic lifecycle management</td><td bgcolor="#f0fff0">✅ Done</td></tr>
+<tr><td bgcolor="#f0fff0">Complete pipeline scheduling</td><td bgcolor="#f0fff0">✅ Done</td></tr>
+<tr><td bgcolor="#f0fff0">Freshly developed AI brain engine</td><td bgcolor="#f0fff0">✅ Done</td></tr>
+<tr><td bgcolor="#e8f4ff">Panel</td><td bgcolor="#e8f4ff">🔄 In planning</td></tr>
+<tr><td bgcolor="#e8f4ff">Memory and context management</td><td bgcolor="#e8f4ff">🔄 In planning</td></tr>
+<tr><td bgcolor="#f5f5f5">Complete Agent system</td><td bgcolor="#f5f5f5">⏳ Pending</td></tr>
 </table>
 
-Ce projet est migré du projet GracyBot sous la même organisation, construite sur le noyau original. La licence a été changée de MIT à GPL-3.0. Le copyright final de ce projet appartient à l’organisation MiniYv-IT2 et MiniYv.
+이 프로젝트는 원래 코어를 기반으로 만들어진 같은 조직 산하의 그레이시봇 프로젝트에서 마이그레이션됩니다.라이선스가 MIT에서 GPL-3.0으로 변경되었다.본 프로젝트의 최종 저작권은 MiniYv-IT2조직 및 MiniYv에 귀속됩니다.
