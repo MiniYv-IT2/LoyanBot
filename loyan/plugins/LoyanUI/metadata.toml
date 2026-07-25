@@ -1,0 +1,18 @@
+[plugin]
+name        = "LoyanUI管理面板"
+version     = "0.1.0"
+author      = "LoyanBot"
+description = "Web 可视化机器人管理面板"
+priority    = 50
+
+[handler]
+entry       = "handle_panel"
+
+[trigger]
+commands       = ["/panel"]
+chat_type      = ["private", "group"]
+permission     = "master"
+is_at_required = false
+
+[trigger.command_descriptions]
+"/panel" = "查看面板地址 / 修改面板密码"

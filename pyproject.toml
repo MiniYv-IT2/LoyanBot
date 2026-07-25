@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "loyan"
+version = "0.1.dev0"
+description = "LoyanBot - 个性化定制化QQ机器人框架"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "GPL-3.0-only"}
+authors = [
+    {name = "小禹 / MiniYv", email = "bc333333@163.com"},
+]
+keywords = ["qq", "bot", "chatbot", "napcat", "onebot", "qqbot"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Communications :: Chat",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "typer>=0.15.0",
+    "quart>=0.20.0",
+    "hypercorn>=0.17.0",
+    "aiohttp>=3.9.0",
+    "requests>=2.31.0",
+    "websockets>=12.0",
+    "tomli>=2.0.0",
+    "openai>=1.0.0",
+    "Pillow>=10.0.0",
+    "numpy>=1.24.0",
+    "psutil>=5.9.0",
+    "py-cpuinfo>=9.0.0",
+    "mss>=9.0.0",
+    "aiosqlite>=0.20.0",
+    "cryptography>=42.0.0",
+    "litellm>=1.60.0",
+]
+
+[project.optional-dependencies]
+llm = [
+]
+search = [
+    "playwright>=1.40.0",
+]
+all = [
+    "loyan[llm,search]",
+]
+
+[project.urls]
+Homepage = "https://github.com/MiniYv/LoyanBot"
+Repository = "https://github.com/MiniYv/LoyanBot"
+
+[project.scripts]
+loyan = "loyan.core.tools.cli.main:app"
+
+[tool.setuptools.packages.find]
+include = ["loyan*"]
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.package-data]
+"loyan.core" = ["*.json", "*.toml"]
+"loyan.res" = ["*.py", "resource/*", "resource/**/*"]
+"loyan.plugins.Easysearch" = ["*.toml"]
+"loyan.plugins.Help_plugin" = ["*.toml"]
+"loyan.plugins.LLM_Chat" = ["*.toml", "*.json"]
+"loyan.plugins.Screenshot" = ["*.toml"]
+"loyan.plugins.Update_Plugin" = ["*.toml"]
+"loyan.plugins.Xiaoyu_plugin" = ["*.toml"]
+"loyan.plugins.MonitorPlugin" = ["*.toml"]
+"loyan.plugins.SysInfo_plugin" = ["*.toml"]
+"loyan.plugins.ExamplePlugin" = ["*.toml"]
+"loyan.plugins.GracyUI_plugin" = ["*.toml", "frontend/dist/*", "frontend/dist/assets/*"]

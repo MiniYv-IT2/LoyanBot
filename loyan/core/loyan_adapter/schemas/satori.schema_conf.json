@@ -1,0 +1,7 @@
+{
+  "host": {"type": "str", "default": "127.0.0.1", "description": "服务器地址", "i18n": {"en-US": "Host", "ru-RU": "Хост"}},
+  "port": {"type": "int", "default": 5140, "description": "服务器端口", "i18n": {"en-US": "Port", "ru-RU": "Порт"}},
+  "token": {"type": "str", "default": "", "description": "连接 Token", "secret": true, "i18n": {"en-US": "Token", "ru-RU": "Токен"}},
+  "master_id": {"type": "str", "default": "", "description": "主人 ID", "i18n": {"en-US": "Master User ID", "ru-RU": "ID владельца"}},
+  "robot_id": {"type": "str", "default": "", "description": "机器人 ID", "i18n": {"en-US": "Bot ID", "ru-RU": "ID бота"}}
+}

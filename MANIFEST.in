@@ -1,0 +1,46 @@
+# ─── 模板配置文件 ───
+include config.template.json
+include loyan/core/loyan_adapter/platform/onebot/onebot_config.template.json
+
+# ─── 前端构建产物（LoyanUI 面板） ───
+recursive-include loyan/panel-dist *
+
+# ─── 插件元数据 ───
+recursive-include loyan/plugins *.toml
+recursive-include loyan/plugins *.txt
+recursive-include loyan/plugins *.md
+
+# ─── 框架测试 ───
+recursive-include loyan/core/test *.py
+recursive-include loyan/brain/test *.py
+
+# ─── 面板测试 ───
+recursive-include panel/tests *.py
+
+# ─── 文档 ───
+include README.md
+
+# ─── 已过时文档（git 保留，不打包进 wheel） ───
+# docs/ 目录来自前身 GracyBot，API 已有较大变动，仅供参考
+prune docs
+
+# ─── 样式资源 ───
+recursive-include res *.py
+recursive-include res *.png
+recursive-include res *.otf
+recursive-include res *.json
+
+# ─── 适配器 schema ───
+recursive-include loyan/core/loyan_adapter/schemas *.json
+
+# ─── Brain provider schema ───
+recursive-include loyan/brain/provider/schemas *.json
+
+# ─── 排除大型无用目录 ───
+prune loyan/plugins/GracyUI_plugin/frontend/node_modules
+prune loyan/plugins/Easysearch/data
+prune loyan/plugins/Screenshot/data/image
+prune loyan/plugins/Help_plugin/data
+prune loyan/plugins/Xiaoyu_plugin/data
+prune loyan/plugins/LLM_Chat/data
+prune storage

@@ -1,0 +1,4 @@
+{
+  "default_persona": {"type": "str", "default": "default", "description": "默认人设名称", "i18n": {"en-US": "Default Persona Name", "ru-RU": "Имя персоны по умолчанию"}},
+  "default_prompt": {"type": "str", "default": "你是由 LoyanBot 开发的 AI 助手。请始终友好、专业地回复。", "description": "默认人设提示词", "i18n": {"en-US": "Default Persona Prompt", "ru-RU": "Промпт персоны по умолчанию"}}
+}

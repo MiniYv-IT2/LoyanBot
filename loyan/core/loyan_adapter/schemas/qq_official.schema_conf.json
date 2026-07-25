@@ -1,0 +1,7 @@
+{
+  "app_id": {"type": "str", "default": "", "description": "AppID", "required": true, "i18n": {"en-US": "App ID", "ru-RU": "App ID"}},
+  "app_secret": {"type": "str", "default": "", "description": "AppSecret", "secret": true, "required": true, "i18n": {"en-US": "App Secret", "ru-RU": "App Secret"}},
+  "is_sandbox": {"type": "bool", "default": false, "description": "沙箱模式", "i18n": {"en-US": "Sandbox Mode", "ru-RU": "Песочница"}},
+  "master_id": {"type": "str", "default": "", "description": "主人 ID", "i18n": {"en-US": "Master User ID", "ru-RU": "ID владельца"}},
+  "robot_id": {"type": "str", "default": "", "description": "机器人 ID", "i18n": {"en-US": "Bot ID", "ru-RU": "ID бота"}}
+}
