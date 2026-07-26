@@ -52,8 +52,8 @@ FROM ubuntu:26.04 AS runtime
 
 LABEL org.opencontainers.image.title="LoyanBot"
 LABEL org.opencontainers.image.description="跨平台 IM 轻量异步机器人框架"
-LABEL org.opencontainers.image.url="https://github.com/philo_yu/LoyanBot"
-LABEL org.opencontainers.image.source="https://github.com/philo_yu/LoyanBot"
+LABEL org.opencontainers.image.url="https://github.com/MiniYv-IT2/LoyanBot"
+LABEL org.opencontainers.image.source="https://github.com/MiniYv-IT2/LoyanBot"
 
 # 阿里源 + 运行时最小系统
 RUN sed -i 's/archive.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null; \
