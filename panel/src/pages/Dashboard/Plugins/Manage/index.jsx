@@ -3,9 +3,9 @@ import { useTranslation } from "react-i18next";
 import { Table, Switch, Button, Popconfirm, message, Tag } from "antd";
 
 const INSTALLED = [
-  { name: "Translate", version: "1.2.0", enabled: true, category: "utility" },
-  { name: "Weather", version: "0.9.0", enabled: false, category: "utility" },
-  { name: "CodeRunner", version: "2.1.0", enabled: true, category: "developer" },
+  { name: "Translate", version: "1.2.0", enabled: true, categoryKey: "dashboard.plugins.cat_utility" },
+  { name: "Weather", version: "0.9.0", enabled: false, categoryKey: "dashboard.plugins.cat_utility" },
+  { name: "CodeRunner", version: "2.1.0", enabled: true, categoryKey: "dashboard.plugins.cat_developer" },
 ];
 
 export default function PluginManage() {
@@ -30,7 +30,7 @@ export default function PluginManage() {
       title: t("dashboard.plugins.category"),
       dataIndex: "category",
       key: "category",
-      render: (cat) => <Tag>{cat}</Tag>,
+      render: (_, record) => <Tag>{t(record.categoryKey)}</Tag>,
     },
     {
       title: t("dashboard.plugins.enabled"),

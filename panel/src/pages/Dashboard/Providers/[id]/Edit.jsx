@@ -33,10 +33,10 @@ export default function ProviderEdit() {
       <h2 style={{ margin: "0 0 16px" }}>{t("dashboard.edit_provider")}</h2>
       <Card>
         <Form form={form} layout="vertical">
-          <Form.Item label="ID" name="id" rules={[{ required: true }]}>
+          <Form.Item label={t("dashboard.id")} name="id" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
-          <Form.Item label="API Key" name="api_key" rules={[{ required: true }]}>
+          <Form.Item label={t("dashboard.api_key")} name="api_key" rules={[{ required: true }]}>
             <Input.Password />
           </Form.Item>
         </Form>

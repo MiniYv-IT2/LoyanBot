@@ -62,14 +62,14 @@ export default function ProviderCreate() {
         <Card>
           <Form form={form} layout="vertical">
             <Form.Item
-              label="ID"
+              label={t("dashboard.id")}
               name="id"
               rules={[{ required: true, message: t("dashboard.required") }]}
             >
               <Input placeholder={t("dashboard.id_placeholder")} />
             </Form.Item>
             <Form.Item
-              label="API Key"
+              label={t("dashboard.api_key")}
               name="api_key"
               rules={[{ required: true, message: t("dashboard.required") }]}
             >

@@ -4,12 +4,12 @@ import { Input, Card, Button, Row, Col, Tag, message } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 
 const PLUGINS = [
-  { name: "Translate", desc: "Translate text between languages", icon: "🌐", category: "utility" },
-  { name: "Weather", desc: "Get weather forecasts", icon: "☀️", category: "utility" },
-  { name: "CodeRunner", desc: "Run code snippets in various languages", icon: "💻", category: "developer" },
-  { name: "ImageGen", desc: "Generate images from text prompts", icon: "🎨", category: "media" },
-  { name: "Search", desc: "Web search integration", icon: "🔍", category: "utility" },
-  { name: "Reminder", desc: "Set and manage reminders", icon: "⏰", category: "utility" },
+  { name: "Translate", descKey: "dashboard.plugins.desc_translate", icon: "🌐", categoryKey: "dashboard.plugins.cat_utility" },
+  { name: "Weather", descKey: "dashboard.plugins.desc_weather", icon: "☀️", categoryKey: "dashboard.plugins.cat_utility" },
+  { name: "CodeRunner", descKey: "dashboard.plugins.desc_coderunner", icon: "💻", categoryKey: "dashboard.plugins.cat_developer" },
+  { name: "ImageGen", descKey: "dashboard.plugins.desc_imagegen", icon: "🎨", categoryKey: "dashboard.plugins.cat_media" },
+  { name: "Search", descKey: "dashboard.plugins.desc_search", icon: "🔍", categoryKey: "dashboard.plugins.cat_utility" },
+  { name: "Reminder", descKey: "dashboard.plugins.desc_reminder", icon: "⏰", categoryKey: "dashboard.plugins.cat_utility" },
 ];
 
 export default function PluginMarket() {
@@ -17,7 +17,7 @@ export default function PluginMarket() {
   const [search, setSearch] = useState("");
 
   const filtered = PLUGINS.filter(
-    (p) => p.name.toLowerCase().includes(search.toLowerCase()) || p.desc.toLowerCase().includes(search.toLowerCase())
+    (p) => p.name.toLowerCase().includes(search.toLowerCase()) || t(p.descKey).toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -46,8 +46,8 @@ export default function PluginMarket() {
                 title={plugin.name}
                 description={
                   <>
-                    <div>{plugin.desc}</div>
-                    <Tag style={{ marginTop: 8 }}>{plugin.category}</Tag>
+                    <div>{t(plugin.descKey)}</div>
+                    <Tag style={{ marginTop: 8 }}>{t(plugin.categoryKey)}</Tag>
                   </>
                 }
               />
