@@ -103,3 +103,6 @@ gracybot-*.tar.gz
 *.png
 *.otf
 gracybot-*
+
+# 统计卡片（由 Actions 自动生成）
+svg/
