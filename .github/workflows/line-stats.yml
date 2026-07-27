@@ -2,7 +2,7 @@ name: 更新源码统计
 
 on:
   push:
-    branches: [allnew]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
