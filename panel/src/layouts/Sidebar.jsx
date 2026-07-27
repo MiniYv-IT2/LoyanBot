@@ -15,6 +15,9 @@ import {
   FileTextOutlined,
   SettingOutlined,
   SkinOutlined,
+  ShoppingCartOutlined,
+  AppstoreOutlined,
+  BuildOutlined,
 } from "@ant-design/icons";
 import { useSidebar } from "../stores/useSidebarStore";
 import LogoArea from "./LogoArea";
@@ -33,6 +36,11 @@ const menuItems = (t) => [
     getItem(t("dashboard.sidebar.memory"), "/ai-tools/memory", <DatabaseOutlined />),
     getItem(t("dashboard.sidebar.agent"), "/ai-tools/agent", <ExperimentOutlined />),
     getItem(t("dashboard.sidebar.skill"), "/ai-tools/skill", <ThunderboltOutlined />),
+  ]),
+  getItem(t("dashboard.sidebar.plugins"), "/plugins", <AppstoreOutlined />, [
+    getItem(t("dashboard.sidebar.plugin_market"), "/plugins/market", <ShoppingCartOutlined />),
+    getItem(t("dashboard.sidebar.plugin_manage"), "/plugins/manage", <BuildOutlined />),
+    getItem(t("dashboard.sidebar.plugin_toolbox"), "/plugins/toolbox", <ToolOutlined />),
   ]),
   getItem(t("dashboard.sidebar.logs"), "/logs", <FileTextOutlined />),
   getItem(t("dashboard.sidebar.settings"), "/settings", <SettingOutlined />, [
@@ -66,7 +74,7 @@ export default function Sidebar({ mobile = false, onClose }) {
       <Menu
         mode="inline"
         selectedKeys={[location.pathname]}
-        defaultOpenKeys={["/ai-tools", "/settings"]}
+        defaultOpenKeys={["/ai-tools", "/settings", "/plugins"]}
         items={menuItems(t)}
         onClick={onClick}
         inlineCollapsed={collapsed}

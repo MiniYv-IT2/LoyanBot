@@ -15,6 +15,9 @@ import Knowledge from "../pages/Dashboard/AiTools/Knowledge";
 import Memory from "../pages/Dashboard/AiTools/Memory";
 import Agent from "../pages/Dashboard/AiTools/Agent";
 import Skill from "../pages/Dashboard/AiTools/Skill";
+import PluginMarket from "../pages/Dashboard/Plugins/Market";
+import PluginManage from "../pages/Dashboard/Plugins/Manage";
+import PluginToolbox from "../pages/Dashboard/Plugins/Toolbox";
 import Logs from "../pages/Dashboard/Logs";
 import Settings from "../pages/Dashboard/Settings";
 import AiSettings from "../pages/Dashboard/Settings/Ai";
@@ -62,6 +65,9 @@ export default function AppRoutes() {
         <Route path="ai-tools/memory" element={<Memory />} />
         <Route path="ai-tools/agent" element={<Agent />} />
         <Route path="ai-tools/skill" element={<Skill />} />
+        <Route path="plugins/market" element={<PluginMarket />} />
+        <Route path="plugins/manage" element={<PluginManage />} />
+        <Route path="plugins/toolbox" element={<PluginToolbox />} />
         <Route path="logs" element={<Logs />} />
         <Route path="settings" element={<Settings />} />
         <Route path="settings/ai" element={<AiSettings />} />

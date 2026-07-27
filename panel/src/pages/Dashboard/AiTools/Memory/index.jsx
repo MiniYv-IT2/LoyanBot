@@ -1,1 +1,11 @@
-export default function Placeholder() { return null; }
+import { useTranslation } from "react-i18next";
+import { Card, Typography } from "antd";
+
+export default function Memory() {
+  const { t } = useTranslation();
+  return (
+    <Card>
+      <Typography.Text type="secondary">{t("dashboard.ai_tools.memory_placeholder")}</Typography.Text>
+    </Card>
+  );
+}
