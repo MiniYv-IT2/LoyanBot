@@ -6,6 +6,7 @@ import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { login } from "../../api";
 import logoSvg from "../../assets/images/Loyan.svg";
 import Captcha from "../../components/Captcha";
+import LanguageSelector from "../../components/LanguageSelector";
 
 const ERROR_MAP = {
   "captcha.invalid": "login.captcha_invalid",
@@ -69,8 +70,12 @@ export default function Login() {
         justifyContent: "center",
         alignItems: "center",
         background: `linear-gradient(135deg, ${BG}, ${BG}88)`,
+        position: "relative",
       }}
     >
+      <div style={{ position: "absolute", top: 16, right: 16, zIndex: 10 }}>
+        <LanguageSelector />
+      </div>
       <Card
         style={{
           width: 380,

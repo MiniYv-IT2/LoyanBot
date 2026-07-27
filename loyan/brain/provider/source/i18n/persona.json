@@ -1,0 +1,32 @@
+{
+  "default_persona": {
+    "en-US": {
+      "description": "Default Persona Name",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Имя персоны по умолчанию",
+      "hint": ""
+    }
+  },
+  "default_prompt": {
+    "en-US": {
+      "description": "Default Persona Prompt",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Промпт персоны по умолчанию",
+      "hint": ""
+    }
+  },
+  "admins_id": {
+    "en-US": {
+      "description": "Admin IDs",
+      "hint": "Comma separated user IDs"
+    },
+    "ru-RU": {
+      "description": "ID администраторов",
+      "hint": "ID пользователей через запятую"
+    }
+  }
+}

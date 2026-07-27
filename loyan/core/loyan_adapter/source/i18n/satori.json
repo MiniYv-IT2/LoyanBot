@@ -1,0 +1,52 @@
+{
+  "host": {
+    "en-US": {
+      "description": "Host",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Хост",
+      "hint": ""
+    }
+  },
+  "port": {
+    "en-US": {
+      "description": "Port",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Порт",
+      "hint": ""
+    }
+  },
+  "token": {
+    "en-US": {
+      "description": "Token",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Токен",
+      "hint": ""
+    }
+  },
+  "robot_id": {
+    "en-US": {
+      "description": "Bot ID",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "ID бота",
+      "hint": ""
+    }
+  },
+  "admins_id": {
+    "en-US": {
+      "description": "Admin IDs",
+      "hint": "Comma separated user IDs"
+    },
+    "ru-RU": {
+      "description": "ID администраторов",
+      "hint": "ID пользователей через запятую"
+    }
+  }
+}

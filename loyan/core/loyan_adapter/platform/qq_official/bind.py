@@ -69,8 +69,8 @@ class MasterBinding:
         try:
             with open(self._config_path, "r", encoding="utf-8") as f:
                 cfg = json.load(f)
-            master_id = cfg.get("master_id", "")
-            # 如果 master_id 是 32 位以上十六进制哈希 → 已绑定（openid）
+            admins = cfg.get("admins_id", [])
+            master_id = admins[0] if admins else cfg.get("master_id", "")
             if master_id and len(master_id) > 20:
                 self._master_openid = master_id
                 self._is_bound = True
@@ -90,10 +90,13 @@ class MasterBinding:
         try:
             with open(self._config_path, "r", encoding="utf-8") as f:
                 cfg = json.load(f)
-            cfg["master_id"] = master_openid
+            cfg["_master_openid"] = master_openid
+            admins = cfg.get("admins_id", [])
+            if master_openid not in admins:
+                admins.append(master_openid)
+            cfg["admins_id"] = admins
             with open(self._config_path, "w", encoding="utf-8") as f:
                 json.dump(cfg, f, ensure_ascii=False, indent=2)
-            _logger.info(f"绑定状态已保存")
         except Exception as e:
             _logger.warning(f"保存绑定状态失败: {e}")
 

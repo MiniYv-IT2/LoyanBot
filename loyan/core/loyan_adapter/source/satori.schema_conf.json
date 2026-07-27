@@ -1,0 +1,29 @@
+{
+  "host": {
+    "type": "str",
+    "default": "127.0.0.1",
+    "description": "服务器地址"
+  },
+  "port": {
+    "type": "int",
+    "default": 5140,
+    "description": "服务器端口"
+  },
+  "token": {
+    "type": "str",
+    "default": "",
+    "description": "连接 Token",
+    "secret": true
+  },
+  "robot_id": {
+    "type": "str",
+    "default": "",
+    "description": "机器人 ID"
+  },
+  "admins_id": {
+    "type": "list",
+    "default": [],
+    "description": "管理员 ID 列表",
+    "hint": "多个用逗号分隔"
+  }
+}

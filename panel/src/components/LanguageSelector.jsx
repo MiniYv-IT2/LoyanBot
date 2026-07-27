@@ -22,7 +22,7 @@ export default function LanguageSelector({ style }) {
       options={LANG_OPTIONS}
       suffixIcon={<GlobalOutlined />}
       bordered={false}
-      style={{ width: 120, ...style }}
+      style={{ width: 120, fontSize: 16, ...style }}
     />
   );
 }

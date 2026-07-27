@@ -24,12 +24,12 @@ async def main():
     model = os.environ.get("TEST_MODEL", "gpt-4o-mini")
 
     if not api_key:
-        print("❌ 请设置 TEST_API_KEY 环境变量")
+        print(" 请设置 TEST_API_KEY 环境变量")
         sys.exit(1)
 
     provider = OpenAIProvider({"api_key": api_key, "api_base": api_base})
     await provider.open()
-    print(f"✅ Provider: {provider.name}")
+    print(f" Provider: {provider.name}")
     print(f"  API Base: {provider.api_base}")
     print(f"  Model: {model}")
 
@@ -37,7 +37,7 @@ async def main():
         messages=[{"role": "user", "content": "你好，请用一句话介绍自己"}],
         model=model,
     )
-    print(f"✅ Chat: {reply[:80]}...")
+    print(f" Chat: {reply[:80]}...")
 
     count = 0
     async for chunk in provider.chat_stream(
@@ -45,10 +45,10 @@ async def main():
         model=model,
     ):
         count += len(chunk)
-    print(f"✅ Stream: {count} chars")
+    print(f" Stream: {count} chars")
 
     await provider.close()
-    print("✅ Done")
+    print(" Done")
 
 
 if __name__ == "__main__":

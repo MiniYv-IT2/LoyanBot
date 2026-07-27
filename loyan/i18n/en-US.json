@@ -51,5 +51,15 @@
     "failover": "Failed, switching to next",
     "all_failed": "All providers failed: {detail}",
     "no_method": "has no method"
+  },
+  "admins_id": {
+    "en-US": {
+      "description": "Admin IDs",
+      "hint": "Comma separated user IDs"
+    },
+    "ru-RU": {
+      "description": "ID администраторов",
+      "hint": "ID пользователей через запятую"
+    }
   }
 }

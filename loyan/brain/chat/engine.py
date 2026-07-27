@@ -33,11 +33,11 @@ class ChatEngine:
         """发送消息，返回完整回复"""
         prov = self.providers.get(provider)
         if not prov:
-            return "❌ " + t("provider.no_providers")
+            return " " + t("provider.no_providers")
 
         model = model or (prov.models[0] if prov.models else "")
         if not model:
-            return "❌ " + t("provider.no_model")
+            return " " + t("provider.no_model")
 
         messages = await self._build_messages(message)
 
@@ -48,10 +48,10 @@ class ChatEngine:
             return reply or ""
         except ProviderError as e:
             _logger.error(f"对话失败 [{provider}/{model}]: {e}")
-            return f"❌ {e}"
+            return f" {e}"
         except Exception as e:
             _logger.error(f"对话异常 [{provider}/{model}]: {e}")
-            return "❌ " + t("chat.request_failed")
+            return " " + t("chat.request_failed")
 
     async def chat_stream(
         self,
@@ -64,7 +64,7 @@ class ChatEngine:
         """流式对话"""
         prov = self.providers.get(provider)
         if not prov:
-            yield "❌ " + t("provider.no_providers")
+            yield " " + t("provider.no_providers")
             return
 
         model = model or (prov.models[0] if prov.models else "")
@@ -74,7 +74,7 @@ class ChatEngine:
             async for chunk in prov.chat_stream(messages, model, **kwargs):
                 yield chunk
         except ProviderError as e:
-            yield f"❌ {e}"
+            yield f" {e}"
         except Exception as e:
             _logger.error(f"流式对话异常 [{provider}/{model}]: {e}")
-            yield "❌ " + t("chat.request_failed_short")
+            yield " " + t("chat.request_failed_short")

@@ -154,6 +154,9 @@ class LifecycleManager:
     ):
         return self._hooks.register(event, callback, name, priority, timeout, plugin_name)
 
+    async def fire_event_async(self, event: LifecycleEvent) -> dict:
+        return await self._executor.run_event(event)
+
     def unregister_hook(self, event: LifecycleEvent, callback=None, name: str = ""):
         self._hooks.unregister(event, callback, name)
 

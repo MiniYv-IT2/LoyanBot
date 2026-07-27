@@ -142,7 +142,7 @@ class LoyanOneBotWS(LoyanAdapter):
 
         # 入队 → recv_loop 线程负责发送
         self._api_send_queue.put(action_data)
-        # ★ 唤醒 recv_loop 立即 drain 队列，避免等超时
+        #  唤醒 recv_loop 立即 drain 队列，避免等超时
         if self._loop and self._loop.is_running() and self._queue_event:
             self._loop.call_soon_threadsafe(self._queue_event.set)
 
@@ -438,7 +438,7 @@ class LoyanOneBotWS(LoyanAdapter):
         _cycle = 0
         while self._running:
             _cycle += 1
-            # ★ 消费 worker 线程入队的 API 请求（由本线程发送）
+            #  消费 worker 线程入队的 API 请求（由本线程发送）
             await self._drain_api_send_queue_async(ws)
             if _cycle % 20 == 0:
                 self._logger.debug(f"[OneBotWS] recv_loop 活跃 cycle={_cycle} qsize={self._api_send_queue.qsize()}")

@@ -1,0 +1,72 @@
+{
+  "type": {
+    "en-US": {
+      "description": "Connection Type",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Тип подключения",
+      "hint": ""
+    }
+  },
+  "host": {
+    "en-US": {
+      "description": "Host",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Хост",
+      "hint": ""
+    }
+  },
+  "port": {
+    "en-US": {
+      "description": "Port",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Порт",
+      "hint": ""
+    }
+  },
+  "access_token": {
+    "en-US": {
+      "description": "Access Token (optional)",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Токен доступа (опционально)",
+      "hint": ""
+    }
+  },
+  "robot_id": {
+    "en-US": {
+      "description": "Bot ID",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "ID бота",
+      "hint": ""
+    }
+  },
+  "callback_port": {
+    "en-US": {
+      "description": "Callback Port",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Порт обратного вызова",
+      "hint": ""
+    }
+  },
+  "admins_id": {
+    "en-US": {
+      "description": "Admin IDs",
+      "hint": "Comma separated user IDs"
+    },
+    "ru-RU": {
+      "description": "ID администраторов",
+      "hint": "ID пользователей через запятую"
+    }
+  }
+}

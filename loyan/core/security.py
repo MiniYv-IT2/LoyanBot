@@ -43,7 +43,7 @@ def check_permission(user_id: str, require_master: bool = False) -> Tuple[bool, 
                     resource="master_only_function",
                     success=True
                 )
-                return True, "✅ 权限校验通过（主人身份）"
+                return True, " 权限校验通过（主人身份）"
             else:
                 # 记录审计日志
                 security_manager.log_audit_event(
@@ -52,14 +52,14 @@ def check_permission(user_id: str, require_master: bool = False) -> Tuple[bool, 
                     resource="master_only_function",
                     success=False
                 )
-                return False, "❌ 该功能仅主人可使用，权限不足！"
+                return False, " 该功能仅主人可使用，权限不足！"
         
         # 普通用户权限校验（使用use_plugins权限）
         success, message = security_manager.check_permission(user_id, 'use_plugins')
         if success:
-            return True, "✅ 权限校验通过（普通用户）"
+            return True, " 权限校验通过（普通用户）"
         else:
-            return False, "❌ 权限不足，无法使用该功能！"
+            return False, " 权限不足，无法使用该功能！"
     except Exception as e:
         # 异常情况下使用传统校验作为降级方案
         logging.getLogger("Core.Security").error(f"[权限校验] 安全管理器异常，使用降级方案: {str(e)}")
@@ -68,11 +68,11 @@ def check_permission(user_id: str, require_master: bool = False) -> Tuple[bool, 
         if require_master:
             if user_id != str(MASTER_ID):
                 logging.getLogger("Core.Security").warning(f"[安全校验] 用户{user_id}尝试访问主人专属功能，权限拒绝")
-                return False, "❌ 该功能仅主人可使用，权限不足！"
-            return True, "✅ 权限校验通过（主人身份）"
+                return False, " 该功能仅主人可使用，权限不足！"
+            return True, " 权限校验通过（主人身份）"
         
         # 普通用户权限校验（基础校验）
-        return True, "✅ 权限校验通过（普通用户）"
+        return True, " 权限校验通过（普通用户）"
 
 # ========== 命令安全过滤工具（防恶意命令注入） ==========
 def filter_dangerous_commands(cmd: str) -> Tuple[bool, Optional[str]]:
@@ -84,12 +84,12 @@ def filter_dangerous_commands(cmd: str) -> Tuple[bool, Optional[str]]:
     try:
         # 首先进行基本验证
         if not cmd or len(cmd) > 1000:
-            return False, "⚠️  命令长度无效！"
+            return False, "  命令长度无效！"
         
         # 使用新的安全管理器进行高级内容过滤
         success, message = security_manager.filter_dangerous_content(cmd)
         if not success:
-            return False, f"⚠️  {message}"
+            return False, f"  {message}"
         
         return True, None
     except Exception as e:
@@ -100,12 +100,12 @@ def filter_dangerous_commands(cmd: str) -> Tuple[bool, Optional[str]]:
         for dangerous_pattern in DANGEROUS_COMMANDS:
             if re.search(dangerous_pattern, cmd, re.IGNORECASE):
                 logging.getLogger("Core.Security").error(f"[安全过滤] 拦截危险命令：{cmd[:50]}...")
-                return False, f"⚠️  检测到危险命令！为保护系统安全，禁止执行「{dangerous_pattern}」相关操作"
+                return False, f"  检测到危险命令！为保护系统安全，禁止执行「{dangerous_pattern}」相关操作"
         
         # 敏感字符过滤（防命令注入）
         if re.search(SENSITIVE_CHARS, cmd):
             logging.getLogger("Core.Security").warning(f"[安全过滤] 拦截含敏感字符的命令：{cmd[:50]}...")
-            return False, "⚠️  命令中包含敏感字符，可能存在安全风险，禁止执行！"
+            return False, "  命令中包含敏感字符，可能存在安全风险，禁止执行！"
         
         return True, None
 

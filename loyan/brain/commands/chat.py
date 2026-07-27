@@ -19,11 +19,11 @@ async def handle_chat(ctx: PluginContext):
 
     brain = get_brain()
     if not brain.ready:
-        await ctx.reply("❌ " + t("chat.brain_not_ready"))
+        await ctx.reply(" " + t("chat.brain_not_ready"))
         return
 
     reply = await brain.chat.chat(message=text, session_id=ctx.sender_id)
-    content = reply or "❌ " + t("chat.no_reply")
+    content = reply or " " + t("chat.no_reply")
     await ctx.reply(content)
 
 
@@ -32,7 +32,7 @@ async def handle_chat(ctx: PluginContext):
 async def handle_chat_reset(ctx: PluginContext):
     """重置当前对话会话"""
     brain = get_brain()
-    await ctx.reply("✅ " + t("chat.session_reset"))
+    await ctx.reply(" " + t("chat.session_reset"))
     logger.info(f"用户 {ctx.sender_id} 重置了对话")
 
 

@@ -1,0 +1,31 @@
+{
+  "app_id": {
+    "type": "str",
+    "default": "",
+    "description": "AppID",
+    "required": true
+  },
+  "app_secret": {
+    "type": "str",
+    "default": "",
+    "description": "AppSecret",
+    "secret": true,
+    "required": true
+  },
+  "is_sandbox": {
+    "type": "bool",
+    "default": false,
+    "description": "沙箱模式"
+  },
+  "robot_id": {
+    "type": "str",
+    "default": "",
+    "description": "机器人 ID"
+  },
+  "admins_id": {
+    "type": "list",
+    "default": [],
+    "description": "管理员 ID 列表",
+    "hint": "多个用逗号分隔"
+  }
+}

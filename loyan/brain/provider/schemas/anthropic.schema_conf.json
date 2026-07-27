@@ -1,6 +1,0 @@
-{
-  "api_key": {"type": "str", "default": "", "description": "API Key", "secret": true, "i18n": {"en-US": "API Key", "ru-RU": "API-ключ"}},
-  "api_base": {"type": "str", "default": "", "description": "API 地址", "i18n": {"en-US": "API Base URL", "ru-RU": "Базовый URL API"}},
-  "timeout": {"type": "int", "default": 60, "description": "请求超时（秒）", "i18n": {"en-US": "Request Timeout (s)", "ru-RU": "Таймаут запроса (с)"}},
-  "proxy": {"type": "str", "default": "", "description": "代理地址", "i18n": {"en-US": "Proxy Address", "ru-RU": "Адрес прокси"}}
-}

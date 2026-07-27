@@ -149,20 +149,20 @@ class QQOfficialAdapter(LoyanAdapter):
 
         if text == "/master_set":
             if self._binding.is_bound:
-                await _notify("❌ 已经绑定了主人，无法再次绑定。如需更换请先输入 /unbind 解绑。")
+                await _notify(" 已经绑定了主人，无法再次绑定。如需更换请先输入 /unbind 解绑。")
                 return True
             if self._binding.bind(sender_id):
-                await _notify("✅ 主人绑定成功！您已被设为该机器人的主人。")
+                await _notify(" 主人绑定成功！您已被设为该机器人的主人。")
             return True
 
         if text == "/unbind":
             if not self._binding.is_bound:
-                await _notify("❌ 当前未绑定主人，无需解绑。请输入 /master_set 进行绑定。")
+                await _notify(" 当前未绑定主人，无需解绑。请输入 /master_set 进行绑定。")
                 return True
             if self._binding.unbind(sender_id):
-                await _notify("✅ 解绑成功！现在可以重新绑定新主人。")
+                await _notify(" 解绑成功！现在可以重新绑定新主人。")
             else:
-                await _notify("❌ 只有当前绑定的主人才能解绑。")
+                await _notify(" 只有当前绑定的主人才能解绑。")
             return True
 
         return False

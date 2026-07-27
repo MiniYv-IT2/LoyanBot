@@ -85,12 +85,12 @@ class ConfigManager:
                 try:
                     with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as f:
                         self._file_config = json.load(f)
-                    self._logger.info(f"✅ 配置文件加载成功: {CONFIG_FILE_PATH}")
+                    self._logger.info(f" 配置文件加载成功: {CONFIG_FILE_PATH}")
                 except json.JSONDecodeError as e:
-                    self._logger.error(f"❌ 配置文件格式错误: {str(e)}")
+                    self._logger.error(f" 配置文件格式错误: {str(e)}")
                     return False
             else:
-                self._logger.warning(f"⚠️ 配置文件不存在: {CONFIG_FILE_PATH}，将使用默认值和环境变量")
+                self._logger.warning(f" 配置文件不存在: {CONFIG_FILE_PATH}，将使用默认值和环境变量")
             
 
             for key, item in self._config_items.items():
@@ -104,23 +104,23 @@ class ConfigManager:
                         try:
                             item.value = int(env_value)
                         except ValueError:
-                            self._logger.error(f"❌ 环境变量 {item.env_var} 不是有效的整数")
+                            self._logger.error(f" 环境变量 {item.env_var} 不是有效的整数")
                             item.value = item.default
                     else:
                         item.value = env_value
-                    self._logger.debug(f"🔧 从环境变量加载配置 {key}: {item.env_var}")
+                    self._logger.debug(f" 从环境变量加载配置 {key}: {item.env_var}")
 
                 elif key in self._file_config:
                     item.value = self._file_config[key]
-                    self._logger.debug(f"📄 从配置文件加载配置 {key}")
+                    self._logger.debug(f" 从配置文件加载配置 {key}")
 
                 else:
                     item.value = item.default
-                    self._logger.debug(f"📌 使用默认配置 {key}: {item.default}")
+                    self._logger.debug(f" 使用默认配置 {key}: {item.default}")
                 
 
                 if not item.validate(item.value):
-                    self._logger.error(f"❌ 配置 {key} 的值 {item.value} 无效")
+                    self._logger.error(f" 配置 {key} 的值 {item.value} 无效")
                     if item.required:
                         return False
 
@@ -128,14 +128,14 @@ class ConfigManager:
                 
 
                 if item.required and item.value is None:
-                    self._logger.error(f"❌ 缺少必填配置 {key}")
+                    self._logger.error(f" 缺少必填配置 {key}")
                     return False
             
             self._initialized = True
-            self._logger.info("✅ 所有配置加载完成")
+            self._logger.info(" 所有配置加载完成")
             return True
         except Exception as e:
-            self._logger.error(f"❌ 配置加载异常: {str(e)}", exc_info=True)
+            self._logger.error(f" 配置加载异常: {str(e)}", exc_info=True)
             return False
     
     def load_from(self, filepath: str) -> bool:
@@ -152,7 +152,7 @@ class ConfigManager:
 
         try:
             if not os.path.exists(filepath):
-                self._logger.warning(f"⚠️ 配置文件不存在: {filepath}，将使用默认值")
+                self._logger.warning(f" 配置文件不存在: {filepath}，将使用默认值")
                 return False
 
             with open(filepath, 'r', encoding='utf-8') as f:
@@ -168,15 +168,15 @@ class ConfigManager:
                     item.value = value
                     loaded_keys.append(key)
                 else:
-                    self._logger.debug(f"⏭️ 忽略未注册的配置项: {key}（来自 {os.path.basename(filepath)}）")
+                    self._logger.debug(f"⏭ 忽略未注册的配置项: {key}（来自 {os.path.basename(filepath)}）")
 
-            self._logger.info(f"✅ 适配器配置加载成功: {filepath}（{len(loaded_keys)} 项）")
+            self._logger.info(f" 适配器配置加载成功: {filepath}（{len(loaded_keys)} 项）")
             return True
         except json.JSONDecodeError as e:
-            self._logger.error(f"❌ 配置文件格式错误: {filepath}: {str(e)}")
+            self._logger.error(f" 配置文件格式错误: {filepath}: {str(e)}")
             return False
         except Exception as e:
-            self._logger.error(f"❌ 配置文件加载异常: {filepath}: {str(e)}", exc_info=True)
+            self._logger.error(f" 配置文件加载异常: {filepath}: {str(e)}", exc_info=True)
             return False
 
     def save_to_file_at(self, filepath: str, keys: list = None) -> bool:
@@ -200,10 +200,10 @@ class ConfigManager:
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
 
-            self._logger.info(f"✅ 配置已保存到: {filepath}")
+            self._logger.info(f" 配置已保存到: {filepath}")
             return True
         except Exception as e:
-            self._logger.error(f"❌ 保存配置文件失败: {filepath}: {str(e)}")
+            self._logger.error(f" 保存配置文件失败: {filepath}: {str(e)}")
             return False
 
     def get(self, key: str, default: Any = None) -> Any:
@@ -223,10 +223,10 @@ class ConfigManager:
         if item:
             if item.validate(value):
                 item.value = value
-                self._logger.info(f"🔄 动态更新配置 {key}: {value}")
+                self._logger.info(f" 动态更新配置 {key}: {value}")
                 return True
             else:
-                self._logger.error(f"❌ 无法设置配置 {key}: 无效值 {value}")
+                self._logger.error(f" 无法设置配置 {key}: 无效值 {value}")
         return False
     
     def missing_in_file(self, *keys) -> list:
@@ -247,10 +247,10 @@ class ConfigManager:
             with open(CONFIG_FILE_PATH, 'w', encoding='utf-8') as f:
                 json.dump(config_to_save, f, ensure_ascii=False, indent=2)
             
-            self._logger.info(f"✅ 配置已保存到: {CONFIG_FILE_PATH}")
+            self._logger.info(f" 配置已保存到: {CONFIG_FILE_PATH}")
             return True
         except Exception as e:
-            self._logger.error(f"❌ 保存配置文件失败: {str(e)}")
+            self._logger.error(f" 保存配置文件失败: {str(e)}")
             return False
     
     def generate_default_config(self) -> Dict[str, Any]:
@@ -297,10 +297,10 @@ class ConfigManager:
                 for key, item in self._config_items.items():
                     if key in self._file_config:
                         item.value = self._file_config[key]
-                self._logger.warning(f"⚠️ 首次运行！已创建默认配置文件: {CONFIG_FILE_PATH}")
-                self._logger.warning("💡 使用 loyan instance add <name> 创建机器人实例")
+                self._logger.warning(f" 首次运行！已创建默认配置文件: {CONFIG_FILE_PATH}")
+                self._logger.warning(" 使用 loyan instance add <name> 创建机器人实例")
             except Exception as e:
-                self._logger.error(f"❌ 创建默认配置文件失败: {str(e)}", exc_info=True)
+                self._logger.error(f" 创建默认配置文件失败: {str(e)}", exc_info=True)
             return
 
 
@@ -308,7 +308,7 @@ class ConfigManager:
             with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as f:
                 current_config = json.load(f)
         except Exception as e:
-            self._logger.error(f"❌ 读取配置文件失败: {str(e)}")
+            self._logger.error(f" 读取配置文件失败: {str(e)}")
             return
 
 
@@ -331,18 +331,18 @@ class ConfigManager:
         changed = [k for k in merged if k in current_config and merged[k] != current_config[k] and k not in added]
 
         if added:
-            self._logger.info(f"🔄 配置更新，新增字段: {added}")
+            self._logger.info(f" 配置更新，新增字段: {added}")
         if changed:
-            self._logger.info(f"🔄 配置同步字段: {changed}")
+            self._logger.info(f" 配置同步字段: {changed}")
 
 
         try:
             with open(CONFIG_FILE_PATH, 'w', encoding='utf-8') as f:
                 json.dump(merged, f, ensure_ascii=False, indent=2)
             self._file_config = merged
-            self._logger.info("✅ 配置文件已同步")
+            self._logger.info(" 配置文件已同步")
         except Exception as e:
-            self._logger.error(f"❌ 保存配置文件失败: {str(e)}", exc_info=True)
+            self._logger.error(f" 保存配置文件失败: {str(e)}", exc_info=True)
             self._file_config = current_config
 
 
@@ -422,7 +422,7 @@ class ConfigManager:
                     json.dump(merged_global, f, ensure_ascii=False, indent=2)
                 added = [k for k in merged_global if k not in global_data]
                 if added:
-                    self._logger.info(f"🔁 插件 {plugin_name} 配置自动迁移，新增字段: {added}")
+                    self._logger.info(f" 插件 {plugin_name} 配置自动迁移，新增字段: {added}")
             except Exception:
                 pass
             global_data = merged_global
@@ -486,12 +486,12 @@ class ConfigManager:
         try:
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(merged, f, ensure_ascii=False, indent=2)
-            self._logger.info(f"✅ 插件配置已更新: {filepath}")
+            self._logger.info(f" 插件配置已更新: {filepath}")
             if plugin_name in self._plugin_config_cache:
                 del self._plugin_config_cache[plugin_name]
             return True
         except Exception as e:
-            self._logger.error(f"❌ 保存插件配置失败: {filepath}: {e}")
+            self._logger.error(f" 保存插件配置失败: {filepath}: {e}")
             return False
 
 

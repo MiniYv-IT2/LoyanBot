@@ -1,0 +1,18 @@
+{
+  "default_persona": {
+    "type": "str",
+    "default": "default",
+    "description": "默认人设名称"
+  },
+  "default_prompt": {
+    "type": "str",
+    "default": "你是由 LoyanBot 开发的 AI 助手。请始终友好、专业地回复。",
+    "description": "默认人设提示词"
+  },
+  "admins_id": {
+    "type": "list",
+    "default": [],
+    "description": "管理员 ID 列表",
+    "hint": "多个用逗号分隔"
+  }
+}

@@ -13,4 +13,5 @@ psutil>=5.9.0
 py-cpuinfo>=9.0.0
 mss>=9.0.0
 aiosqlite>=0.20.0
-playwright>=1.40.0litellm>=1.60.0
+playwright>=1.40.0
+litellm>=1.60.0

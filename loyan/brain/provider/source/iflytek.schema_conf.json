@@ -1,0 +1,24 @@
+{
+  "api_key": {
+    "type": "str",
+    "default": "",
+    "description": "凭证 (格式: appid|api_key|api_secret)",
+    "secret": true
+  },
+  "timeout": {
+    "type": "int",
+    "default": 60,
+    "description": "请求超时（秒）"
+  },
+  "proxy": {
+    "type": "str",
+    "default": "",
+    "description": "代理地址"
+  },
+  "admins_id": {
+    "type": "list",
+    "default": [],
+    "description": "管理员 ID 列表",
+    "hint": "多个用逗号分隔"
+  }
+}

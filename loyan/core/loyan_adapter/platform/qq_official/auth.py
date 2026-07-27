@@ -80,7 +80,7 @@ class AuthMixin:
                             return None
                         expires_in = int(data.get("expires_in", 7200))
                         self._token_expires_at = now + expires_in
-                        _logger.info(f"Access Token 获取成功，有效期 {expires_in}s")
+                        _logger.info(f"Token 有效期 {expires_in}s")
                         return self._access_token
                     error_body = await resp.text()
                     _logger.error(f"获取 Token 失败: {resp.status} {error_body}")

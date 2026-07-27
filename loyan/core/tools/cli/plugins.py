@@ -57,11 +57,11 @@ def install_plugin(root: Path, source: str) -> bool:
     if existing.is_dir():
         req = existing / "requirements.txt"
         if req.exists():
-            print(f"  📦 安装 {source} 的依赖...")
+            print(f"   安装 {source} 的依赖...")
             pip_install([], req_file=str(req))
-            print(f"  ✅ 依赖安装完成")
+            print(f"   依赖安装完成")
         else:
-            print(f"  ℹ️  {source} 没有 requirements.txt")
+            print(f"  ℹ  {source} 没有 requirements.txt")
         return True
 
     # GitHub 简写: "user/repo" → https://github.com/user/repo
@@ -73,39 +73,39 @@ def install_plugin(root: Path, source: str) -> bool:
             name = source.rstrip("/").split("/")[-1].replace(".git", "")
             target = plugins_dir / name
             if target.exists():
-                print(f"  ⚠️ 插件 {name} 已存在")
+                print(f"   插件 {name} 已存在")
                 return False
             subprocess.check_call(
                 ["git", "clone", source, str(target)],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60
             )
-            print(f"  ✅ 克隆完成: {name}")
+            print(f"   克隆完成: {name}")
         else:
             src = Path(source).resolve()
             if not src.exists():
-                print(f"  ❌ 路径不存在: {source}")
+                print(f"   路径不存在: {source}")
                 return False
             name = src.name
             target = plugins_dir / name
             if target.exists():
-                print(f"  ⚠️ 插件 {name} 已存在")
+                print(f"   插件 {name} 已存在")
                 return False
             shutil.copytree(src, target, ignore=shutil.ignore_patterns(
                 "__pycache__", ".git", ".venv", "node_modules"
             ))
-            print(f"  ✅ 复制完成: {name}")
+            print(f"   复制完成: {name}")
 
         # 自动安装依赖
         req = target / "requirements.txt"
         if req.exists():
-            print(f"  📦 安装依赖...")
+            print(f"   安装依赖...")
             pip_install([], req_file=str(req))
         return True
     except subprocess.TimeoutExpired:
-        print(f"  ❌ 操作超时（网络不佳？）")
+        print(f"   操作超时（网络不佳？）")
         return False
     except Exception as e:
-        print(f"  ❌ 安装失败: {e}")
+        print(f"   安装失败: {e}")
         return False
 
 
@@ -114,8 +114,8 @@ def remove_plugin(root: Path, name: str) -> bool:
     plugins_dir = find_plugins_dir(root)
     target = plugins_dir / name
     if not target.exists():
-        print(f"  ❌ 插件 {name} 不存在")
+        print(f"   插件 {name} 不存在")
         return False
     shutil.rmtree(target, ignore_errors=True)
-    print(f"  ✅ 已删除: {name}")
+    print(f"   已删除: {name}")
     return True

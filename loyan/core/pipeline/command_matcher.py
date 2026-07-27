@@ -60,11 +60,8 @@ class CommandMatcher(Stage):
         # ── 路径 B: @on_command / @on_regex 装饰器匹配 ──
         from loyan.core.decorators.registration import DECORATOR_COMMAND_REGISTRY
 
-        _logger.info(f"[CommandMatcher] 开始装饰器匹配: raw={raw_msg!r}, registry_size={len(DECORATOR_COMMAND_REGISTRY)}")
-
         for entry in DECORATOR_COMMAND_REGISTRY:
             commands = entry.get("commands", [])
-            _logger.info(f"[CommandMatcher] 检查条目: plugin={entry.get('plugin_name','?')} commands={commands}")
             matched_cmd = self._match_any(commands, raw_msg)
             if matched_cmd:
                 e_ct = entry.get("chat_type", ["private", "group"])
@@ -93,7 +90,6 @@ class CommandMatcher(Stage):
                     return ctx
 
         ctx.extra["_match_source"] = "none"
-        _logger.info(f"[CommandMatcher] 无匹配命令: raw={raw_msg!r}")
         return ctx
 
     def _match_any(self, commands: list, raw_msg: str) -> Optional[str]:

@@ -52,7 +52,7 @@ class MonitorManager:
         import os as _os
         if _os.environ.get("WERKZEUG_RUN_MAIN") == "true":
             logger.info("监控管理器已初始化并启动")
-            logger.info("结构化日志监控管理器已初始化并启动✅加载✅ 核心模块加载完成，版本")
+            logger.info("结构化日志监控管理器已初始化并启动加载 核心模块加载完成，版本")
     
     def _background_monitor(self):
 

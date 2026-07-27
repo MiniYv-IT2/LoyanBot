@@ -97,7 +97,7 @@ class PluginManager:
             with open(path, 'w', encoding='utf-8') as f:
                 json.dump({"disabled": sorted(disabled)}, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            logger.error(f"❌ 保存禁用列表失败: {e}")
+            logger.error(f" 保存禁用列表失败: {e}")
 
     # ── on_ready 钩子 ──
 
@@ -111,7 +111,7 @@ class PluginManager:
             try:
                 hook()
             except Exception as e:
-                logger.error(f"❌ on_ready 钩子执行失败: {e}")
+                logger.error(f" on_ready 钩子执行失败: {e}")
 
     # ── 循环依赖检测 ──
 
@@ -127,7 +127,7 @@ class PluginManager:
                 elif dep in path:
                     cycle_start = path.index(dep)
                     cycle = " -> ".join(path[cycle_start:]) + " -> " + dep
-                    logger.error(f"❌ 检测到循环依赖: {cycle}")
+                    logger.error(f" 检测到循环依赖: {cycle}")
                     return True
         path.pop()
         return False
@@ -156,7 +156,7 @@ class PluginManager:
         元数据来自 metadata.toml（主通道）+ @on_command 装饰器（副通道）
         """
         if self._initialized:
-            logger.warning("⚠️ 插件管理器已初始化，无需重复调用")
+            logger.warning(" 插件管理器已初始化，无需重复调用")
             return
         self._registry.clear()
         self._versions.clear()
@@ -182,7 +182,7 @@ class PluginManager:
         for pname in self._dep_graph:
             if pname not in self._visited:
                 if self.check_circular_dependency(pname, set(), []):
-                    logger.error("❌ 检测到循环依赖，初始化失败！")
+                    logger.error(" 检测到循环依赖，初始化失败！")
                     return
 
         # 第二阶段：按依赖顺序加载
@@ -195,8 +195,8 @@ class PluginManager:
         self._initialized = True
         from loyan.core.logger_manager import logger_manager
         import logging
-        logger_manager.log_with_context(logger, logging.INFO, f"\n✅ 插件管理器初始化完成！")
-        logger_manager.log_with_context(logger, logging.INFO, f"📊 共注册成功 {len(self._registry)} 个插件：")
+        logger_manager.log_with_context(logger, logging.INFO, f"\n 插件管理器初始化完成！")
+        logger_manager.log_with_context(logger, logging.INFO, f" 共注册成功 {len(self._registry)} 个插件：")
         for idx, plugin in enumerate(self._registry, 1):
             show_cmds = plugin['commands'][:3] + ["..."] if len(plugin['commands']) > 3 else plugin['commands']
             ver_info = f" | 版本：{plugin.get('version', '未指定')}"
@@ -209,23 +209,23 @@ class PluginManager:
         """扫描所有插件的 metadata.toml，返回 {name: meta}"""
         plugins_meta = {}
         if not os.path.exists(plugin_dir):
-            logger.error(f"❌ 插件目录 {plugin_dir} 不存在，跳过插件加载")
+            logger.error(f" 插件目录 {plugin_dir} 不存在，跳过插件加载")
             return plugins_meta
 
         disabled_set = self.load_disabled_plugins()
         if disabled_set:
-            logger.info(f"🚫 已禁用插件: {', '.join(sorted(disabled_set))}")
+            logger.info(f" 已禁用插件: {', '.join(sorted(disabled_set))}")
 
         for plugin_name in os.listdir(plugin_dir):
             if plugin_name in disabled_set:
-                logger.debug(f"🚫 插件 {plugin_name} 已被禁用，跳过加载")
+                logger.debug(f" 插件 {plugin_name} 已被禁用，跳过加载")
                 continue
             plugin_path = os.path.join(plugin_dir, plugin_name)
             if not os.path.isdir(plugin_path):
                 continue
             toml_path = os.path.join(plugin_path, "metadata.toml")
             if not os.path.exists(toml_path):
-                logger.warning(f"❌ 插件 {plugin_name} 缺少 metadata.toml，跳过加载")
+                logger.warning(f" 插件 {plugin_name} 缺少 metadata.toml，跳过加载")
                 continue
             try:
                 meta = load_plugin_toml(toml_path, plugin_path)
@@ -233,11 +233,11 @@ class PluginManager:
                 deps = meta.get("dependencies", [])
                 self._dep_graph[plugin_name] = [d["name"] for d in deps] if deps else []
                 plugins_meta[plugin_name] = meta
-                logger.debug(f"🔍 [TOML] 成功读取插件 {plugin_name} v{meta['version']} priority={meta['priority']}")
+                logger.debug(f" [TOML] 成功读取插件 {plugin_name} v{meta['version']} priority={meta['priority']}")
             except TOMLPluginError as e:
-                logger.error(f"❌ {e}")
+                logger.error(f" {e}")
             except Exception as e:
-                logger.error(f"❌ 插件 {plugin_name} metadata.toml 加载异常: {e}", exc_info=True)
+                logger.error(f" 插件 {plugin_name} metadata.toml 加载异常: {e}", exc_info=True)
         return plugins_meta
 
     # ── 第二阶段：按依赖顺序加载 ──
@@ -250,7 +250,7 @@ class PluginManager:
             if plugin_name in loaded:
                 return True
             if plugin_name not in plugins_meta:
-                logger.error(f"❌ 依赖插件 '{plugin_name}' 不存在")
+                logger.error(f" 依赖插件 '{plugin_name}' 不存在")
                 return False
             meta = plugins_meta[plugin_name]
             for dep in meta.get("dependencies", []):
@@ -259,7 +259,7 @@ class PluginManager:
                         return False
             ok, err = self.check_plugin_dependencies(plugin_name, meta.get("dependencies", []))
             if not ok:
-                logger.error(f"❌ 插件 '{plugin_name}' 依赖检查失败: {err}")
+                logger.error(f" 插件 '{plugin_name}' 依赖检查失败: {err}")
                 return False
             try:
                 plugin_path = meta["plugin_path"]
@@ -269,7 +269,7 @@ class PluginManager:
                     core_file = f"{plugin_name}.py"
                     core_path = os.path.join(plugin_path, core_file)
                     if not os.path.exists(core_path):
-                        logger.error(f"❌ 插件 {plugin_name} 缺失核心文件 main.py 或 {core_file}，跳过加载")
+                        logger.error(f" 插件 {plugin_name} 缺失核心文件 main.py 或 {core_file}，跳过加载")
                         return False
                 mod_name = f"loyan.plugins.{plugin_name}.{core_file[:-3]}"
                 parent_name = f"loyan.plugins.{plugin_name}"
@@ -285,11 +285,11 @@ class PluginManager:
 
                 handler_name = meta["handler"]
                 if not hasattr(module, handler_name):
-                    logger.error(f"❌ 插件 {plugin_name} 中缺失处理函数 {handler_name}，跳过加载")
+                    logger.error(f" 插件 {plugin_name} 中缺失处理函数 {handler_name}，跳过加载")
                     return False
                 handler_func = getattr(module, handler_name)
                 if not callable(handler_func):
-                    logger.error(f"❌ 插件 {plugin_name} 中 {handler_name} 不可调用，跳过加载")
+                    logger.error(f" 插件 {plugin_name} 中 {handler_name} 不可调用，跳过加载")
                     return False
 
                 # 扫描装饰器
@@ -304,14 +304,14 @@ class PluginManager:
                             chat_type=meta.get("chat_type", ["private", "group"]),
                             is_at_required=meta.get("is_at_required", False),
                         )
-                        logger.debug(f"🔍 [装饰器] 插件 {pname} 注册命令: {attr_val._loyan_on_command}")
+                        logger.debug(f" [装饰器] 插件 {pname} 注册命令: {attr_val._loyan_on_command}")
                     if callable(attr_val) and hasattr(attr_val, "_loyan_fallback"):
                         _register_fallback_function(
                             attr_val,
                             plugin_name=pname,
                             chat_type=meta.get("chat_type", ["private", "group"]),
                         )
-                        logger.debug(f"🔍 [装饰器] 插件 {pname} 注册兜底处理器")
+                        logger.debug(f" [装饰器] 插件 {pname} 注册兜底处理器")
 
                 self._registry.append({
                     **meta,
@@ -321,13 +321,13 @@ class PluginManager:
                 self._versions[plugin_name] = meta["version"]
                 loaded.add(plugin_name)
                 self._init_plugin_config(plugin_name, plugin_path)
-                logger.debug(f"✅ 插件 {plugin_name} (v{meta['version']}) 注册成功！")
+                logger.debug(f" 插件 {plugin_name} (v{meta['version']}) 注册")
                 if meta.get("dependencies"):
                     dep_info = ", ".join(f"{d['name']} (>= {d.get('min_version', '0.0.0')})" for d in meta["dependencies"])
                     logger.debug(f"   依赖: {dep_info}")
                 return True
             except Exception as e:
-                logger.error(f"❌ 加载插件 {plugin_name} 异常: {e}", exc_info=True)
+                logger.error(f" 加载插件 {plugin_name} 异常: {e}", exc_info=True)
                 return False
 
         for pname in plugins_meta:
@@ -367,7 +367,7 @@ class PluginManager:
                 self._registry.append(merged)
                 self._versions[pname] = merged["version"]
                 existing_names.add(pname)
-                logger.debug(f"🔍 [装饰器] 纯装饰器插件: {pname} 命令: {merged['commands']}")
+                logger.debug(f" [装饰器] 纯装饰器插件: {pname} 命令: {merged['commands']}")
 
     # ── 指令匹配（供 Pipeline 调用） ──
 
@@ -447,18 +447,18 @@ class PluginManager:
                 plugin_path = p.get('plugin_path')
                 break
         if not plugin_path:
-            logger.error(f"❌ 未找到插件 {plugin_name}")
+            logger.error(f" 未找到插件 {plugin_name}")
             return False
         try:
             self._registry[:] = [p for p in self._registry if p.get('name') != plugin_name]
             self._versions.pop(plugin_name, None)
-            logger.info(f"🔄 开始重载插件 {plugin_name}")
+            logger.info(f" 开始重载插件 {plugin_name}")
             self._initialized = False
             self.init()
-            logger.info(f"✅ 插件 {plugin_name} 重载完成")
+            logger.info(f" 插件 {plugin_name} 重载完成")
             return True
         except Exception as e:
-            logger.error(f"❌ 重载插件 {plugin_name} 异常: {e}", exc_info=True)
+            logger.error(f" 重载插件 {plugin_name} 异常: {e}", exc_info=True)
             return False
 
     # ── 配置初始化 ──
@@ -517,13 +517,13 @@ class PluginManager:
                 self._plugin_configs[plugin_name] = dict(default)
             return self._plugin_configs[plugin_name]
         except Exception as e:
-            logger.error(f"❌ 插件 {plugin_name} 配置初始化失败: {e}")
+            logger.error(f" 插件 {plugin_name} 配置初始化失败: {e}")
             self._plugin_configs[plugin_name] = {}
             return {}
 
     def shutdown(self):
         """关闭插件管理器，清理资源"""
-        logger.info("🔒 开始关闭插件管理器")
+        logger.info(" 开始关闭插件管理器")
         for plugin in self._registry:
             core_module = plugin.get('core_module')
             if core_module and hasattr(core_module, 'on_shutdown'):
@@ -539,7 +539,7 @@ class PluginManager:
         self._ready_hooks.clear()
         self._plugin_configs.clear()
         self._initialized = False
-        logger.info("✅ 插件管理器已关闭")
+        logger.info(" 插件管理器已关闭")
 
     def get_plugin_config(self, plugin_name: str) -> dict:
         """获取插件配置"""

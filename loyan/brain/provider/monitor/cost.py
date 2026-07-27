@@ -1,6 +1,9 @@
 """费用计算 — 基于 LiteLLM 模型计价表"""
 
-from litellm import model_cost as _litellm_cost
+try:
+    from litellm import model_cost as _litellm_cost
+except Exception:
+    _litellm_cost = {}
 
 
 def calculate(provider: str, model: str, prompt_tokens: int, completion_tokens: int) -> float:

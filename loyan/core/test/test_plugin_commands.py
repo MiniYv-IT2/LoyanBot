@@ -57,9 +57,9 @@ async def main():
     print(f"\n已加载插件: {len(loaded)} 个")
     for p in EXPECTED_PLUGINS:
         if p in loaded:
-            print(f"  ✅ {p}")
+            print(f"   {p}")
         else:
-            print(f"  ❌ {p} — 未加载")
+            print(f"   {p} — 未加载")
 
     # ── 构建 Pipeline ──
     tag = IdentityTag(platform="test", bot_name="test_bot")
@@ -92,7 +92,7 @@ async def main():
         try:
             await pipeline.process(make_event(cmd))
         except Exception as e:
-            print(f"  ❌ [{pname}] {cmd} → 异常: {e}")
+            print(f"   [{pname}] {cmd} → 异常: {e}")
             failed += 1
             RuntimeContext.reset(token)
             continue
@@ -100,10 +100,10 @@ async def main():
             RuntimeContext.reset(token)
 
         if replies:
-            print(f"  ✅ [{pname}] {cmd} → {replies[0][:70]}")
+            print(f"   [{pname}] {cmd} → {replies[0][:70]}")
             passed += 1
         else:
-            print(f"  ⚠️  [{pname}] {cmd} → 无回复")
+            print(f"    [{pname}] {cmd} → 无回复")
             passed += 1
 
     # Brain 命令
@@ -114,7 +114,7 @@ async def main():
         try:
             await pipeline.process(make_event(cmd))
         except Exception as e:
-            print(f"  ❌ [brain] {cmd} → 异常: {e}")
+            print(f"   [brain] {cmd} → 异常: {e}")
             failed += 1
             RuntimeContext.reset(token)
             continue
@@ -122,17 +122,17 @@ async def main():
             RuntimeContext.reset(token)
 
         if replies:
-            print(f"  ✅ [brain] {cmd} → {replies[0][:70]}")
+            print(f"   [brain] {cmd} → {replies[0][:70]}")
             passed += 1
         else:
-            print(f"  ❌ [brain] {cmd} → 无回复")
+            print(f"   [brain] {cmd} → 无回复")
             failed += 1
 
     total = passed + failed + skipped
     print(f"\n{'='*60}")
-    print(f"结果: ✅ {passed}  ❌ {failed}  ⏭ {skipped}  共 {total}")
+    print(f"结果:  {passed}   {failed}  ⏭ {skipped}  共 {total}")
     if failed:
-        print("⚠️  有命令未通过！")
+        print("  有命令未通过！")
     print(f"{'='*60}")
 
 if __name__ == "__main__":

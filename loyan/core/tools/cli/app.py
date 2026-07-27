@@ -62,7 +62,7 @@ def _ensure_local_root() -> Path:
     root = find_project_root()
     if root and is_local_project(root):
         return root
-    typer.echo("❌ 此命令需要在 LoyanBot 项目目录下运行")
+    typer.echo(" 此命令需要在 LoyanBot 项目目录下运行")
     typer.echo("   请 cd 到包含 bot.py 的目录，或克隆项目仓库")
     raise typer.Exit(1)
 
@@ -95,13 +95,13 @@ def cmd_run(
     elif "GRACY_NO_WEBUI" in os.environ:
         del os.environ["GRACY_NO_WEBUI"]
 
-    print("  🚀 启动 LoyanBot ...")
+    print("   启动 LoyanBot ...")
     try:
         asyncio.run(run_bot())
     except KeyboardInterrupt:
-        print("\n  🛑 已停止")
+        print("\n   已停止")
     except Exception as e:
-        print(f"  ❌ 启动失败: {e}")
+        print(f"   启动失败: {e}")
         sys.exit(1)
 
 
@@ -158,9 +158,9 @@ def cmd_status():
                 capture_output=True, text=True, shell=True, timeout=5
             )
             running = bool(r.stdout.strip())
-        typer.echo(f"  运行状态: {'✅ 运行中' if running else '⏹️  未运行'}")
+        typer.echo(f"  运行状态: {' 运行中' if running else '⏹  未运行'}")
     except Exception:
-        typer.echo("  运行状态: ⚠️ 无法检测")
+        typer.echo("  运行状态:  无法检测")
 
 
 @loyan_cli.command("version")
@@ -187,15 +187,15 @@ def cmd_ins(
         if existing.is_dir() and (existing / "requirements.txt").exists():
             # 自动走插件依赖安装
             req = existing / "requirements.txt"
-            typer.echo(f"  📦 检测到插件 {package}，安装依赖...")
+            typer.echo(f"   检测到插件 {package}，安装依赖...")
             pip_install([], req_file=str(req))
-            typer.echo(f"  ✅ 安装完成")
+            typer.echo(f"   安装完成")
             return
 
     # 普通 Python 包安装
-    typer.echo(f"  📦 安装 {package}...")
+    typer.echo(f"   安装 {package}...")
     pip_install([package])
-    typer.echo(f"  ✅ 安装完成")
+    typer.echo(f"   安装完成")
 
 
 @loyan_cli.command("set")
@@ -214,7 +214,7 @@ def cmd_set(
     }
     real_key = key_map.get(key, key)
     if real_key not in ("master_id", "robot_id"):
-        typer.echo(f"  ❌ 不支持的配置项: {key}")
+        typer.echo(f"   不支持的配置项: {key}")
         typer.echo(f"  支持: master, bot (robot)")
         raise typer.Exit(1)
 
@@ -224,7 +224,7 @@ def cmd_set(
 
     cfg[real_key] = value
     cfg_file.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
-    typer.echo(f"  ✅ {real_key} = {value}")
+    typer.echo(f"   {real_key} = {value}")
 
 
 # ═══════════════════════════ 插件管理 ═══════════════════════════
@@ -236,11 +236,11 @@ def cmd_plugin_list():
     root = _ensure_local_root()
     plugins = list_plugins(root)
     if not plugins:
-        typer.echo("  ℹ️  没有安装任何插件")
+        typer.echo("  ℹ  没有安装任何插件")
         return
     typer.echo(f"  共 {len(plugins)} 个插件:")
     for p in plugins:
-        deps = " 📦" if p["has_requirements"] else ""
+        deps = " " if p["has_requirements"] else ""
         typer.echo(f"    • {p['name']}{deps}")
 
 
@@ -271,16 +271,16 @@ def cmd_disable(
     plugins_dir = Path(get_plugins_dir())
     target = plugins_dir / name
     if not target.is_dir():
-        typer.echo(f"  ❌ 插件 {name} 不存在（目录: {plugins_dir}）")
+        typer.echo(f"   插件 {name} 不存在（目录: {plugins_dir}）")
         raise typer.Exit(1)
 
     disabled = plugin_manager.load_disabled_plugins()
     if name in disabled:
-        typer.echo(f"  ⚠️ 插件 {name} 已被禁用")
+        typer.echo(f"   插件 {name} 已被禁用")
         return
     disabled.add(name)
     plugin_manager.save_disabled_plugins(disabled)
-    typer.echo(f"  ✅ 已禁用插件 {name}（下次启动生效）")
+    typer.echo(f"   已禁用插件 {name}（下次启动生效）")
 
 
 @loyan_cli.command("enable")
@@ -290,11 +290,11 @@ def cmd_enable(
     """启用插件（下次启动生效）"""
     disabled = plugin_manager.load_disabled_plugins()
     if name not in disabled:
-        typer.echo(f"  ℹ️ 插件 {name} 未被禁用")
+        typer.echo(f"  ℹ 插件 {name} 未被禁用")
         return
     disabled.discard(name)
     plugin_manager.save_disabled_plugins(disabled)
-    typer.echo(f"  ✅ 已启用插件 {name}（下次启动生效）")
+    typer.echo(f"   已启用插件 {name}（下次启动生效）")
 
 
 @loyan_cli.command("disabled")
@@ -302,7 +302,7 @@ def cmd_disabled():
     """查看已禁用的插件"""
     disabled = plugin_manager.load_disabled_plugins()
     if not disabled:
-        typer.echo("  ℹ️ 没有已禁用的插件")
+        typer.echo("  ℹ 没有已禁用的插件")
         return
     typer.echo(f"  共 {len(disabled)} 个已禁用插件:")
     for p in sorted(disabled):
@@ -325,7 +325,7 @@ def cmd_config_show():
                 v_str = v_str[:57] + "..."
             typer.echo(f"  {k}: {v_str}")
     else:
-        typer.echo("  ℹ️  配置文件不存在")
+        typer.echo("  ℹ  配置文件不存在")
 
 
 @config_cli.command("edit")
@@ -346,9 +346,9 @@ def cmd_config_edit():
                 capture_output=True, text=True
             ).stdout.split()[0])
             subprocess.run([editor, str(cfg_file)], check=True)
-        typer.echo("  ✅ 配置已保存")
+        typer.echo("   配置已保存")
     except Exception as e:
-        typer.echo(f"  ⚠️ 无法打开编辑器: {e}")
+        typer.echo(f"   无法打开编辑器: {e}")
         typer.echo(f"  请手动编辑: {cfg_file}")
 
 

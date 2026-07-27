@@ -1,0 +1,52 @@
+{
+  "app_id": {
+    "en-US": {
+      "description": "App ID",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "App ID",
+      "hint": ""
+    }
+  },
+  "app_secret": {
+    "en-US": {
+      "description": "App Secret",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "App Secret",
+      "hint": ""
+    }
+  },
+  "is_sandbox": {
+    "en-US": {
+      "description": "Sandbox Mode",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Песочница",
+      "hint": ""
+    }
+  },
+  "robot_id": {
+    "en-US": {
+      "description": "Bot ID",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "ID бота",
+      "hint": ""
+    }
+  },
+  "admins_id": {
+    "en-US": {
+      "description": "Admin IDs",
+      "hint": "Comma separated user IDs"
+    },
+    "ru-RU": {
+      "description": "ID администраторов",
+      "hint": "ID пользователей через запятую"
+    }
+  }
+}

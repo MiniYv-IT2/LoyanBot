@@ -1,0 +1,42 @@
+{
+  "api_key": {
+    "en-US": {
+      "description": "Credential (format: appid|api_key|api_secret)",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Учётные данные (формат: appid|api_key|api_secret)",
+      "hint": ""
+    }
+  },
+  "timeout": {
+    "en-US": {
+      "description": "Request Timeout (s)",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Таймаут запроса (с)",
+      "hint": ""
+    }
+  },
+  "proxy": {
+    "en-US": {
+      "description": "Proxy Address",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Адрес прокси",
+      "hint": ""
+    }
+  },
+  "admins_id": {
+    "en-US": {
+      "description": "Admin IDs",
+      "hint": "Comma separated user IDs"
+    },
+    "ru-RU": {
+      "description": "ID администраторов",
+      "hint": "ID пользователей через запятую"
+    }
+  }
+}

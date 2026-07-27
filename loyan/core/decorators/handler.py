@@ -52,6 +52,9 @@ def plugin_handler(func: Callable) -> Callable:
             if perm_level == "master":
                 from loyan.core.pipeline.helpers import is_master
                 allowed = is_master(ctx)
+            elif perm_level == "admin":
+                from loyan.core.pipeline.helpers import is_admin
+                allowed = is_admin(ctx)
             else:
                 allowed = await check_permission_decorator(ctx.sender_id, perm_level)
             if not allowed:

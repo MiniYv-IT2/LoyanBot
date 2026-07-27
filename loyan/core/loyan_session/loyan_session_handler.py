@@ -83,7 +83,7 @@ def handle_session_command(
     if target_user:
         is_master, msg = security_manager.check_master_permission(sender_id)
         if not is_master:
-            reply = "⚠️ 权限不足！只有机器人主人才可以管理其他用户的会话"
+            reply = " 权限不足！只有机器人主人才可以管理其他用户的会话"
             send_msg_func(target_id, LoyanText(text=reply), chat_type=chat_type)
             logger.warning(
                 f"[会话管理] 用户{sender_id}尝试管理其他用户会话，权限不足"
@@ -118,7 +118,7 @@ def _handle_clear_session(
     success = manager.destroy_session(target_sender, target_id if chat_type == "group" else None)
 
     if success:
-        reply = f"✅ 会话已清理成功！"
+        reply = f" 会话已清理成功！"
         target_str = f"用户{target_sender}"
         if chat_type == "group":
             target_str += f" 在群{target_id}"
@@ -127,7 +127,7 @@ def _handle_clear_session(
         # 会话不存在，也视为成功（创建新的）
         from loyan.core.loyan_session import loyan_create_session
         loyan_create_session(target_sender, target_id if chat_type == "group" else None)
-        reply = f"✅ 会话已重置！"
+        reply = f" 会话已重置！"
         target_str = f"用户{target_sender}"
         if chat_type == "group":
             target_str += f" 在群{target_id}"
@@ -150,7 +150,7 @@ def _handle_view_session(
     session = loyan_get_session(target_sender, target_id if chat_type == "group" else None)
 
     if session is None:
-        reply = f"📭 当前没有活跃会话"
+        reply = f" 当前没有活跃会话"
         logger.info(f"[会话管理] 用户{target_sender} 没有活跃会话")
         send_msg_func(target_id, LoyanText(text=reply), chat_type=chat_type)
         return
@@ -164,7 +164,7 @@ def _handle_view_session(
     session_type = "共享会话" if chat_type == "group" and session.sender_id is None else "独立会话"
 
     lines = [
-        f"📋 会话信息 ({group_info})",
+        f" 会话信息 ({group_info})",
         f"• 会话ID: {session.session_id[:20]}...",
         f"• 用户: {session.sender_id or '群共享'}",
         f"• 类型: {session_type}",

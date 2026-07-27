@@ -34,7 +34,7 @@ for dirpath, _dirnames, files in os.walk(os.path.join(LOCALES, SOURCE)):
                 if m and m.group(1) in keys:
                     val = keys[m.group(1)]
                     try:
-                        r = ts.translate_text(val, translator="youdao", from_language="zh", to_language="en" if target == "en-US" else "ru")
+                        r = ts.translate_text(val, translator="bing", from_language="zh", to_language="en" if target == "en-US" else "ru")
                         new_lines.append(line.replace(f'"{val}"', f'"{r.strip()}"').replace(f"'{val}'", f"'{r.strip()}'"))
                     except Exception as e:
                         print(f"  !! {m.group(1)}: {e}")

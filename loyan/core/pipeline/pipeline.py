@@ -65,6 +65,7 @@ class Stage(ABC):
 
     timeout: float = STAGE_TIMEOUT
     on_skip: str = "break"
+    force_run: bool = False  # True = 即使短路也执行
 
     async def initialize(self) -> None:
         ...
@@ -317,6 +318,10 @@ class Pipeline:
                     )
                     if self._skip_after_on_break:
                         after_stack.pop()
+                    # 跑完剩余的 force_run stage
+                    for s in self._stages[i+1:]:
+                        if getattr(s, 'force_run', False):
+                            await s.process(current_ctx)
                     if getattr(stage, 'on_skip', 'break') == 'skip':
                         continue
                     break

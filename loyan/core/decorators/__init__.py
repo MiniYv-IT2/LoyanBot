@@ -16,7 +16,7 @@
 
 from .context import PluginContext
 from .registration import on_command, on_regex, on_keyword, loyan_plugin, DECORATOR_COMMAND_REGISTRY
-from .security import require_permission, require_master, rate_limit, cooldown
+from .security import require_permission, require_master, require_admin, rate_limit, cooldown
 from .handler import plugin_handler
 from .session import with_session
 from .async_utils import async_retry, background
@@ -24,7 +24,7 @@ from .async_utils import async_retry, background
 __all__ = [
     "PluginContext",
     "on_command", "on_regex", "on_keyword", "loyan_plugin", "DECORATOR_COMMAND_REGISTRY",
-    "require_permission", "require_master", "rate_limit", "cooldown",
+    "require_permission", "require_master", "require_admin", "rate_limit", "cooldown",
     "plugin_handler",
     "with_session",
     "async_retry", "background",

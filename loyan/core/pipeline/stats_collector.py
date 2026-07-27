@@ -11,6 +11,8 @@ _logger = logging.getLogger("Core.Stats")
 
 
 class StatsCollector(Stage):
+    force_run: bool = True
+
     def __init__(self):
         self._db = None
 
@@ -24,7 +26,7 @@ class StatsCollector(Stage):
                 chat_type TEXT
             )
         """)
-        _logger.info("消息统计 Stage 已初始化")
+        _logger.debug("消息统计 Stage 已初始化")
 
     async def process(self, event: LoyanEvent) -> LoyanEvent:
         if not event or not event.sender_id:

@@ -17,7 +17,7 @@ import httpx
 
 from graci import (
     on_command, plugin_handler, PluginContext, get_logger,
-    require_master, Quart, send_from_directory, request, Config, serve,
+    require_master, Quart, send_from_directory, Config, serve,
 )
 
 from .auth import (
@@ -27,8 +27,8 @@ from .auth import (
 )
 
 from loyan.core.tools.schema_i18n import (
-    build_adapter_schema_response,
-    list_adapter_types,
+    build_schema_response,
+    list_source_types,
 )
 
 logger = get_logger("LoyanUI")
@@ -85,6 +85,7 @@ def _get_public_ip():
 
 
 def _create_app():
+    from graci import request
     app = Quart("LoyanUI")
 
     @app.route("/api/loyanui/auth/login", methods=["POST"])
@@ -114,14 +115,69 @@ def _create_app():
 
     @app.route("/api/loyanui/adapter/types")
     async def adapter_types():
-        return {"success": True, "data": list_adapter_types()}
+        return {"success": True, "data": await list_source_types()}
 
     @app.route("/api/loyanui/adapter/schema/<adapter_type>")
     async def adapter_schema(adapter_type):
-        result = build_adapter_schema_response(adapter_type)
+        result = await build_schema_response(adapter_type)
         if result is None:
             return {"success": False, "error": "adapter.not_found"}, 404
         return {"success": True, "data": result}
+
+    @app.route("/api/loyanui/stats")
+    async def stats():
+        from loyan.core.pipeline.stats_collector import stats_collector
+        try:
+            result = await stats_collector.get_stats(hours=24)
+            return {"success": True, "data": result}
+        except Exception as e:
+            return {"success": False, "error": str(e)}, 500
+
+    # ── 实例管理 API ──
+
+    @app.route("/api/loyanui/instances", methods=["GET"])
+    async def panel_list_instances():
+        from loyan.core.tools.paths import get_instances_dir
+        import json
+        base = get_instances_dir()
+        if not os.path.isdir(base):
+            return {"success": True, "data": []}
+        items = []
+        for name in sorted(os.listdir(base)):
+            cfg_path = os.path.join(base, name, "config.json")
+            if os.path.isfile(cfg_path):
+                with open(cfg_path, encoding="utf-8") as f:
+                    cfg = json.load(f)
+                cfg["_name"] = name
+                items.append(cfg)
+        return {"success": True, "data": items}
+
+    @app.route("/api/loyanui/instances", methods=["POST"])
+    async def panel_create_instance():
+        from loyan.core.tools.paths import get_instances_dir
+        import json
+        data = await request.get_json()
+        if not data or not data.get("name"):
+            return {"success": False, "error": "name_required"}, 400
+        name = data.pop("name")
+        base = os.path.join(get_instances_dir(), name)
+        os.makedirs(base, exist_ok=True)
+        cfg_path = os.path.join(base, "config.json")
+        data["enabled"] = data.get("enabled", True)
+        data["bot_name"] = data.get("bot_name", name)
+        with open(cfg_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return {"success": True}
+
+    @app.route("/api/loyanui/instances/<name>", methods=["DELETE"])
+    async def panel_delete_instance(name):
+        from loyan.core.tools.paths import get_instances_dir
+        import shutil
+        path = os.path.join(get_instances_dir(), name)
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+            return {"success": True}
+        return {"success": False, "error": "not_found"}, 404
 
     @app.route("/api/loyanui/auth/verify")
     async def verify():
@@ -239,19 +295,19 @@ async def handle_panel(ctx: PluginContext):
             return
         old_pw, new_pw = args
         if not verify_password(old_pw):
-            await ctx.reply("❌ 旧密码错误")
+            await ctx.reply(" 旧密码错误")
             return
         ok, msg = validate_password(new_pw)
         if not ok:
-            await ctx.reply(f"❌ {msg}")
+            await ctx.reply(f" {msg}")
             return
         change_password(old_pw, new_pw)
-        await ctx.reply("✅ 面板密码已修改")
+        await ctx.reply(" 面板密码已修改")
         logger.info(f"用户 {ctx.sender_id} 修改了面板密码")
         return
 
     port = get_port()
-    lines = ["🖥️ LoyanUI 管理面板", ""]
+    lines = [" LoyanUI 管理面板", ""]
     lines.append(f"  端口    {port}")
     lines.append(f"  本地  http://127.0.0.1:{port}")
 
@@ -279,4 +335,4 @@ def start_panel():
     _t.start()
 
 
-start_panel()
+threading.Timer(1.0, start_panel).start()

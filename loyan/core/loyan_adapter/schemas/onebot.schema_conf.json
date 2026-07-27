@@ -1,9 +1,0 @@
-{
-  "type": {"type": "str", "default": "ws_reverse", "description": "连接类型（ws_forward / ws_reverse / http）", "required": true, "i18n": {"en-US": "Connection Type", "ru-RU": "Тип подключения"}},
-  "host": {"type": "str", "default": "127.0.0.1", "description": "服务地址", "i18n": {"en-US": "Host", "ru-RU": "Хост"}},
-  "port": {"type": "int", "default": 8080, "description": "服务端口", "i18n": {"en-US": "Port", "ru-RU": "Порт"}},
-  "access_token": {"type": "str", "default": "", "description": "access_token（可选）", "secret": true, "i18n": {"en-US": "Access Token (optional)", "ru-RU": "Токен доступа (опционально)"}},
-  "master_id": {"type": "str", "default": "", "description": "主人 ID", "i18n": {"en-US": "Master User ID", "ru-RU": "ID владельца"}},
-  "robot_id": {"type": "str", "default": "", "description": "机器人 ID", "i18n": {"en-US": "Bot ID", "ru-RU": "ID бота"}},
-  "callback_port": {"type": "int", "default": 3002, "description": "HTTP 回调端口（HTTP 模式用）", "i18n": {"en-US": "Callback Port", "ru-RU": "Порт обратного вызова"}}
-}

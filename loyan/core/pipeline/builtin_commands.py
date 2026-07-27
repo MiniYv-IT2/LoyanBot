@@ -34,7 +34,7 @@ class BuiltinCommands(Stage):
 
         if raw_msg == "/关机":
             if is_master_user:
-                await loyan_send_msg(target_id, LoyanText(text="🛑 正在执行关机操作...机器人将在3秒后关闭"), chat_type=chat_type)
+                await loyan_send_msg(target_id, LoyanText(text=" 正在执行关机操作...机器人将在3秒后关闭"), chat_type=chat_type)
                 _logger.info(f"[内置命令] 主人{sender_id}执行/关机命令")
 
                 async def delayed_shutdown():
@@ -61,13 +61,13 @@ class BuiltinCommands(Stage):
 
                 asyncio.ensure_future(delayed_shutdown())
             else:
-                await loyan_send_msg(target_id, LoyanText(text="⚠️ 权限不足！只有主人可以执行关机操作"), chat_type=chat_type)
+                await loyan_send_msg(target_id, LoyanText(text=" 权限不足！只有主人可以执行关机操作"), chat_type=chat_type)
                 _logger.warning(f"[安全防护] 用户{sender_id}尝试关机，权限不足")
             return None
 
         if raw_msg == "/重启":
             if is_master_user:
-                await loyan_send_msg(target_id, LoyanText(text="🔄 正在执行重启操作...机器人将在5秒后重启"), chat_type=chat_type)
+                await loyan_send_msg(target_id, LoyanText(text=" 正在执行重启操作...机器人将在5秒后重启"), chat_type=chat_type)
                 _logger.info(f"[内置命令] 主人{sender_id}执行/重启命令")
 
                 async def delayed_restart():
@@ -88,13 +88,13 @@ class BuiltinCommands(Stage):
 
                 asyncio.ensure_future(delayed_restart())
             else:
-                await loyan_send_msg(target_id, LoyanText(text="⚠️ 权限不足！只有主人可以执行重启操作"), chat_type=chat_type)
+                await loyan_send_msg(target_id, LoyanText(text=" 权限不足！只有主人可以执行重启操作"), chat_type=chat_type)
                 _logger.warning(f"[安全防护] 用户{sender_id}尝试重启，权限不足")
             return None
 
         if raw_msg == "/开机":
             if is_master_user:
-                await loyan_send_msg(target_id, LoyanText(text="🚀 正在执行开机操作...机器人服务将在3秒后启动"), chat_type=chat_type)
+                await loyan_send_msg(target_id, LoyanText(text=" 正在执行开机操作...机器人服务将在3秒后启动"), chat_type=chat_type)
                 _logger.info(f"[内置命令] 主人{sender_id}执行/开机命令")
 
                 async def delayed_startup():
@@ -123,7 +123,7 @@ class BuiltinCommands(Stage):
 
                 asyncio.ensure_future(delayed_startup())
             else:
-                await loyan_send_msg(target_id, LoyanText(text="⚠️ 权限不足！只有主人可以执行开机操作"), chat_type=chat_type)
+                await loyan_send_msg(target_id, LoyanText(text=" 权限不足！只有主人可以执行开机操作"), chat_type=chat_type)
                 _logger.warning(f"[安全防护] 用户{sender_id}尝试开机，权限不足")
             return None
 

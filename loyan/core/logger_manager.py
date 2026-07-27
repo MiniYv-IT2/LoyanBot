@@ -249,7 +249,7 @@ class LoggerManager:
             main_logger.info(f"结构化日志: {'是' if structured else '否'}")
             return True
         except Exception as e:
-            print(f"❌ 日志系统初始化失败: {str(e)}")
+            print(f" 日志系统初始化失败: {str(e)}")
             return False
 
     def get_logger(self, name: str) -> logging.Logger:
@@ -270,14 +270,14 @@ class LoggerManager:
             self.get_logger('LoyanBot').info(f"日志级别 {'全局' if not logger_name else f'日志器 {logger_name}'} 设置为 {level}")
             return True
         except Exception as e:
-            print(f"❌ 设置日志级别失败: {str(e)}")
+            print(f" 设置日志级别失败: {str(e)}")
             return False
 
     def log_with_context(self, logger, level, message="无日志消息", context=None, exc_info=False, **kwargs) -> None:
         if isinstance(logger, str):
             logger = self.get_logger(logger)
         if not hasattr(logger, 'log'):
-            print(f"❌ 无效的logger对象: {type(logger)}")
+            print(f" 无效的logger对象: {type(logger)}")
             return
 
         extra = {}

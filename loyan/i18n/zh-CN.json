@@ -51,5 +51,15 @@
     "failover": "失败，切下一个",
     "all_failed": "所有提供商失败: {detail}",
     "no_method": "没有方法"
+  },
+  "admins_id": {
+    "en-US": {
+      "description": "Admin IDs",
+      "hint": "Comma separated user IDs"
+    },
+    "ru-RU": {
+      "description": "ID администраторов",
+      "hint": "ID пользователей через запятую"
+    }
   }
 }

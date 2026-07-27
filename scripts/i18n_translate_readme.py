@@ -73,7 +73,7 @@ for target in TARGETS:
             out_lines.append(stripped)
         else:
             try:
-                translated = ts.translate_text(stripped, translator="youdao", from_language=target["from"], to_language=target["to"])
+                translated = ts.translate_text(stripped, translator="bing", from_language=target["from"], to_language=target["to"])
                 translated = restore_protected(translated.strip())
                 # 应用误译修正
                 fixes = TRANSLATION_FIXES.get(target["suffix"].lstrip("_"), {})

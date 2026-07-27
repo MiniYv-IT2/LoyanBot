@@ -1,0 +1,23 @@
+{
+  "api_base": {
+    "type": "str",
+    "default": "http://localhost:11434",
+    "description": "Ollama 服务地址"
+  },
+  "timeout": {
+    "type": "int",
+    "default": 60,
+    "description": "请求超时（秒）"
+  },
+  "proxy": {
+    "type": "str",
+    "default": "",
+    "description": "代理地址"
+  },
+  "admins_id": {
+    "type": "list",
+    "default": [],
+    "description": "管理员 ID 列表",
+    "hint": "多个用逗号分隔"
+  }
+}

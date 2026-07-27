@@ -46,12 +46,12 @@ def _enable_autostart(plat: str, python: str, script: str, root: Path) -> bool:
                     f'@cd /d "{root}"\n@start "" "{python}" "{script}"\n',
                     encoding="gbk"
                 )
-                print("  ✅ 已添加开机自启（启动文件夹）")
+                print("   已添加开机自启（启动文件夹）")
                 return True
             # 方式2：schtasks（需管理员，降级）
             task = f'''schtasks /create /tn "{name}" /tr "\"{python}\" \"{script}\"" /sc onlogon /f'''
             subprocess.check_call(task, shell=True, timeout=10)
-            print("  ✅ 已添加开机自启（Windows 任务计划）")
+            print("   已添加开机自启（Windows 任务计划）")
             return True
 
         elif plat == "linux" and has_systemd():
@@ -74,7 +74,7 @@ WantedBy=default.target
             unit_path.write_text(unit, encoding="utf-8")
             subprocess.check_call(["systemctl", "--user", "daemon-reload"], timeout=10)
             subprocess.check_call(["systemctl", "--user", "enable", "loyan"], timeout=10)
-            print("  ✅ 已添加 systemd --user 自启")
+            print("   已添加 systemd --user 自启")
             return True
 
         elif plat == "termux":
@@ -83,7 +83,7 @@ WantedBy=default.target
             if line not in bashrc.read_text(encoding="utf-8"):
                 with open(bashrc, "a", encoding="utf-8") as f:
                     f.write(f"\n# LoyanBot autostart\n{line}\n")
-            print("  ✅ 已添加 Termux 自启（~/.bashrc）")
+            print("   已添加 Termux 自启（~/.bashrc）")
             return True
 
         elif plat == "macos":
@@ -103,7 +103,7 @@ WantedBy=default.target
             plist_path.parent.mkdir(parents=True, exist_ok=True)
             plist_path.write_text(plist, encoding="utf-8")
             subprocess.check_call(["launchctl", "load", str(plist_path)], timeout=10)
-            print("  ✅ 已添加 macOS LaunchAgent 自启")
+            print("   已添加 macOS LaunchAgent 自启")
             return True
 
         else:
@@ -116,11 +116,11 @@ WantedBy=default.target
                         with open(rc, "a", encoding="utf-8") as f:
                             f.write(f"\n# LoyanBot autostart\n{line}\n")
                     break
-            print(f"  ✅ 已添加开机自启（~/.bashrc）")
+            print(f"   已添加开机自启（~/.bashrc）")
             return True
 
     except Exception as e:
-        print(f"  ⚠️ 设置自启失败: {e}")
+        print(f"   设置自启失败: {e}")
         print("  请手动添加开机自启命令:", f"{python} {script}")
         return False
 
@@ -137,7 +137,7 @@ def _disable_autostart(plat: str, python: str, script: str, root: Path) -> bool:
                 subprocess.check_call("schtasks /delete /tn LoyanBot /f", shell=True, timeout=10)
             except Exception:
                 pass
-            print("  ✅ 已移除开机自启")
+            print("   已移除开机自启")
             return True
         elif plat == "linux" and has_systemd():
             subprocess.check_call(["systemctl", "--user", "disable", "loyan"], timeout=10)
@@ -145,7 +145,7 @@ def _disable_autostart(plat: str, python: str, script: str, root: Path) -> bool:
             if unit.exists():
                 unit.unlink()
             subprocess.check_call(["systemctl", "--user", "daemon-reload"], timeout=10)
-            print("  ✅ 已移除 systemd 自启")
+            print("   已移除 systemd 自启")
             return True
         elif plat == "macos":
             label = "com.loyan.runner"
@@ -153,13 +153,13 @@ def _disable_autostart(plat: str, python: str, script: str, root: Path) -> bool:
             subprocess.check_call(["launchctl", "unload", str(plist_path)], timeout=10)
             if plist_path.exists():
                 plist_path.unlink()
-            print("  ✅ 已移除 macOS 自启")
+            print("   已移除 macOS 自启")
             return True
         else:
-            print("  ⚠️ 请手动删除 ~/.bashrc 中的 LoyanBot 启动行")
+            print("   请手动删除 ~/.bashrc 中的 LoyanBot 启动行")
             return False
     except Exception as e:
-        print(f"  ⚠️ 移除自启失败: {e}")
+        print(f"   移除自启失败: {e}")
         return False
 
 
@@ -172,16 +172,16 @@ def uninstall_bot(root: Path, backup_first: bool = True):
       3. 删除目录
     """
     if backup_first:
-        print("  📦 先进行备份...")
+        print("   先进行备份...")
         bak_dir = Path.cwd() / "loyan_backup"
         bak_dir.mkdir(exist_ok=True)
         archive = make_archive(root, bak_dir)
         if archive:
-            print(f"  ✅ 备份完成: {archive}")
+            print(f"   备份完成: {archive}")
     _disable_autostart(get_platform_label(), sys.executable, str(root / "bot.py"), root)
-    print(f"  🗑️  删除 {root} ...")
+    print(f"    删除 {root} ...")
     shutil.rmtree(root, ignore_errors=True)
-    print("  ✅ LoyanBot 已卸载")
+    print("   LoyanBot 已卸载")
 
 
 def backup_bot(root: Path) -> Optional[Path]:
@@ -190,9 +190,9 @@ def backup_bot(root: Path) -> Optional[Path]:
     bak_dir.mkdir(exist_ok=True)
     archive = make_archive(root, bak_dir)
     if archive:
-        print(f"  ✅ 备份完成: {archive}")
+        print(f"   备份完成: {archive}")
     else:
-        print("  ❌ 备份失败")
+        print("   备份失败")
     return archive
 
 
@@ -212,7 +212,7 @@ def run_bot_process(root: Path, debug: bool = False, no_webui: bool = False):
 
     if venv_python:
         python = venv_python
-        print(f"  📁 使用虚拟环境: {os.path.basename(os.path.dirname(os.path.dirname(venv_python)))}")
+        print(f"   使用虚拟环境: {os.path.basename(os.path.dirname(os.path.dirname(venv_python)))}")
     else:
         python = sys.executable
 
@@ -224,10 +224,10 @@ def run_bot_process(root: Path, debug: bool = False, no_webui: bool = False):
             capture_output=True, timeout=5
         )
         if r.returncode != 0:
-            print(f"  📦 安装核心依赖 ...")
+            print(f"   安装核心依赖 ...")
             from .utils import pip_install
             if not pip_install([], req_file=str(req_file), python=python):
-                print(f"  ❌ 核心依赖安装失败")
+                print(f"   核心依赖安装失败")
                 sys.exit(1)
 
     script = str(root / "bot.py")
@@ -242,13 +242,13 @@ def run_bot_process(root: Path, debug: bool = False, no_webui: bool = False):
     elif "GRACY_NO_WEBUI" in env:
         del env["GRACY_NO_WEBUI"]
 
-    print(f"  🚀 启动 LoyanBot ...")
+    print(f"   启动 LoyanBot ...")
     try:
         subprocess.check_call([python, script], env=env, cwd=str(root))
     except KeyboardInterrupt:
-        print("\n  🛑 已停止")
+        print("\n   已停止")
     except Exception as e:
-        print(f"  ❌ 启动失败: {e}")
+        print(f"   启动失败: {e}")
         sys.exit(1)
 
 
@@ -278,14 +278,14 @@ def stop_bot_process():
                 subprocess.run(f'taskkill /f /pid {pid_str} 2>nul', shell=True, timeout=5)
                 killed = True
             if killed:
-                print("  ✅ 已停止")
+                print("   已停止")
             else:
-                print("  ℹ️  没有找到运行中的 LoyanBot")
+                print("  ℹ  没有找到运行中的 LoyanBot")
         else:
             subprocess.check_call(
                 ["pkill", "-f", "python.*bot.py"],
                 timeout=5,
             )
-            print("  ✅ 已停止")
+            print("   已停止")
     except Exception as e:
-        print(f"  ⚠️ 停止失败: {e}")
+        print(f"   停止失败: {e}")

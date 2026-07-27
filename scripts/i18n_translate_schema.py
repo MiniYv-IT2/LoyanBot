@@ -33,7 +33,7 @@ for schema_dir in SCHEMA_DIRS:
                     i18n[lang["code"]] = desc
                 else:
                     try:
-                        r = ts.translate_text(desc, translator="youdao", from_language=lang["from"], to_language=lang["to"])
+                        r = ts.translate_text(desc, translator="bing", from_language=lang["from"], to_language=lang["to"])
                         i18n[lang["code"]] = r.strip()
                         print(f"  [{lang['code']}] {desc} → {r.strip()}")
                     except Exception as e:

@@ -27,7 +27,6 @@ class PluginHandler(Stage):
 
     async def process(self, ctx: PluginContext) -> Optional[PluginContext]:
         handler_func = ctx.extra.get("handler_func", None)
-        _logger.info(f"[PluginHandler] invoked: cmd={ctx.command!r} plugin={ctx.plugin_name!r} has_handler={handler_func is not None}")
         if not handler_func:
             return ctx
 

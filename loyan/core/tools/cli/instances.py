@@ -50,16 +50,16 @@ def cmd_list():
     """列出所有实例"""
     instances = _list_instances()
     if not instances:
-        typer.echo("  ℹ️  没有实例（storage/instances/<name>/config.json）")
-        typer.echo("  💡 使用 loyan instance add <name> 创建")
+        typer.echo("  ℹ  没有实例（storage/instances/<name>/config.json）")
+        typer.echo("   使用 loyan instance add <name> 创建")
         return
 
     typer.echo(f"  共 {len(instances)} 个实例：")
     typer.echo()
     for inst in instances:
-        status = "🟢 启用" if inst.get("enabled") else "🔴 禁用"
+        status = " 启用" if inst.get("enabled") else " 禁用"
         if inst.get("error"):
-            typer.echo(f"  {status}  {inst['name']}  ⚠️  配置损坏")
+            typer.echo(f"  {status}  {inst['name']}    配置损坏")
             continue
         robot = inst.get("robot_id", "")
         master = inst.get("master_id", "")
@@ -81,7 +81,7 @@ def cmd_add(
     """创建新实例（交互式或静默）"""
     inst_dir = _instances_dir() / name
     if inst_dir.exists():
-        typer.echo(f"  ❌ 实例 {name} 已存在: {inst_dir}")
+        typer.echo(f"   实例 {name} 已存在: {inst_dir}")
         raise typer.Exit(1)
 
     # 交互式补全缺失字段
@@ -127,10 +127,10 @@ def cmd_add(
     with open(cfg_path, "w", encoding="utf-8") as f:
         json.dump(cfg, f, ensure_ascii=False, indent=2)
 
-    typer.echo(f"  ✅ 实例 {name} 已创建")
+    typer.echo(f"   实例 {name} 已创建")
     typer.echo(f"     配置文件: {cfg_path}")
     typer.echo(f"     platform={platform} type={conn_type} robot={robot_id} master={master_id}")
-    typer.echo("  💡 重启生效: loyan stop && loyan run")
+    typer.echo("   重启生效: loyan stop && loyan run")
 
 
 @instance_cli.command("enable")
@@ -153,7 +153,7 @@ def _set_enabled(name: str, enabled: bool):
     """设置实例启用/禁用"""
     cfg_path = _instances_dir() / name / "config.json"
     if not cfg_path.is_file():
-        typer.echo(f"  ❌ 实例 {name} 不存在")
+        typer.echo(f"   实例 {name} 不存在")
         raise typer.Exit(1)
 
     with open(cfg_path, "r", encoding="utf-8") as f:
@@ -164,9 +164,9 @@ def _set_enabled(name: str, enabled: bool):
         json.dump(cfg, f, ensure_ascii=False, indent=2)
 
     status = "启用" if enabled else "禁用"
-    typer.echo(f"  ✅ 实例 {name} 已{status}")
+    typer.echo(f"   实例 {name} 已{status}")
     if enabled:
-        typer.echo("  💡 重启生效: loyan stop && loyan run")
+        typer.echo("   重启生效: loyan stop && loyan run")
     else:
         typer.echo("  (下次启动将跳过此实例)")
 
@@ -179,14 +179,14 @@ def cmd_remove(
     """删除实例（删除目录及所有文件）"""
     inst_dir = _instances_dir() / name
     if not inst_dir.is_dir():
-        typer.echo(f"  ❌ 实例 {name} 不存在")
+        typer.echo(f"   实例 {name} 不存在")
         raise typer.Exit(1)
 
     if not force:
-        confirm = typer.confirm(f"  ⚠️  确定要删除实例 {name} 吗？(不可恢复)")
+        confirm = typer.confirm(f"    确定要删除实例 {name} 吗？(不可恢复)")
         if not confirm:
             typer.echo("  已取消")
             return
 
     shutil.rmtree(inst_dir)
-    typer.echo(f"  ✅ 实例 {name} 已删除")
+    typer.echo(f"   实例 {name} 已删除")

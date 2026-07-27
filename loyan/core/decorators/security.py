@@ -44,6 +44,13 @@ def require_master(func=None):
     return require_permission("master")(func)
 
 
+def require_admin(func=None):
+    """快捷装饰器：管理员可用（等价于 @require_permission("admin")）"""
+    if func is None:
+        return require_permission("admin")
+    return require_permission("admin")(func)
+
+
 # ── @rate_limit — 频率限制 ──
 
 # 全局频率限制计数器 {key: [(timestamp, ...)]}

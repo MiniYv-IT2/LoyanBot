@@ -180,7 +180,6 @@ class AdapterPool:
         for key, (adapter, tag) in items:
             try:
                 adapter.start(_wrapped_on_event)
-                _logger.info(f"[AdapterPool] 已启动: {tag.log_tag}")
             except Exception as e:
                 _logger.error(f"[AdapterPool] 启动失败 {tag.log_tag}: {e}")
 
@@ -191,7 +190,6 @@ class AdapterPool:
         for key, (adapter, tag) in items:
             try:
                 adapter.stop()
-                _logger.info(f"[AdapterPool] 已停止: {tag.log_tag}")
             except Exception as e:
                 _logger.error(f"[AdapterPool] 停止失败 {tag.log_tag}: {e}")
 
