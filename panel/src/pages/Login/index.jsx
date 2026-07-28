@@ -69,19 +69,27 @@ export default function Login() {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        background: `linear-gradient(135deg, ${BG}, ${BG}88)`,
+        background: "#FFC2D1",
         position: "relative",
       }}
     >
-      <div style={{ position: "absolute", top: 16, right: 16, zIndex: 10 }}>
+      <div
+        style={{
+          position: "absolute",
+          top: 0, left: 0, right: 0,
+          height: 8,
+          background: "#FF8FAB",
+          borderBottom: "3px solid #000",
+        }}
+      />
+      <div style={{ position: "absolute", top: 20, right: 20, zIndex: 10 }}>
         <LanguageSelector />
       </div>
       <Card
         style={{
           width: 380,
           textAlign: "center",
-          borderRadius: 12,
-          boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+          background: "#fff",
         }}
       >
         <img
@@ -89,8 +97,12 @@ export default function Login() {
           alt="LoyanUI"
           style={{ width: 100, height: 100, marginBottom: 16 }}
         />
-        <h2 style={{ margin: "0 0 4px", color: "#333" }}>{t("app.title")}</h2>
-        <p style={{ margin: "0 0 24px", color: "#999" }}>{t("app.subtitle")}</p>
+        <h2 style={{ margin: "0 0 4px", color: "#000", fontWeight: 900, fontSize: 24 }}>
+          {t("app.title")}
+        </h2>
+        <p style={{ margin: "0 0 24px", color: "#000", fontWeight: 600 }}>
+          {t("app.subtitle")}
+        </p>
         {error && (
           <Alert
             message={error}
@@ -98,7 +110,7 @@ export default function Login() {
             showIcon
             closable
             onClose={() => setError("")}
-            style={{ marginBottom: 16 }}
+            style={{ marginBottom: 16, border: "2px solid #000", borderRadius: 0 }}
           />
         )}
         <Form
@@ -142,7 +154,6 @@ export default function Login() {
               htmlType="submit"
               block
               loading={loading}
-              style={{ background: BG, borderColor: BG }}
             >
               {t("login.submit")}
             </Button>

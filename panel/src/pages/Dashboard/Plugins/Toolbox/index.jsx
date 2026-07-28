@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Card, Row, Col, Tag } from "antd";
+import { Card, Row, Col } from "antd";
 import { ToolOutlined } from "@ant-design/icons";
 
 const TOOLS = [
@@ -27,7 +27,7 @@ export default function PluginToolbox() {
                 description={
                   <>
                     <div>{t(tool.descKey)}</div>
-                    <Tag style={{ marginTop: 8 }}>{tool.plugin}</Tag>
+                    <div style={{ marginTop: 8, fontSize: 12, color: "#999" }}>{tool.plugin}</div>
                   </>
                 }
               />

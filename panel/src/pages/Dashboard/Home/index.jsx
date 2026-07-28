@@ -37,30 +37,26 @@ export default function DashboardHome() {
         {cards.map((card) => (
           <div
             key={card.key}
+            className="nb-stat-card"
             style={{
-              background: "#fafafa",
-              border: "1px solid #f0f0f0",
-              borderRadius: 8,
               padding: "20px 16px",
               textAlign: "center",
             }}
           >
-            <div style={{ fontSize: 28, fontWeight: 700, color: BG }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#000" }}>
               {card.value ?? "--"}
             </div>
-            <div style={{ fontSize: 13, color: "#999", marginTop: 4 }}>
+            <div style={{ fontSize: 13, color: "#000", marginTop: 4, fontWeight: 600 }}>
               {card.label}
             </div>
           </div>
         ))}
       </div>
       <div
+        className="nb-status-bar"
         style={{
           marginTop: 24,
           padding: "16px 20px",
-          background: "#fafafa",
-          border: "1px solid #f0f0f0",
-          borderRadius: 8,
           display: "flex",
           alignItems: "center",
           gap: 12,
@@ -68,13 +64,13 @@ export default function DashboardHome() {
       >
         <div
           style={{
-            width: 10,
-            height: 10,
-            borderRadius: "50%",
+            width: 12,
+            height: 12,
             background: adaptersOnline > 0 ? "#52c41a" : "#ff4d4f",
+            border: "2px solid #000",
           }}
         />
-        <span style={{ fontSize: 14, color: "#333" }}>
+        <span style={{ fontSize: 14, color: "#000", fontWeight: 700 }}>
           {t("dashboard.stats.adapters")}: {adaptersOnline}/{adaptersTotal}
         </span>
       </div>
