@@ -40,8 +40,8 @@ class StatsCollector(Stage):
             _logger.warning(f"记录消息统计失败: {e}")
         return event
 
-    async def get_stats(self, hours: int = 24) -> dict:
-        cutoff = time.time() - hours * 3600
+    async def get_stats(self, hours: int = 24, since: float | None = None) -> dict:
+        cutoff = since if since is not None else time.time() - hours * 3600
         total = await self._db.fetchone(
             "SELECT COUNT(*) FROM message_log WHERE time > ?", cutoff
         )

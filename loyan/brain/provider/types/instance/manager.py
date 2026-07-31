@@ -151,7 +151,6 @@ class InstanceManager:
     async def migrate_from_config(self, schemas_dir: Optional[str] = None):
         schemas_dir = schemas_dir or get_schemas_dir()
         if not os.path.isdir(schemas_dir):
-            _logger.info("No schemas dir, nothing to migrate")
             return
 
         from loyan.core.tools.paths import get_plugin_config_global_dir

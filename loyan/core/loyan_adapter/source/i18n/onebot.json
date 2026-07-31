@@ -59,14 +59,34 @@
       "hint": ""
     }
   },
-  "admins_id": {
+  "token": {
     "en-US": {
-      "description": "Admin IDs",
-      "hint": "Comma separated user IDs"
+      "description": "Token",
+      "hint": ""
     },
     "ru-RU": {
-      "description": "ID администраторов",
-      "hint": "ID пользователей через запятую"
+      "description": "Токен",
+      "hint": ""
+    }
+  },
+  "admins_id": {
+    "en-US": {
+      "description": "Admin IDs (required)",
+      "hint": "Comma separated user IDs. Send a message to the bot to get your ID."
+    },
+    "ru-RU": {
+      "description": "ID администраторов (обязательно)",
+      "hint": "ID пользователей через запятую. Отправьте сообщение боту, чтобы узнать свой ID."
+    }
+  },
+  "bot_name": {
+    "en-US": {
+      "description": "Bot Nickname",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Имя бота",
+      "hint": ""
     }
   }
 }

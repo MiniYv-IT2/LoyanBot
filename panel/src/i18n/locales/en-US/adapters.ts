@@ -1,0 +1,26 @@
+const adapters = {
+  empty: "No bots added yet, nothing here~",
+  create_title: "Select a Message Platform Adapter",
+  cancel: "Cancel",
+  save: "Save",
+  delete: "Delete",
+  saved: "Created",
+  save_failed: "Create failed",
+  schema_failed: "Failed to load config",
+  enabled: "Enabled",
+  disabled: "Disabled",
+  required_hint: "required",
+  enabled_label: "Enabled",
+  delete_title: "Confirm Delete",
+  delete_confirm: "Solve the math problem to confirm:",
+  delete_wrong: "Wrong answer",
+  delete_success: "Deleted",
+  edit_title: "Edit",
+  qr_title: "QR Login — Scan with QQ mobile",
+  manual_title: "Manual — Enter AppID/AppSecret",
+  qr_hint: "Scan the QR code with QQ mobile to bind",
+  qr_expired: "QR expired, click to refresh",
+  qr_success: "QR success! Created",
+} as const;
+
+export default adapters;

@@ -18,7 +18,7 @@ logger = logger_manager.get_logger("Core.Security")
 class UserRole(Enum):
     GUEST = "guest"  # 别人
     SELF = "self"    # QQ本身
-    MASTER = "master"  # 主人
+    ADMIN = "master"  # 管理员（value="master" 兼容旧插件）
 
 # 输入验证器类
 class InputValidator:
@@ -122,9 +122,6 @@ class RateLimiter:
         # 记录本次请求
         self.requests[key].append(current_time)
         
-        # 记录频率信息（DEBUG级别）
-        logger.debug(f"[频率限制] 用户{key}请求频率: 1分钟内{len(minute_requests)+1}次, 1小时内{len(self.requests[key])}次")
-        
         return True, None
 
 # 安全管理器单例类
@@ -149,7 +146,7 @@ class SecurityManager:
         self.role_permissions = {
             UserRole.GUEST: ['basic_query'],  # 别人只有基础查询权限
             UserRole.SELF: ['basic_query', 'use_plugins'],  # QQ本身有使用插件权限
-            UserRole.MASTER: ['basic_query', 'use_plugins', 'manage_plugins', 'system_admin']  # 主人有所有权限
+            UserRole.ADMIN: ['basic_query', 'use_plugins', 'manage_plugins', 'system_admin']
         }
         
         # 用户角色映射（可从配置加载）
@@ -217,7 +214,7 @@ class SecurityManager:
         # 从配置中加载主人 ID
         master_id = config_manager.get('master_id', '')
         if master_id:
-            self.user_roles[str(master_id)] = UserRole.MASTER
+            self.user_roles[str(master_id)] = UserRole.ADMIN
         
         # 移除管理员角色，不再加载管理员列表
     

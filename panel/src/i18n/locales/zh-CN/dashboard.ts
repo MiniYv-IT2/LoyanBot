@@ -1,5 +1,11 @@
 const dashboard = {
   welcome: "欢迎回来",
+  stats: {
+    messages: "消息量",
+    commands: "命令数",
+    uptime: "运行时间",
+    plugins: "插件数",
+  },
   sidebar: {
     home: "主页",
     adapters: "连接适配器",
@@ -14,6 +20,7 @@ const dashboard = {
     settings: "设置",
     ai_settings: "AI 设置",
     general: "通用设置",
+    github: "GitHub 仓库",
   },
 } as const;
 

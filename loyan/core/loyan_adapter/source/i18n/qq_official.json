@@ -48,5 +48,15 @@
       "description": "ID администраторов",
       "hint": "ID пользователей через запятую"
     }
+  },
+  "bot_name": {
+    "en-US": {
+      "description": "Bot Nickname",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Имя бота",
+      "hint": ""
+    }
   }
 }

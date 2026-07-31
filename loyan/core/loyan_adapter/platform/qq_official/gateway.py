@@ -84,16 +84,14 @@ class QQOfficialGateway:
         # 从 API 获取 Gateway 地址
         ws_url = await self._api.get_gateway_url()
         if not ws_url:
-            _logger.error("无法获取 Gateway 地址")
             raise ConnectionError("获取 Gateway 地址失败")
 
         # 获取 Token
         token = await self._api.get_access_token()
         if not token:
-            _logger.error("无有效 Token")
             raise ConnectionError("无有效 Token")
 
-        _logger.info(f"正在连接: {ws_url}")
+
         async with self._session.ws_connect(
             ws_url,
             headers={"Authorization": f"QQBot {token}"},
@@ -137,7 +135,6 @@ class QQOfficialGateway:
             },
         }
         await self._ws.send_json(payload)
-        _logger.info("已发送 Identify 鉴权")
 
     async def _handle_message(self, data: dict):
         """处理接收到的 WebSocket 消息"""
@@ -147,22 +144,15 @@ class QQOfficialGateway:
 
         if op == 0:  # Dispatch — 事件分发
             if event_type in ("AT_MESSAGE_CREATE", "C2C_MESSAGE_CREATE", "GROUP_AT_MESSAGE_CREATE", "MESSAGE_CREATE"):
-                # protocol.py 期望格式: {"type": "...", "data": {...}}
                 parsed = {"type": event_type, "data": d}
                 event = parse_event(parsed, self._tag)
                 _dbg("parse_event_result", event_type=event_type, got_event=event is not None)
                 if event:
-                    self._on_event(event)
-            else:
-                _logger.debug(f"未解析的事件: {event_type}")
+                    await self._on_event(event)
         elif op == 7:  # Reconnect
-            _logger.warning("收到重连指令")
             raise ConnectionError("收到重连指令")
         elif op == 9:  # Invalid Session
-            _logger.error("会话无效，需要重新鉴权")
             raise ConnectionError("会话无效")
-        else:
-            _logger.debug(f"未知 op 类型: {op}")
 
     def _handle_hello(self, data: dict):
         """处理 Hello 消息，启动心跳"""
@@ -182,7 +172,6 @@ class QQOfficialGateway:
 
                 if self._ws and not self._ws.closed:
                     await self._ws.send_json({"op": 1, "d": None})
-                    _logger.debug("心跳已发送")
             except asyncio.CancelledError:
                 break
             except Exception as e:

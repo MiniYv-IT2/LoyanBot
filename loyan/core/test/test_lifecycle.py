@@ -1480,3 +1480,22 @@ class TestEdgeCases:
         await exec_.run_event(LifecycleEvent.READY)
         filtered = exec_.results(LifecycleEvent.READY)
         assert LifecycleEvent.READY.value in filtered
+
+
+# ── 全局单例（main/panel 共享） ──
+
+def test_global_lifecycle_singleton():
+    """lifecycle 全局单例必须可导入且与 main 引用一致"""
+    from loyan.core.lifecycle import lifecycle
+    from loyan.core.main import _lifecycle
+    assert lifecycle is _lifecycle
+
+
+def test_panel_hooks_registered_on_import():
+    """导入 panel.server 后，AFTER_INSTANCES_READY 应有 panel_start/panel_commands 钩子"""
+    from loyan.core.lifecycle import lifecycle, LifecycleEvent
+    import loyan.core.webserv.panel.server  # noqa: F401  触发模块级注册
+    names = [e.name for e in lifecycle._hooks._entries
+             if e.event == LifecycleEvent.AFTER_INSTANCES_READY]
+    assert "panel_start" in names
+    assert "panel_commands" in names

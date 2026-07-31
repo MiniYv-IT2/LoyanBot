@@ -30,13 +30,14 @@ from loyan.core.tools.log_runtime import setup_runtime_logger
 from loyan.core.pipeline import Pipeline, SecurityFilter, BuiltinCommands, CommandMatcher, PluginHandler, ResponseSender
 from loyan.core.pipeline.stats_collector import stats_collector
 from loyan.core.tools.paths import get_instances_dir, get_project_root
-from loyan.core.lifecycle import LifecycleManager, LifecycleEvent
+from loyan.core.lifecycle import lifecycle, LifecycleEvent
 
-_lifecycle = LifecycleManager()
+_lifecycle = lifecycle  # 全局单例（panel 等模块注册 hook 用同一个实例）
+_on_event_callback = None  # 运行时注入，供热重载使用
 
 # ── 生命周期钩子注册 ──
 async def _on_shutdown():
-    adapter_pool.stop_all()
+    await adapter_pool.stop_all()
 _lifecycle.register_hook(LifecycleEvent.BEFORE_SHUTDOWN, _on_shutdown, "adapter_shutdown")
 
 
@@ -66,7 +67,6 @@ def _discover_instance_configs() -> list[dict]:
             with open(cfg_path, "r", encoding="utf-8") as f:
                 cfg = json.load(f)
             if not cfg.get("enabled", True):
-                logger.info(f"  ⏭ 实例 {entry} 已禁用，跳过")
                 continue
             cfg["_dir_name"] = entry
             cfg["_config_path"] = cfg_path
@@ -77,55 +77,16 @@ def _discover_instance_configs() -> list[dict]:
     return results
 
 
-def _register_instance(cfg: dict, default: bool = False, runtime=None) -> None:
-
-
-
-
-
-
-
+async def _register_instance(cfg: dict, default: bool = False, runtime=None) -> None:
+    result = await _create_and_prepare_adapter(cfg, runtime=runtime)
+    if result is None:
+        return
+    adapter, tag = result
+    adapter_pool.register(adapter, tag, default=default)
     platform = cfg.get("platform", "")
     bot_name = cfg.get("bot_name", cfg.get("_dir_name", "unknown"))
-    robot_id = runtime.robot_id if runtime else cfg.get("robot_id", "")
-    master_id = runtime.master_id if runtime else cfg.get("master_id", "")
-    tag = runtime.adapter_tag if runtime else IdentityTag(platform=platform, bot_name=bot_name)
-
-
-    try:
-        module = importlib.import_module(f"loyan.core.loyan_adapter.platform.{platform}.adapter")
-    except ImportError:
-        try:
-            module = importlib.import_module(f"core.loyan_adapter.platform.{platform}.adapter")
-        except ImportError:
-            logger.warning(f" 无法加载适配器模块: {platform}（实例 {cfg.get('_dir_name', '?')}），跳过")
-            return
-        except Exception as e:
-            logger.error(f" 创建适配器实例失败 {platform}: {e}")
-            return
-
-    try:
-        create_fn = getattr(module, "create_adapter")
-        adapter = create_fn(cfg)
-    except AttributeError:
-        logger.warning(f" 适配器 {platform} 缺少 create_adapter 工厂函数，跳过")
-        return
-    except Exception as e:
-        logger.error(f" 创建适配器实例失败 {platform}: {e}")
-        return
-
-    adapter.tag = tag
-    adapter._instance_master_id = master_id
-    adapter._instance_admins_id = cfg.get("admins_id", None) or []
-    if not master_id and adapter._instance_admins_id:
-        adapter._instance_master_id = adapter._instance_admins_id[0]
-    adapter._instance_robot_id = robot_id
-    adapter._runtime = runtime
-
     conn_type = getattr(adapter, 'conn_type_display', '') or ''
-    if conn_type:
-        tag.conn_type = conn_type
-    adapter_pool.register(adapter, tag, default=default)
+    master_id = adapter._instance_master_id or ""
     logger.info(f"   [{tag.log_tag}] {platform}/{bot_name} ({conn_type}) master={master_id[:4]}****")
 
 
@@ -133,38 +94,17 @@ def setup_error_handlers():
 
     @app.errorhandler(404)
     async def not_found(error):
-        context = {
-            'client_ip': request.remote_addr,
-            'path': request.path,
-            'method': request.method
-        }
-        logger_manager.log_with_context(logger, logging.WARNING, '404页面未找到', context)
+        logger.warning(f'404 page not found from {request.remote_addr}: {request.method} {request.path}')
         return jsonify({"retcode": 404, "msg": "接口不存在"}), 404
 
     @app.errorhandler(405)
     async def method_not_allowed(error):
-        context = {
-            'client_ip': request.remote_addr,
-            'path': request.path,
-            'method': request.method
-        }
-        logger_manager.log_with_context(logger, logging.WARNING, f'方法不允许: {request.method}', context)
+        logger.warning(f'405 method not allowed: {request.method} from {request.remote_addr}')
         return jsonify({"retcode": 405, "msg": "不支持的请求方法"}), 405
 
     @app.errorhandler(Exception)
     async def handle_exception(error):
-
-        context = {
-            'client_ip': request.remote_addr,
-            'path': request.path if hasattr(request, 'path') else 'unknown',
-            'error_type': type(error).__name__
-        }
-        stack_trace = traceback.format_exc()
-        logger_manager.log_with_context(logger,
-                                        logging.CRITICAL,
-                                        f'未处理的异常: {str(error)}',
-                                        context,
-                                        extra={"stack_trace": stack_trace})
+        logger.critical(f'unhandled exception: {error}', exc_info=True)
         return jsonify({"retcode": 500, "msg": "服务器内部错误"}), 500
 
 
@@ -172,8 +112,6 @@ def setup_error_handlers():
 
 
 def safe_shutdown(signum=None, frame=None):
-
-    logger_manager.log_with_context(logger, logging.INFO, "  正在安全关闭服务...")
 
 
     try:
@@ -204,7 +142,7 @@ def safe_shutdown(signum=None, frame=None):
     try:
         plugin_manager.shutdown()
     except Exception as e:
-        logger_manager.log_with_context(logger, logging.ERROR, f" 关闭插件管理器异常: {str(e)}")
+        logger.error(f" 关闭插件管理器异常: {e}")
 
 
     try:
@@ -212,17 +150,43 @@ def safe_shutdown(signum=None, frame=None):
         monitor_manager.shutdown()
     except (ImportError, Exception) as e:
         if not isinstance(e, ImportError):
-            logger_manager.log_with_context(logger, logging.ERROR, f" 关闭监控管理器异常: {str(e)}")
+            logger.error(f" 关闭监控管理器异常: {e}")
 
-    logger_manager.log_with_context(logger, logging.INFO, " 服务已安全关闭")
     os._exit(0)
 
 
-def _init_instances() -> None:
+def _build_runtime(cfg: dict) -> Runtime:
+    """根据实例配置构建 Runtime（含 Pipeline）"""
+    instance_name = cfg.get("_dir_name", "unknown")
+    robot_id = cfg.get("robot_id", "")
+    master_id = cfg.get("master_id", "")
+    platform = cfg.get("platform", "")
+    bot_name = cfg.get("bot_name", instance_name)
+    tag = IdentityTag(platform=platform, bot_name=bot_name)
+    runtime = Runtime(
+        instance_name=instance_name,
+        robot_id=robot_id,
+        master_id=master_id,
+        adapter_tag=tag,
+        plugin_manager=plugin_manager,
+        adapter_pool=adapter_pool,
+    )
+    pipeline = Pipeline()
+    pipeline.add_stage(SecurityFilter())
+    pipeline.add_stage(BuiltinCommands())
+    pipeline.add_stage(CommandMatcher())
+    pipeline.add_stage(PluginHandler())
+    pipeline.add_stage(ResponseSender())
+    pipeline.add_stage(stats_collector)
+    runtime.pipeline = pipeline
+    runtime.logger = setup_runtime_logger(instance_name, bot_name=bot_name)
+    return runtime
+
+
+async def _init_instances() -> None:
 
     try:
-        loop = asyncio.get_event_loop()
-        loop.create_task(stats_collector.init())
+        await stats_collector.init()
     except Exception:
         pass
 
@@ -234,40 +198,12 @@ def _init_instances() -> None:
     for idx, cfg in enumerate(configs):
         try:
             instance_name = cfg.get("_dir_name", f"instance_{idx}")
-            robot_id = cfg.get("robot_id", "")
-            master_id = cfg.get("master_id", "")
-            platform = cfg.get("platform", "")
-            bot_name = cfg.get("bot_name", instance_name)
-
-
-            tag = IdentityTag(platform=platform, bot_name=bot_name)
-            runtime = Runtime(
-                instance_name=instance_name,
-                robot_id=robot_id,
-                master_id=master_id,
-                adapter_tag=tag,
-                plugin_manager=plugin_manager,
-                adapter_pool=adapter_pool,
-            )
-
-
-            pipeline = Pipeline()
-            pipeline.add_stage(SecurityFilter())
-            pipeline.add_stage(BuiltinCommands())
-            pipeline.add_stage(CommandMatcher())
-            pipeline.add_stage(PluginHandler())
-            pipeline.add_stage(ResponseSender())
-            pipeline.add_stage(stats_collector)
-            runtime.pipeline = pipeline
-
-
-            runtime.logger = setup_runtime_logger(instance_name, bot_name=bot_name)
-
+            runtime = _build_runtime(cfg)
 
             RuntimeRegistry.register(runtime)
 
 
-            _register_instance(cfg, default=(idx == 0), runtime=runtime)
+            await _register_instance(cfg, default=(idx == 0), runtime=runtime)
 
         except Exception as e:
             logger.error(f" 初始化实例失败 {cfg.get('_dir_name', '?')}: {e}")
@@ -275,7 +211,208 @@ def _init_instances() -> None:
     count = adapter_pool.count
 
 
+# ── 公共 API：热重载 ──
+
+async def _create_and_prepare_adapter(cfg: dict, runtime=None):
+    """根据配置创建适配器实例，返回 (adapter, tag) 或 None"""
+    platform = cfg.get("platform", "")
+    bot_name = cfg.get("bot_name", cfg.get("_dir_name", "unknown"))
+    robot_id = runtime.robot_id if runtime else cfg.get("robot_id", "")
+    master_id = runtime.master_id if runtime else cfg.get("master_id", "")
+    tag = runtime.adapter_tag if runtime else IdentityTag(platform=platform, bot_name=bot_name)
+
+    try:
+        module = importlib.import_module(f"loyan.core.loyan_adapter.platform.{platform}.adapter")
+    except ImportError:
+        try:
+            module = importlib.import_module(f"core.loyan_adapter.platform.{platform}.adapter")
+        except ImportError:
+            logger.warning(f" 无法加载适配器模块: {platform}（实例 {cfg.get('_dir_name', '?')}），跳过")
+            return None
+        except Exception as e:
+            logger.error(f" 创建适配器实例失败 {platform}: {e}")
+            return None
+
+    try:
+        create_fn = getattr(module, "create_adapter")
+        adapter = create_fn(cfg)
+    except AttributeError:
+        logger.warning(f" 适配器 {platform} 缺少 create_adapter 工厂函数，跳过")
+        return None
+    except Exception as e:
+        logger.error(f" 创建适配器实例失败 {platform}: {e}")
+        return None
+
+    adapter.tag = tag
+    adapter._instance_master_id = master_id
+    adapter._instance_admins_id = cfg.get("admins_id", None) or []
+    if not master_id and adapter._instance_admins_id:
+        adapter._instance_master_id = adapter._instance_admins_id[0]
+    adapter._instance_robot_id = robot_id
+    adapter._runtime = runtime
+
+    conn_type = getattr(adapter, 'conn_type_display', '') or ''
+    if conn_type:
+        tag.conn_type = conn_type
+
+    return adapter, tag
+
+
+async def reload_instance(name: str) -> dict:
+    """热重载指定实例：停旧启新"""
+    cfg_path = os.path.join(get_instances_dir(), name, "config.json")
+    if not os.path.isfile(cfg_path):
+        return {"success": False, "error": "not_found"}
+    with open(cfg_path, encoding="utf-8") as f:
+        cfg = json.load(f)
+    cfg["_dir_name"] = name
+    cfg["_config_path"] = cfg_path
+
+    old_adapter = None
+    old_tag = None
+    for adp, tg in adapter_pool._adapters.values():
+        if tg.bot_name == name or tg.identity_key.endswith(f"/{name}"):
+            old_adapter = adp
+            old_tag = tg
+            break
+
+    try:
+        result = await _create_and_prepare_adapter(cfg)
+        if result is None:
+            return {"success": False, "error": "create_failed"}
+        new_adapter, new_tag = result
+
+        was_default = (old_tag is not None and
+                       adapter_pool._default_key == old_tag.identity_key)
+
+        if old_adapter is not None:
+            try:
+                await old_adapter.stop()
+            except Exception as e:
+                logger.warning(f" 停止旧适配器失败 {name}: {e}")
+
+        if old_tag is not None:
+            adapter_pool.unregister(old_tag)
+
+        if _on_event_callback:
+            try:
+                await new_adapter.start(_on_event_callback)
+            except Exception as e:
+                logger.error(f" 启动新适配器失败 {name}: {e}")
+                return {"success": False, "error": f"start_failed: {e}"}
+
+        adapter_pool.register(new_adapter, new_tag, default=was_default)
+
+        from loyan.core.runtime import RuntimeRegistry, RuntimeContext
+        for runtime in RuntimeRegistry.get_all():
+            if runtime.instance_name == name:
+                RuntimeRegistry.unregister(runtime)
+                runtime.adapter_tag = new_tag
+                RuntimeRegistry.register(runtime)
+                break
+
+        logger.info(f"  热重载完成: {name}")
+        return {"success": True}
+    except Exception as e:
+        logger.error(f" 热重载失败 {name}: {e}")
+        return {"success": False, "error": str(e)}
+
+
+async def start_instance(name: str) -> dict:
+    """启动新创建的实例"""
+    cfg_path = os.path.join(get_instances_dir(), name, "config.json")
+    if not os.path.isfile(cfg_path):
+        return {"success": False, "error": "not_found"}
+    with open(cfg_path, encoding="utf-8") as f:
+        cfg = json.load(f)
+    cfg["_dir_name"] = name
+    cfg["_config_path"] = cfg_path
+
+    try:
+        from loyan.core.runtime import RuntimeRegistry
+
+        runtime = None
+        robot_id = cfg.get("robot_id", "")
+        if robot_id:
+            runtime = RuntimeRegistry.get_by_robot_id(robot_id)
+        if runtime is None:
+            for r in RuntimeRegistry.get_all():
+                if r.instance_name == name:
+                    runtime = r
+                    break
+        if runtime is None:
+            runtime = _build_runtime(cfg)
+            RuntimeRegistry.register(runtime)
+        else:
+            RuntimeRegistry.unregister(runtime)
+            runtime.adapter_tag = IdentityTag(platform=cfg.get("platform", ""), bot_name=cfg.get("bot_name", name))
+            RuntimeRegistry.register(runtime)
+
+        result = await _create_and_prepare_adapter(cfg, runtime=runtime)
+        if result is None:
+            return {"success": False, "error": "create_failed"}
+        adapter, tag = result
+
+        if _on_event_callback:
+            try:
+                await adapter.start(_on_event_callback)
+            except Exception as e:
+                logger.error(f" 启动适配器失败 {name}: {e}")
+                return {"success": False, "error": f"start_failed: {e}"}
+
+        adapter_pool.register(adapter, tag)
+        logger.info(f"  实例已启动: {name}")
+        return {"success": True}
+    except Exception as e:
+        logger.error(f" 启动实例失败 {name}: {e}")
+        return {"success": False, "error": str(e)}
+
+
+async def rename_instance(old_name: str, new_name: str) -> dict:
+    """重命名实例目录并热重载"""
+    old_dir = os.path.join(get_instances_dir(), old_name)
+    new_dir = os.path.join(get_instances_dir(), new_name)
+    if not os.path.isdir(old_dir):
+        return {"success": False, "error": "not_found"}
+    if os.path.isdir(new_dir):
+        return {"success": False, "error": "name_conflict"}
+    await stop_instance(old_name)
+    try:
+        os.rename(old_dir, new_dir)
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+    start_result = await start_instance(new_name)
+    return start_result
+
+
+async def stop_instance(name: str) -> dict:
+    """停止并注销指定实例"""
+    target = None
+    for adp, tg in adapter_pool._adapters.values():
+        if tg.bot_name == name or tg.identity_key.endswith(f"/{name}"):
+            target = (adp, tg)
+            break
+    if target is None:
+        return {"success": False, "error": "not_running"}
+    adapter, tag = target
+    try:
+        await adapter.stop()
+    except Exception as e:
+        logger.warning(f" 停止适配器失败 {name}: {e}")
+    adapter_pool.unregister(tag)
+    from loyan.core.runtime import RuntimeRegistry
+    for runtime in RuntimeRegistry.get_all():
+        if runtime.instance_name == name:
+            RuntimeRegistry.unregister(runtime)
+            break
+    logger.info(f"  实例已停止: {name}")
+    return {"success": True}
+
+
 async def run_bot():
+    from loyan.core.config import LOG_LEVEL, DEBUG_MODE
+    logger_manager.setup_logging(log_level=LOG_LEVEL, debug_mode=DEBUG_MODE)
+
     import loyan.graci as _graci_pkg
     sys.modules.setdefault('graci', _graci_pkg)
 
@@ -295,16 +432,16 @@ async def run_bot():
 
     try:
         config_manager.load()
-        logger.info(" 配置加载完成")
         await _lifecycle.fire_event_async(LifecycleEvent.AFTER_CONFIG_LOAD)
     except Exception as e:
         logger.error(f" 配置加载失败: {str(e)}")
-        logger.warning(" 尝试使用默认配置继续启动")
 
 
     try:
         plugin_manager.init()
-        logger.info(" 插件管理器初始化完成")
+        await plugin_manager.async_load()
+        from loyan.core.loyan_session import loyan_init_session_manager
+        await loyan_init_session_manager()
         await _lifecycle.fire_event_async(LifecycleEvent.AFTER_PLUGINS_LOADED)
     except Exception as e:
         logger.error(f" 插件管理器初始化失败: {str(e)}")
@@ -314,7 +451,13 @@ async def run_bot():
     await _lifecycle.fire_event_async(LifecycleEvent.AFTER_BRAIN_READY)
 
 
-    _init_instances()
+    await _init_instances()
+
+    try:
+        import loyan.core.webserv.panel.server as _panel_server  # noqa: F401  面板自注册 lifecycle hook
+    except Exception as e:
+        logger.error(f"Panel load failed: {e}")
+
     await _lifecycle.fire_event_async(LifecycleEvent.AFTER_INSTANCES_READY)
 
 
@@ -322,15 +465,6 @@ async def run_bot():
         setup_error_handlers()
     except Exception as e:
         logger.error(f"错误处理器设置失败: {e}")
-
-
-    try:
-        from loyan.core.webserv.routes import register_health_check_routes
-        register_health_check_routes(app)
-    except ImportError:
-        pass
-    except Exception as e:
-        logger.error(f"注册健康检查路由失败: {e}")
 
 
     version_display = BOT_VERSION
@@ -347,7 +481,7 @@ async def run_bot():
                 mid = admins[0]
         if mid:
             show_master = f"{mid[:4]}****" if len(mid) > 4 else mid
-    logger.info(f" 已注册 {instance_count} 个实例 | 管理员 ID:{show_master}")
+    logger.info(f"  已注册 | 管理员 ID:{show_master}")
 
 
 
@@ -357,8 +491,10 @@ async def run_bot():
         logger.warning(f" on_ready 钩子触发失败: {e}")
 
 
+    global _on_event_callback
+    _on_event_callback = lambda e: asyncio.create_task(event_bus.publish(e))
     try:
-        adapter_pool.start_all(lambda e: asyncio.create_task(event_bus.publish(e)))
+        await adapter_pool.start_all(_on_event_callback)
     except Exception:
         pass
     await _lifecycle.fire_event_async(LifecycleEvent.AFTER_ADAPTERS_START)
@@ -424,7 +560,7 @@ async def run_bot():
             while True:
                 await asyncio.sleep(1)
         except (KeyboardInterrupt, asyncio.CancelledError):
-            adapter_pool.stop_all()
+            await adapter_pool.stop_all()
             logger.info(" 适配器池已停止")
 
     os._exit(0)

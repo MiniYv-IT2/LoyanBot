@@ -85,7 +85,6 @@ class ConfigManager:
                 try:
                     with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as f:
                         self._file_config = json.load(f)
-                    self._logger.info(f" 配置文件加载成功: {CONFIG_FILE_PATH}")
                 except json.JSONDecodeError as e:
                     self._logger.error(f" 配置文件格式错误: {str(e)}")
                     return False
@@ -132,7 +131,6 @@ class ConfigManager:
                     return False
             
             self._initialized = True
-            self._logger.info(" 所有配置加载完成")
             return True
         except Exception as e:
             self._logger.error(f" 配置加载异常: {str(e)}", exc_info=True)

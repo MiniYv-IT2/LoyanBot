@@ -1,0 +1,26 @@
+const adapters = {
+  empty: "暂时没有已添加的机器人哦，空空如也~",
+  create_title: "选择一个消息平台适配器",
+  cancel: "取消",
+  save: "保存",
+  delete: "删除",
+  saved: "已创建",
+  save_failed: "创建失败",
+  schema_failed: "加载配置失败",
+  enabled: "启用",
+  disabled: "禁用",
+  required_hint: "必填",
+  enabled_label: "启用",
+  delete_title: "确认删除",
+  delete_confirm: "请计算以下算式以确认删除：",
+  delete_wrong: "答案错误",
+  delete_success: "已删除",
+  edit_title: "编辑",
+  qr_title: "扫码登录 — 手机QQ扫码自动创建",
+  manual_title: "手动填写 — 已有 AppID/AppSecret",
+  qr_hint: "请使用手机QQ扫码绑定机器人",
+  qr_expired: "二维码已过期，点击刷新",
+  qr_success: "扫码成功！已创建",
+} as const;
+
+export default adapters;

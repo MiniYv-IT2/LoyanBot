@@ -23,13 +23,13 @@ def update_runtime_master_id(openid: str, runtime=None) -> None:
     try:
         from loyan.core.security_manager import security_manager, UserRole
         if openid:
-            security_manager.user_roles[str(openid)] = UserRole.MASTER
+            security_manager.user_roles[str(openid)] = UserRole.ADMIN
         else:
-            keys_to_remove = [k for k, v in security_manager.user_roles.items() if v == UserRole.MASTER]
+            keys_to_remove = [k for k, v in security_manager.user_roles.items() if v == UserRole.ADMIN]
             for k in keys_to_remove:
                 security_manager.user_roles.pop(k, None)
-    except Exception:
-        pass
+    except Exception as e:
+        _logger.error(f"更新权限角色失败: {e}", exc_info=True)
 
 
 class MasterBinding:

@@ -68,6 +68,7 @@ class QQOfficialAdapter(LoyanAdapter):
         self._on_event: Optional[Callable[[LoyanEvent], None]] = None
         self._api = QQOfficialAPI(app_id, app_secret, is_sandbox)
         self._gateway: Optional[QQOfficialGateway] = None
+        self._gateway_task: Optional[asyncio.Task] = None
 
         self._platform_info_cache: Optional[dict] = None
         self._platform_info_cache_time: float = 0
@@ -79,11 +80,20 @@ class QQOfficialAdapter(LoyanAdapter):
 
     # ── 生命周期 ──
 
-    def start(self, on_event: Callable[[LoyanEvent], None]) -> None:
+    @property
+    def is_connected(self) -> bool:
+        gw = getattr(self, '_gateway', None)
+        if gw:
+            ws = getattr(gw, '_ws', None)
+            if ws is not None and not getattr(ws, 'closed', True):
+                return True
+        return False
+
+    async def start(self, on_event: Callable[[LoyanEvent], None]) -> None:
         self._binding._runtime = self._runtime
         self._binding.load_state()
 
-        def wrapped_event(event: LoyanEvent) -> None:
+        async def wrapped_event(event: LoyanEvent) -> None:
             _dbg("adapter_wrapped_event", sender_id=event.sender_id, chat_type=event.chat_type, raw_text=str(event.raw_text)[:50])
             self._last_msg_id = event.message_id or ""
             self._last_msg_id_time = time.time()
@@ -92,39 +102,20 @@ class QQOfficialAdapter(LoyanAdapter):
                 return
             _dbg("adapter_forward_to_framework")
             if on_event:
-                on_event(event)
+                await on_event(event)
 
         self._on_event = wrapped_event
         self._last_msg_id = ""
         self._last_msg_id_time = 0.0
         self._gateway = QQOfficialGateway(self._api, wrapped_event, self.tag)
+        self._gateway_task = asyncio.ensure_future(self._gateway.start())
 
-        try:
-            loop = asyncio.get_event_loop()
-            loop.create_task(self._async_start())
-        except RuntimeError:
-            _logger.error("启动失败: 无运行中的事件循环")
-
-    async def _async_start(self):
-        _logger.info(f"正在启动适配器 (sandbox={self._is_sandbox})...")
-        await self._gateway.start()
-        _logger.info("适配器启动成功")
-
-    def stop(self) -> None:
-        _logger.info("正在停止适配器...")
+    async def stop(self) -> None:
         if self._gateway:
-            try:
-                loop = asyncio.get_event_loop()
-                loop.create_task(self._gateway.stop())
-            except RuntimeError:
-                _logger.warning("停止 Gateway 失败: 无运行中的事件循环")
-
-        try:
-            loop = asyncio.get_event_loop()
-            loop.create_task(self._api.close())
-        except RuntimeError:
-            pass
-        _logger.info("适配器已停止")
+            await self._gateway.stop()
+        if self._gateway_task and not self._gateway_task.done():
+            self._gateway_task.cancel()
+        await self._api.close()
 
     # ── 主从绑定 ──
 
@@ -201,7 +192,7 @@ class QQOfficialAdapter(LoyanAdapter):
         self._platform_info_cache_time = now
         return result
 
-    def call_api(self, action: str, params: dict = None) -> Optional[dict]:
+    async def call_api(self, action: str, params: dict = None) -> Optional[dict]:
         return None
 
 

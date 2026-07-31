@@ -30,7 +30,6 @@ def satori_event_to_loyan(
     """
     event_type = satori_event.get("type", "")
 
-    # 处理不同类型的事件
     if event_type == "message_created":
         return _handle_message_created(satori_event, tag)
     elif event_type in ("member_added", "member_removed"):

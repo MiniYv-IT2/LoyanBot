@@ -1,9 +1,14 @@
 import os
 import json
-import time
+import asyncio
 import logging
 from typing import Optional, Dict, List, Any
-from threading import Lock, Thread
+from threading import Lock
+
+
+def _read_json(path: str) -> dict:
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 from .loyan_session import LoyanSession
 
 try:
@@ -11,58 +16,63 @@ try:
 except ImportError:
     LOG_LEVEL = "INFO"
 
+_DEFAULT_CONFIG = {
+    "default_expire_minutes": 30,
+    "auto_cleanup_interval": 60,
+    "max_context_messages": 50,
+    "shared_group_session": False
+}
+
 
 class LoyanSessionManager:
     """Loyan会话管理器 - 管理所有会话"""
 
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(self):
         self._sessions: Dict[str, LoyanSession] = {}
         self._lock = Lock()
         self._logger = logging.getLogger("Core.Session")
+        self._config = dict(_DEFAULT_CONFIG)
+        self._default_expire_minutes = self._config["default_expire_minutes"]
+        self._max_context_messages = self._config["max_context_messages"]
+        self._auto_cleanup_interval = self._config["auto_cleanup_interval"]
+        self._shared_group_session = self._config["shared_group_session"]
+        self._cleanup_task: Optional[asyncio.Task] = None
 
-        self._config = self._load_config(config_path)
+    async def initialize(self, config_path: Optional[str] = None) -> None:
+        self._config = await self._load_config(config_path)
         self._default_expire_minutes = self._config.get("default_expire_minutes", 30)
         self._max_context_messages = self._config.get("max_context_messages", 50)
         self._auto_cleanup_interval = self._config.get("auto_cleanup_interval", 60)
         self._shared_group_session = self._config.get("shared_group_session", False)
-
-        self._cleanup_thread: Optional[Thread] = None
-        self._running = False
         self._start_auto_cleanup()
 
-    def _load_config(self, config_path: Optional[str]) -> Dict[str, Any]:
-        """加载配置文件"""
+    async def _load_config(self, config_path: Optional[str]) -> Dict[str, Any]:
         if config_path is None:
             config_path = os.path.join(
                 os.path.dirname(__file__),
                 "config",
                 "loyan_session_config.json"
             )
-
         if os.path.exists(config_path):
             try:
-                with open(config_path, "r", encoding="utf-8") as f:
-                    return json.load(f)
+                loop = asyncio.get_running_loop()
+                data = await loop.run_in_executor(None, lambda: _read_json(config_path))
+                if data:
+                    return data
             except Exception as e:
                 self._logger.warning(f"加载配置失败: {e}，使用默认配置")
-
-        return {
-            "default_expire_minutes": 0,
-            "auto_cleanup_interval": 60,
-            "max_context_messages": 50,
-            "shared_group_session": False
-        }
+        return dict(_DEFAULT_CONFIG)
 
     def _start_auto_cleanup(self) -> None:
-        """启动自动清理线程"""
-        def cleanup_loop():
-            while self._running:
-                self.cleanup_expired_sessions()
-                time.sleep(self._auto_cleanup_interval)
+        async def cleanup_loop():
+            while True:
+                try:
+                    await asyncio.sleep(self._auto_cleanup_interval)
+                    self.cleanup_expired_sessions()
+                except asyncio.CancelledError:
+                    break
 
-        self._running = True
-        self._cleanup_thread = Thread(target=cleanup_loop, daemon=True)
-        self._cleanup_thread.start()
+        self._cleanup_task = asyncio.ensure_future(cleanup_loop())
 
     def _generate_session_id(self, sender_id: Optional[str], target_id: Optional[str]) -> str:
         """生成会话ID"""
@@ -161,18 +171,23 @@ class LoyanSessionManager:
             return list(self._sessions.values())
 
     def shutdown(self) -> None:
-        """关闭会话管理器"""
-        self._running = False
-        if self._cleanup_thread:
-            self._cleanup_thread.join(timeout=5)
+        if self._cleanup_task and not self._cleanup_task.done():
+            self._cleanup_task.cancel()
 
 
 # ========== 全局实例和便捷函数 ==========
 _manager: Optional[LoyanSessionManager] = None
 
 
+async def loyan_init_session_manager(config_path: Optional[str] = None) -> LoyanSessionManager:
+    global _manager
+    if _manager is None:
+        _manager = LoyanSessionManager()
+    await _manager.initialize(config_path)
+    return _manager
+
+
 def loyan_get_session_manager() -> LoyanSessionManager:
-    """获取会话管理器单例"""
     global _manager
     if _manager is None:
         _manager = LoyanSessionManager()

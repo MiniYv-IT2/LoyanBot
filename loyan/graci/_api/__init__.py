@@ -1,4 +1,5 @@
 """核心 API 组件（发送、配置、服务等）"""
+from logging import Logger
 from loyan.core.loyan_adapter.send import loyan_send_msg
 from loyan.core.loyan_adapter.send import loyan_call_api
 from loyan.core.loyan_adapter.send import loyan_get_platform_info

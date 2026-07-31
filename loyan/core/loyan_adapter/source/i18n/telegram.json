@@ -1,0 +1,62 @@
+{
+  "token": {
+    "en-US": {
+      "description": "Bot Token",
+      "hint": "From @BotFather"
+    },
+    "ru-RU": {
+      "description": "Токен бота",
+      "hint": "От @BotFather"
+    }
+  },
+  "proxy_url": {
+    "en-US": {
+      "description": "Proxy URL",
+      "hint": "Optional proxy"
+    },
+    "ru-RU": {
+      "description": "Прокси",
+      "hint": "Опционально"
+    }
+  },
+  "webhook_url": {
+    "en-US": {
+      "description": "Webhook URL",
+      "hint": "Empty = polling"
+    },
+    "ru-RU": {
+      "description": "Webhook URL",
+      "hint": "Пусто = polling"
+    }
+  },
+  "webhook_port": {
+    "en-US": {
+      "description": "Webhook Port",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Порт Webhook",
+      "hint": ""
+    }
+  },
+  "admins_id": {
+    "en-US": {
+      "description": "Admin IDs",
+      "hint": "Comma separated"
+    },
+    "ru-RU": {
+      "description": "ID администраторов",
+      "hint": "Через запятую"
+    }
+  },
+  "bot_name": {
+    "en-US": {
+      "description": "Bot Nickname",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Имя бота",
+      "hint": ""
+    }
+  }
+}

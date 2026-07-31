@@ -45,16 +45,21 @@ _METADATA_PATH = os.path.join(
     "metadata.toml",
 )
 
-def _get_version() -> str:
+async def _get_version() -> str:
     try:
-        with open(_METADATA_PATH, "rb") as f:
-            data = tomllib.load(f)
+        loop = asyncio.get_running_loop()
+        data = await loop.run_in_executor(None, lambda: _read_toml(_METADATA_PATH))
         return data.get("plugin", {}).get("version", "0.0.0")
     except Exception:
         return "0.0.0"
 
 
-def _get_ip_addresses():
+def _read_toml(path: str) -> dict:
+    with open(path, "rb") as f:
+        return tomllib.load(f)
+
+
+async def _get_ip_addresses():
     ips = []
     try:
         import psutil
@@ -76,10 +81,11 @@ def _get_ip_addresses():
     return ips
 
 
-def _get_public_ip():
+async def _get_public_ip():
     try:
-        resp = httpx.get("https://api.ipify.org?format=json", timeout=3)
-        return resp.json().get("ip", "")
+        async with httpx.AsyncClient(timeout=3) as client:
+            resp = await client.get("https://api.ipify.org?format=json")
+            return resp.json().get("ip", "")
     except Exception:
         return ""
 
@@ -111,11 +117,12 @@ def _create_app():
 
     @app.route("/api/loyanui/version")
     async def version():
-        return {"success": True, "data": {"version": _get_version()}}
+        return {"success": True, "data": {"version": await _get_version()}}
 
     @app.route("/api/loyanui/adapter/types")
     async def adapter_types():
-        return {"success": True, "data": await list_source_types()}
+        from loyan.core.tools.schema_i18n import list_adapter_types
+        return {"success": True, "data": await list_adapter_types()}
 
     @app.route("/api/loyanui/adapter/schema/<adapter_type>")
     async def adapter_schema(adapter_type):
@@ -126,10 +133,39 @@ def _create_app():
 
     @app.route("/api/loyanui/stats")
     async def stats():
-        from loyan.core.pipeline.stats_collector import stats_collector
         try:
-            result = await stats_collector.get_stats(hours=24)
-            return {"success": True, "data": result}
+            from datetime import datetime
+            today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+            from loyan.core.pipeline.stats_collector import stats_collector
+            msg_stats = await stats_collector.get_stats(since=today_start)
+
+            from loyan.core.plugin_manager import plugin_manager
+            plugins = plugin_manager.get_plugin_count()
+
+            from loyan.core.decorators.registration import DECORATOR_COMMAND_REGISTRY
+            plugin_cmds = sum(len(p.get("commands", [])) for p in plugin_manager.registry)
+            decorator_cmds = sum(len(e.get("commands", [])) for e in DECORATOR_COMMAND_REGISTRY)
+            builtin_cmds = 4  # /关机 /重启 /开机 /关于
+            total_commands = plugin_cmds + decorator_cmds + builtin_cmds
+
+            uptime = 0.0
+            try:
+                from loyan.core.monitor import monitor_manager
+                status = monitor_manager.get_system_status()
+                uptime = status.get("uptime_seconds", 0)
+            except Exception:
+                from loyan.core.lifecycle.state.state_machine import lifecycle_state_machine
+                uptime = lifecycle_state_machine.uptime
+
+            return {
+                "success": True,
+                "data": {
+                    "total_messages": msg_stats.get("total_messages", 0),
+                    "total_commands": total_commands,
+                    "uptime_seconds": uptime,
+                    "plugins": plugins,
+                },
+            }
         except Exception as e:
             return {"success": False, "error": str(e)}, 500
 
@@ -138,23 +174,35 @@ def _create_app():
     @app.route("/api/loyanui/instances", methods=["GET"])
     async def panel_list_instances():
         from loyan.core.tools.paths import get_instances_dir
+        from loyan.core.loyan_adapter.pool import adapter_pool
         import json
         base = get_instances_dir()
         if not os.path.isdir(base):
             return {"success": True, "data": []}
         items = []
+        online_names = set()
+        for adp, tg in adapter_pool._adapters.values():
+            if getattr(adp, 'is_connected', True):
+                online_names.add(tg.bot_name)
         for name in sorted(os.listdir(base)):
             cfg_path = os.path.join(base, name, "config.json")
             if os.path.isfile(cfg_path):
                 with open(cfg_path, encoding="utf-8") as f:
                     cfg = json.load(f)
                 cfg["_name"] = name
+                status = "offline"
+                if not cfg.get("enabled", True):
+                    status = "disabled"
+                elif name in online_names or cfg.get("bot_name", name) in online_names:
+                    status = "online"
+                cfg["_status"] = status
                 items.append(cfg)
         return {"success": True, "data": items}
 
     @app.route("/api/loyanui/instances", methods=["POST"])
     async def panel_create_instance():
         from loyan.core.tools.paths import get_instances_dir
+        from loyan.core.main import start_instance
         import json
         data = await request.get_json()
         if not data or not data.get("name"):
@@ -167,12 +215,127 @@ def _create_app():
         data["bot_name"] = data.get("bot_name", name)
         with open(cfg_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        return {"success": True}
+        start_result = await start_instance(name)
+        return {"success": start_result["success"]}
+
+    @app.route("/api/loyanui/instances/<name>", methods=["PATCH"])
+    async def panel_update_instance(name):
+        from loyan.core.tools.paths import get_instances_dir
+        from loyan.core.main import reload_instance, rename_instance
+        import json
+        data = await request.get_json()
+        if not data:
+            return {"success": False, "error": "empty_body"}, 400
+        cfg_path = os.path.join(get_instances_dir(), name, "config.json")
+        if not os.path.isfile(cfg_path):
+            return {"success": False, "error": "not_found"}, 404
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+        old_bot_name = cfg.get("bot_name", name)
+        new_bot_name = data.get("bot_name", old_bot_name)
+        cfg.update(data)
+        with open(cfg_path, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, ensure_ascii=False, indent=2)
+        if new_bot_name != name and new_bot_name != old_bot_name:
+            rename_result = await rename_instance(name, new_bot_name)
+            return {"success": rename_result["success"], "renamed": True}
+        reload_result = await reload_instance(name)
+        return {"success": reload_result["success"]}
+
+    @app.route("/api/loyanui/instances/<name>/reload", methods=["POST"])
+    async def panel_reload_instance(name):
+        from loyan.core.main import reload_instance
+        result = await reload_instance(name)
+        return result
+
+    @app.route("/api/loyanui/qqbot/qr-login/create", methods=["POST"])
+    async def qr_login_create():
+        import secrets, base64, httpx
+        from Crypto.Cipher import AES
+        import logging, traceback
+        bind_key = base64.b64encode(secrets.token_bytes(32)).decode("ascii")
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.post("https://q.qq.com/lite/create_bind_task", json={"key": bind_key})
+                data = resp.json()
+            if data.get("retcode") != 0:
+                logging.getLogger("LoyanUI").error("QR bind task failed: %s", traceback.format_exc())
+                return {"success": False, "error": data.get("msg", "create failed")}, 400
+            task_id = str(data.get("data", {}).get("task_id", ""))
+            if not task_id:
+                logging.getLogger("LoyanUI").error("QR bind task missing task_id: %s", traceback.format_exc())
+                return {"success": False, "error": "missing task_id"}, 400
+        except Exception:
+            logging.getLogger("LoyanUI").error("QR bind task exception: %s", traceback.format_exc())
+            return {"success": False, "error": "create exception"}, 500
+        qr_url = f"https://q.qq.com/qqbot/openclaw/connect.html?task_id={task_id}&_wv=2"
+        data2 = await request.get_json()
+        color = (data2 or {}).get("color", "8ecac8")
+        bgcolor = (data2 or {}).get("bgcolor", "ffffff")
+        img_url = f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={qr_url}&color={color}&bgcolor={bgcolor}"
+        return {"success": True, "data": {"task_id": task_id, "bind_key": bind_key, "qr_img": img_url}}
+
+    @app.route("/api/loyanui/qqbot/qr-login/poll", methods=["POST"])
+    async def qr_login_poll():
+        import base64, httpx
+        from Crypto.Cipher import AES
+        data = await request.get_json()
+        task_id = data.get("task_id", "")
+        bind_key = data.get("bind_key", "")
+        if not task_id or not bind_key:
+            return {"success": False, "error": "missing params"}, 400
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post("https://q.qq.com/lite/poll_bind_result", json={"task_id": task_id})
+            poll_data = resp.json()
+        if poll_data.get("retcode") != 0:
+            return {"success": False, "error": poll_data.get("msg", "poll failed")}
+        payload = poll_data.get("data", {})
+        status = int(payload.get("status", 0))
+        if status == 2:
+            appid = str(payload.get("bot_appid", "")).strip()
+            encrypted = str(payload.get("bot_encrypt_secret", "")).strip()
+            if not appid or not encrypted:
+                return {"success": False, "error": "missing credentials"}
+            key = base64.b64decode(bind_key)
+            raw = base64.b64decode(encrypted)
+            nonce, tag, ct = raw[:12], raw[-16:], raw[12:-16]
+            cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
+            secret = cipher.decrypt_and_verify(ct, tag).decode("utf-8")
+            return {"success": True, "data": {"status": "scanned", "appid": appid, "secret": secret}}
+        elif status == 3:
+            return {"success": True, "data": {"status": "expired"}}
+        else:
+            return {"success": True, "data": {"status": "pending"}}
+
+    @app.route("/api/loyanui/instances/<name>/rename", methods=["POST"])
+    async def panel_rename_instance(name):
+        from loyan.core.main import rename_instance
+        data = await request.get_json()
+        new_name = data.get("new_name", "").strip()
+        if not new_name:
+            return {"success": False, "error": "new_name_required"}, 400
+        result = await rename_instance(name, new_name)
+        return result
 
     @app.route("/api/loyanui/instances/<name>", methods=["DELETE"])
     async def panel_delete_instance(name):
         from loyan.core.tools.paths import get_instances_dir
+        from loyan.core.main import stop_instance
         import shutil
+        await stop_instance(name)
+        data = await request.get_json()
+        a = data.get("a", 0)
+        b = data.get("b", 0)
+        op = data.get("op", "+")
+        user_answer = data.get("answer")
+        if op == "+":
+            expected = a + b
+        elif op == "-":
+            expected = a - b
+        else:
+            return {"success": False, "error": "验证无效"}, 400
+        if user_answer != expected:
+            return {"success": False, "error": "验证答案错误"}, 400
         path = os.path.join(get_instances_dir(), name)
         if os.path.isdir(path):
             shutil.rmtree(path)
@@ -312,7 +475,7 @@ async def handle_panel(ctx: PluginContext):
     lines.append(f"  本地  http://127.0.0.1:{port}")
 
     seen = set()
-    for kind, addr in _get_ip_addresses():
+    for kind, addr in await _get_ip_addresses():
         if addr in seen:
             continue
         seen.add(addr)
@@ -320,7 +483,7 @@ async def handle_panel(ctx: PluginContext):
         url = f"http://[{addr}]:{port}" if kind == "IPv6" else f"http://{addr}:{port}"
         lines.append(f"{label}  {url}")
 
-    pub = _get_public_ip()
+    pub = await _get_public_ip()
     if pub:
         lines.append(f"  公网  http://{pub}:{port}")
     await ctx.reply("\n".join(lines))

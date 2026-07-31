@@ -13,7 +13,8 @@ const ERROR_MAP = {
   "login.wrong": "login.wrong",
 };
 
-const BG = "#8ecac8";
+const BG = "var(--login-bg)";
+const BG_END = "var(--login-bg-end)";
 
 export default function Login() {
   const { t } = useTranslation();
@@ -69,7 +70,7 @@ export default function Login() {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        background: `linear-gradient(135deg, ${BG}, ${BG}88)`,
+        background: `linear-gradient(135deg, ${BG}, ${BG_END})`,
         position: "relative",
       }}
     >
@@ -89,8 +90,8 @@ export default function Login() {
           alt="LoyanUI"
           style={{ width: 100, height: 100, marginBottom: 16 }}
         />
-        <h2 style={{ margin: "0 0 4px", color: "#333" }}>{t("app.title")}</h2>
-        <p style={{ margin: "0 0 24px", color: "#999" }}>{t("app.subtitle")}</p>
+        <h2 style={{ margin: "0 0 4px", color: "var(--text)" }}>{t("app.title")}</h2>
+        <p style={{ margin: "0 0 24px", color: "var(--text-secondary)" }}>{t("app.subtitle")}</p>
         {error && (
           <Alert
             message={error}

@@ -122,41 +122,28 @@ class AdapterPool:
 
     # ── 发送 ──
 
-    def send(self, target: str, segments: List[LoyanMsg], chat_type: str,
-             tag: Optional[IdentityTag] = None) -> bool:
-        """发送消息
-
-        Args:
-            target: 目标 ID
-            segments: 消息段列表
-            chat_type: "private" | "group"
-            tag: 指定适配器，None=默认适配器
-        """
+    async def send(self, target: str, segments: List[LoyanMsg], chat_type: str,
+                   tag: Optional[IdentityTag] = None) -> bool:
         if tag is not None:
             adapter = self.get(tag)
             if adapter is None:
                 _logger.error(f"[AdapterPool] 发送失败: tag {tag.log_tag} 未找到")
                 return False
-            return adapter.send(target, segments, chat_type)
+            return await adapter.send(target, segments, chat_type)
 
         adapter = self.get_default()
         if adapter is None:
             _logger.error("[AdapterPool] 发送失败: 无默认适配器")
             return False
-        return adapter.send(target, segments, chat_type)
+        return await adapter.send(target, segments, chat_type)
 
-    def broadcast(self, target: str, segments: List[LoyanMsg], chat_type: str) -> Dict[str, bool]:
-        """广播消息到所有适配器
-
-        Returns:
-            {identity_key: success}
-        """
+    async def broadcast(self, target: str, segments: List[LoyanMsg], chat_type: str) -> Dict[str, bool]:
         results = {}
         with self._lock:
             items = list(self._adapters.items())
         for key, (adapter, tag) in items:
             try:
-                ok = adapter.send(target, segments, chat_type)
+                ok = await adapter.send(target, segments, chat_type)
                 results[key] = ok
                 _logger.info(f"[AdapterPool] 广播 {tag.log_tag}: {'成功' if ok else '失败'}")
             except Exception as e:
@@ -166,30 +153,29 @@ class AdapterPool:
 
     # ── 生命周期管理 ──
 
-    def start_all(self, on_event: Callable[[LoyanEvent], None]) -> None:
-        """启动所有已注册适配器"""
+    async def start_all(self, on_event: Callable[[LoyanEvent], None]) -> None:
         with self._lock:
             items = list(self._adapters.items())
-        # 注册一个包装回调，为事件注入 source tag
+
         def _wrapped_on_event(event: LoyanEvent) -> None:
-            # 如果事件没有 source，尝试从适配器查找
             if event.source is None:
                 _logger.debug(f"[AdapterPool] 事件无 source，保留原样: sender={event.sender_id}")
             on_event(event)
 
         for key, (adapter, tag) in items:
             try:
-                adapter.start(_wrapped_on_event)
+                await adapter.start(_wrapped_on_event)
+                _logger.info(f"[AdapterPool] {tag.log_tag} 已启动")
             except Exception as e:
                 _logger.error(f"[AdapterPool] 启动失败 {tag.log_tag}: {e}")
 
-    def stop_all(self) -> None:
-        """停止所有适配器"""
+    async def stop_all(self) -> None:
         with self._lock:
             items = list(self._adapters.items())
         for key, (adapter, tag) in items:
             try:
-                adapter.stop()
+                await adapter.stop()
+                _logger.info(f"[AdapterPool] {tag.log_tag} 已停止")
             except Exception as e:
                 _logger.error(f"[AdapterPool] 停止失败 {tag.log_tag}: {e}")
 

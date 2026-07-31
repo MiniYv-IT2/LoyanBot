@@ -43,7 +43,7 @@ def _extract_target_user(raw_msg: str) -> Optional[str]:
     return None
 
 
-def handle_session_command(
+async def handle_session_command(
     plugin_manager,
     send_msg_func,
     plugin_data: dict,
@@ -84,23 +84,20 @@ def handle_session_command(
         is_master, msg = security_manager.check_master_permission(sender_id)
         if not is_master:
             reply = " 权限不足！只有机器人主人才可以管理其他用户的会话"
-            send_msg_func(target_id, LoyanText(text=reply), chat_type=chat_type)
-            logger.warning(
-                f"[会话管理] 用户{sender_id}尝试管理其他用户会话，权限不足"
-            )
+            await send_msg_func(target_id, LoyanText(text=reply), chat_type=chat_type)
+            logger.warning(f"[会话管理] 用户{sender_id}尝试管理其他用户会话，权限不足")
             return
         target_sender = target_user
     else:
         target_sender = sender_id
 
-    # 根据指令类型处理
     if is_clear:
-        _handle_clear_session(send_msg_func, target_id, chat_type, target_sender, nickname)
+        await _handle_clear_session(send_msg_func, target_id, chat_type, target_sender, nickname)
     elif is_view:
-        _handle_view_session(send_msg_func, target_id, chat_type, target_sender, nickname)
+        await _handle_view_session(send_msg_func, target_id, chat_type, target_sender, nickname)
 
 
-def _handle_clear_session(
+async def _handle_clear_session(
     send_msg_func,
     target_id: str,
     chat_type: str,
@@ -133,10 +130,10 @@ def _handle_clear_session(
             target_str += f" 在群{target_id}"
         logger.info(f"[会话管理] {target_str} 会话不存在，已创建新会话")
 
-    send_msg_func(target_id, LoyanText(text=reply), chat_type=chat_type)
+    await send_msg_func(target_id, LoyanText(text=reply), chat_type=chat_type)
 
 
-def _handle_view_session(
+async def _handle_view_session(
     send_msg_func,
     target_id: str,
     chat_type: str,
@@ -152,7 +149,7 @@ def _handle_view_session(
     if session is None:
         reply = f" 当前没有活跃会话"
         logger.info(f"[会话管理] 用户{target_sender} 没有活跃会话")
-        send_msg_func(target_id, LoyanText(text=reply), chat_type=chat_type)
+        await send_msg_func(target_id, LoyanText(text=reply), chat_type=chat_type)
         return
 
     # 构建会话信息

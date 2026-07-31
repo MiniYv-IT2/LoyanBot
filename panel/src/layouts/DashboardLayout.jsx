@@ -3,15 +3,18 @@ import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import LanguageSelector from "../components/LanguageSelector";
+import ThemeSelector from "../components/ThemeSelector";
 import { useSidebar, SidebarProvider } from "../stores/useSidebarStore";
+import "../styles/global.css";
+import "../styles/themes.css";
 
 function LayoutInner() {
-  const { mobileOpen, setMobileOpen } = useSidebar();
+  const { mobileOpen, setMobileOpen, collapsed, setCollapsed } = useSidebar();
 
   return (
-    <div style={{ minHeight: "100vh", background: "#fff" }}>
+    <div className="app-container">
       {/* 桌面侧边栏 */}
-      <div className="sidebar-desktop">
+      <div className={`sidebar-desktop${collapsed ? ' collapsed' : ''}`}>
         <Sidebar />
       </div>
 
@@ -26,7 +29,7 @@ function LayoutInner() {
         open={mobileOpen}
         onClose={() => setMobileOpen(false)}
         width={260}
-        styles={{ body: { padding: 0 } }}
+        styles={{ body: { padding: 0, background: `linear-gradient(180deg, var(--bg-start) 0%, var(--bg-mid) 15%, var(--bg-end) 40%, #fff 60%)` } }}
         mask={false}
       >
         <Sidebar mobile onClose={() => setMobileOpen(false)} />
@@ -35,6 +38,7 @@ function LayoutInner() {
       {/* 内容区 */}
       <div className="content-area">
         <div className="content-header">
+          <ThemeSelector />
           <LanguageSelector />
         </div>
         <div className="content-body">
@@ -42,43 +46,6 @@ function LayoutInner() {
         </div>
       </div>
 
-      <style>{`
-        select, input, textarea, button, .ant-select { font-size: 16px !important; }
-
-        .sidebar-desktop {
-          position: fixed;
-          top: 0; left: 0; bottom: 0;
-          width: 240px;
-          background: #fff;
-          z-index: 10;
-        }
-        .content-area {
-          margin-left: 240px;
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-        }
-        .content-header {
-          display: flex;
-          justify-content: flex-end;
-          align-items: center;
-          padding: 12px 24px;
-          border-bottom: 1px solid #f0f0f0;
-        }
-        .content-body {
-          flex: 1;
-          padding: 24px;
-        }
-        .topbar-mobile { display: none; }
-
-        @media (max-width: 768px) {
-          .sidebar-desktop { display: none; }
-          .content-area { margin-left: 0; width: 100%; }
-          .content-header { display: none; }
-          .content-body { padding: 16px; }
-          .topbar-mobile { display: flex; }
-        }
-      `}</style>
     </div>
   );
 }

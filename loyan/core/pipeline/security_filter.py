@@ -19,7 +19,6 @@ class SecurityFilter(Stage):
     """
 
     async def process(self, ctx: PluginContext) -> Optional[PluginContext]:
-        _logger.debug(f"[SecurityFilter] 校验用户 {ctx.sender_id}")
 
         # ── 监控统计（可选模块） ──
         try:

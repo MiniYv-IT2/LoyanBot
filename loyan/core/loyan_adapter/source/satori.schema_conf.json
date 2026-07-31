@@ -2,7 +2,8 @@
   "host": {
     "type": "str",
     "default": "127.0.0.1",
-    "description": "服务器地址"
+    "description": "服务器地址",
+    "required": true
   },
   "port": {
     "type": "int",
@@ -13,7 +14,8 @@
     "type": "str",
     "default": "",
     "description": "连接 Token",
-    "secret": true
+    "secret": true,
+    "required": true
   },
   "robot_id": {
     "type": "str",
@@ -25,5 +27,11 @@
     "default": [],
     "description": "管理员 ID 列表",
     "hint": "多个用逗号分隔"
+  },
+  "bot_name": {
+    "type": "str",
+    "default": "",
+    "description": "备注名称",
+    "required": true
   }
 }

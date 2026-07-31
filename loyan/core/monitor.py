@@ -213,11 +213,9 @@ class MonitorManager:
         return " ".join(parts)
     
     def shutdown(self):
-
         self.monitoring_enabled = False
         if hasattr(self, 'monitor_thread') and self.monitor_thread.is_alive():
             self.monitor_thread.join(timeout=5)
-        logger.info("监控管理器已关闭")
 
 
 monitor_manager = MonitorManager()

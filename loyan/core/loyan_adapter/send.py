@@ -16,7 +16,6 @@
     Pipeline 设置 RuntimeContext → send() 通过 RuntimeContext.get().adapter_tag 自动适配
 """
 
-import asyncio
 import logging
 from typing import List, Optional
 
@@ -62,11 +61,7 @@ async def loyan_send_msg(target: str, *segments: LoyanMsg,
         tag = _get_runtime_tag()
 
     seg_list: List[LoyanMsg] = list(segments)
-    send_result = adapter_pool.send(target, seg_list, chat_type, tag=tag)
-    if asyncio.iscoroutine(send_result):
-        success = await send_result
-    else:
-        success = send_result
+    success = await adapter_pool.send(target, seg_list, chat_type, tag=tag)
     preview = _segments_preview(segments)
     type_cn = "私聊" if chat_type == "private" else "群聊"
     status = "成功发送" if success else "发送失败"
@@ -125,27 +120,16 @@ async def loyan_call_api(action: str, params: dict = None,
         _logger.error("[API] 无可用适配器")
         return None
     if hasattr(adapter, 'call_api'):
-        result = adapter.call_api(action, params or {})
-        if asyncio.iscoroutine(result):
-            return await result
-        return result
+        return await adapter.call_api(action, params or {})
     return None
 
 
 async def loyan_get_platform_info(tag: Optional[IdentityTag] = None) -> dict:
-    """获取平台统计信息
-
-    Args:
-        tag: 指定适配器标签，None=从消息上下文自动获取
-    """
     if tag is None:
         tag = _get_runtime_tag()
     adapter = adapter_pool.get(tag) if tag else adapter_pool.get_default()
     if adapter is None:
         return {"friend_count": None, "group_count": None, "platform": "unknown", "protocol_version": None}
     if hasattr(adapter, 'get_platform_info'):
-        result = adapter.get_platform_info()
-        if asyncio.iscoroutine(result):
-            return await result
-        return result
+        return await adapter.get_platform_info()
     return {"friend_count": None, "group_count": None, "platform": "unknown", "protocol_version": None}

@@ -65,7 +65,7 @@ class Stage(ABC):
 
     timeout: float = STAGE_TIMEOUT
     on_skip: str = "break"
-    force_run: bool = False  # True = 即使短路也执行
+
 
     async def initialize(self) -> None:
         ...

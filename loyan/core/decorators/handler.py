@@ -86,27 +86,12 @@ def plugin_handler(func: Callable) -> Callable:
                 )
                 return
 
-        # ── 执行 handler ──
-        try:
-            if is_async:
-                await func(ctx)
-            else:
-                loop = asyncio.get_running_loop()
-                await loop.run_in_executor(None, func, ctx)
-
-            elapsed = time.time() - ctx.start_time
-            _logger.info(
-                f"[装饰器] 执行成功: 插件={ctx.plugin_name} "
-                f"命令={ctx.command} 耗时={elapsed:.3f}s"
-            )
-
-        except Exception as e:
-            elapsed = time.time() - ctx.start_time
-            _logger.error(
-                f"[装饰器] 执行异常: 插件={ctx.plugin_name} "
-                f"命令={ctx.command} 耗时={elapsed:.3f}s 错误={e}",
-                exc_info=True,
-            )
+        # ── 执行 handler（pipeline 的 PluginHandler 负责日志和异常捕获）──
+        if is_async:
+            await func(ctx)
+        else:
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, func, ctx)
 
     # 透传装饰器元数据（用于外层装饰器读取）
     wrapper._loyan_permission = getattr(func, "_loyan_permission", None)

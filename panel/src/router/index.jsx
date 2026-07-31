@@ -5,7 +5,7 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import DashboardHome from "../pages/Dashboard/Home";
 import AdaptersList from "../pages/Dashboard/Adapters";
 import AdapterCreate from "../pages/Dashboard/Adapters/Create";
-import AdapterEdit from "../pages/Dashboard/Adapters/[id]/Edit";
+
 import ProvidersList from "../pages/Dashboard/Providers";
 import ProviderCreate from "../pages/Dashboard/Providers/Create";
 import ProviderEdit from "../pages/Dashboard/Providers/[id]/Edit";
@@ -52,7 +52,6 @@ export default function AppRoutes() {
         <Route index element={<DashboardHome />} />
         <Route path="adapters" element={<AdaptersList />} />
         <Route path="adapters/create" element={<AdapterCreate />} />
-        <Route path="adapters/:id/edit" element={<AdapterEdit />} />
         <Route path="providers" element={<ProvidersList />} />
         <Route path="providers/create" element={<ProviderCreate />} />
         <Route path="providers/:id/edit" element={<ProviderEdit />} />

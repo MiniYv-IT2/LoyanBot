@@ -190,15 +190,13 @@ class LoyanOneBot(LoyanAdapter):
 
     # ── 生命周期 ──
 
-    def start(self, on_event: Callable[[LoyanEvent], None]) -> None:
-        """注册事件回调（Flask 服务由 core.main 独立启动）"""
+    async def start(self, on_event: Callable[[LoyanEvent], None]) -> None:
         self._on_event = on_event
 
-    def stop(self) -> None:
-        """释放资源"""
+    async def stop(self) -> None:
         self._on_event = None
         if self._session:
-            asyncio.ensure_future(self._session.close())
+            await self._session.close()
             self._session = None
 
     async def _get_session(self) -> aiohttp.ClientSession:
@@ -229,7 +227,6 @@ class LoyanOneBot(LoyanAdapter):
                 self._logger.warning(f"[OneBot] API '{action}' 返回失败: {result.get('msg', '')}")
                 return None
         except Exception as e:
-            self._logger.debug(f"[OneBot] HTTP API '{action}' 调用失败: {e}")
             return None
 
     async def get_platform_info(self) -> dict:

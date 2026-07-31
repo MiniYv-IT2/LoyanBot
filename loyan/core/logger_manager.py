@@ -230,12 +230,6 @@ class LoggerManager:
                 logging.getLogger(silenced).setLevel(logging.WARNING)
                 logging.getLogger(silenced).propagate = False
 
-            # HTTP 日志器
-            http_logger = self.get_logger('LoyanBot-HTTP')
-            for h in http_logger.handlers[:]:
-                http_logger.removeHandler(h)
-            http_logger.addHandler(self._create_file_handler('loyan_http.log', logging.INFO, structured, 7, False))
-
             # Loyan 日志器只传播
             loyan_logger = self.get_logger('Loyan')
             for h in loyan_logger.handlers[:]:

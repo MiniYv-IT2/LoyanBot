@@ -1,6 +1,8 @@
+import { useTranslation } from "react-i18next";
 import logoSvg from "../assets/images/Loyan.svg";
 
 export default function LogoArea({ collapsed }) {
+  const { t } = useTranslation();
   if (collapsed) {
     return (
       <div
@@ -52,20 +54,20 @@ export default function LogoArea({ collapsed }) {
           style={{
             fontSize: "clamp(14px, 1.8vw, 17px)",
             fontWeight: 700,
-            color: "#333",
+            color: "var(--text)",
             lineHeight: "inherit",
           }}
         >
-          LoyanUI
+          {t("app.title")}
         </div>
         <div
           style={{
             fontSize: "clamp(11px, 1.2vw, 13px)",
-            color: "#999",
+            color: "var(--text-secondary)",
             lineHeight: "inherit",
           }}
         >
-          v1.0.0 测试版
+          {t("app.version")}
         </div>
       </div>
     </div>

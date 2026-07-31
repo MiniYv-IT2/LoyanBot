@@ -14,6 +14,27 @@ from loyan.core.pipeline.helpers import is_master
 
 _logger = logging.getLogger("Core.Pipeline")
 
+# ── 框架内部注册的内置命令（插件开发者不可见） ──
+
+_BUILTIN_COMMAND_REGISTRY: dict = {}
+
+
+def register_builtin_command(command: str, handler, *, require_admin: bool = False) -> None:
+    """注册框架内部内置命令（仅限框架模块调用，不暴露给插件）"""
+    _BUILTIN_COMMAND_REGISTRY[command] = {"handler": handler, "require_admin": require_admin}
+
+
+async def _dispatch_registered(ctx: PluginContext) -> Optional[PluginContext]:
+    """分发注册表里的内置命令；命中返回 ctx（已消费），未命中返回 None"""
+    raw_msg = ctx.raw_text.strip()
+    entry = _BUILTIN_COMMAND_REGISTRY.get(raw_msg)
+    if entry is None:
+        return None
+    if entry["require_admin"] and not is_master(ctx):
+        return ctx
+    await entry["handler"](ctx)
+    return ctx
+
 
 class BuiltinCommands(Stage):
     """内置命令处理器
@@ -31,6 +52,10 @@ class BuiltinCommands(Stage):
         target_id = str(ctx.target_id)
         chat_type = ctx.chat_type
         is_master_user = is_master(ctx)
+
+        dispatched = await _dispatch_registered(ctx)
+        if dispatched is not None:
+            return dispatched
 
         if raw_msg == "/关机":
             if is_master_user:

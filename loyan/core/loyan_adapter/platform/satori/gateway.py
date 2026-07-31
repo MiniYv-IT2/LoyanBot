@@ -135,7 +135,7 @@ class SatoriGateway:
 
     async def call_api(self, action: str, params: dict = None) -> dict:
         """调用 Satori API
-        
+        _logger.debug(f"Satori API 调用已发送: {action}")
         Satori 协议通过 WebSocket 发送 REQUEST 消息，服务端返回 RESPONSE。
         
         Args:
@@ -167,7 +167,6 @@ class SatoriGateway:
         
         try:
             await self._ws.send_json(payload)
-            _logger.debug(f"Satori API 调用已发送: {action}")
             
             # 等待响应，超时 30 秒
             result = await asyncio.wait_for(future, timeout=30)
@@ -203,8 +202,8 @@ class SatoriGateway:
         elif op == 6:  # RESPONSE
             echo = data.get("echo")
             if echo and echo in self._pending:
-                self._pending[echo].set_result(data.get("d", {}))
                 _logger.debug(f"Satori API 响应已收到: {echo}")
+                self._pending[echo].set_result(data.get("d", {}))
         else:
             _logger.debug(f"Satori Gateway 未知 op 类型: {op}")
 

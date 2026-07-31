@@ -1,0 +1,131 @@
+/* ── 主题系统 ── */
+
+[data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3,
+[data-theme="dark"] h4, [data-theme="dark"] h5,
+[data-theme="dark"] .ant-list-item-meta-title,
+[data-theme="dark"] .ant-modal-header,
+[data-theme="dark"] .ant-drawer-header,
+[data-theme="dark"] .ant-card-head,
+[data-theme="dark"] .ant-menu-item,
+[data-theme="dark"] .ant-menu-item a,
+[data-theme="dark"] .ant-menu-submenu-title {
+  color: var(--text) !important;
+}
+[data-theme="dark"] .ant-list-item-meta-description,
+[data-theme="dark"] .ant-modal-body,
+[data-theme="dark"] .ant-drawer-body {
+  color: var(--text-secondary) !important;
+}
+
+/* 雾青（默认） */
+[data-theme="mist"], :root {
+  --primary: #8ecac8;
+  --primary-hover: #7ab8b6;
+  --bg-start: #8ecac814;
+  --bg-mid: #8ecac847;
+  --bg-end: #8ecac81a;
+  --login-bg: #8ecac8;
+  --login-bg-end: #8ecac888;
+  --sidebar-border: #ddd;
+  --sidebar-icon: #8ecac8;
+  --text: #333;
+  --text-secondary: #999;
+  --card-bg: #fafafa;
+  --card-border: #f0f0f0;
+  --header-border: #ddd;
+}
+
+/* 纯白 */
+[data-theme="white"] {
+  --primary: #8ecac8;
+  --primary-hover: #7ab8b6;
+  --bg: #ffffff;
+  --bg-start: #ffffff;
+  --bg-mid: #ffffff;
+  --bg-end: #ffffff;
+  --login-bg: #8ecac8;
+  --login-bg-end: #8ecac888;
+  --sidebar-border: #f0f0f0;
+  --sidebar-icon: #8ecac8;
+  --text: #333;
+  --text-secondary: #999;
+  --card-bg: #fafafa;
+  --card-border: #f0f0f0;
+  --header-border: #f0f0f0;
+}
+
+/* 樱花粉 */
+[data-theme="pink"] {
+  --primary: #f0a8c8;
+  --primary-hover: #e890b8;
+  --bg-start: #f0a8c814;
+  --bg-mid: #f0a8c847;
+  --bg-end: #f0a8c81a;
+  --login-bg: #f0a8c8;
+  --login-bg-end: #f0a8c888;
+  --sidebar-border: #ddd;
+  --sidebar-icon: #f0a8c8;
+  --text: #333;
+  --text-secondary: #999;
+  --card-bg: #fafafa;
+  --card-border: #f0f0f0;
+  --header-border: #ddd;
+}
+
+/* 紫罗兰 */
+[data-theme="purple"] {
+  --primary: #b8a0d0;
+  --primary-hover: #a888c8;
+  --bg-start: #b8a0d014;
+  --bg-mid: #b8a0d047;
+  --bg-end: #b8a0d01a;
+  --login-bg: #b8a0d0;
+  --login-bg-end: #b8a0d088;
+  --sidebar-border: #ddd;
+  --sidebar-icon: #b8a0d0;
+  --text: #333;
+  --text-secondary: #999;
+  --card-bg: #fafafa;
+  --card-border: #f0f0f0;
+  --header-border: #ddd;
+}
+
+/* 拉力橙 */
+[data-theme="orange"] {
+  --primary: #f0a060;
+  --primary-hover: #e89040;
+  --bg-start: #f0a06014;
+  --bg-mid: #f0a06047;
+  --bg-end: #f0a0601a;
+  --login-bg: #f0a060;
+  --login-bg-end: #f0a06088;
+  --sidebar-border: #ddd;
+  --sidebar-icon: #f0a060;
+  --text: #333;
+  --text-secondary: #999;
+  --card-bg: #fafafa;
+  --card-border: #f0f0f0;
+  --header-border: #ddd;
+}
+
+/* 深色 */
+[data-theme="dark"] {
+  --primary: #8ecac8;
+  --primary-hover: #7ab8b6;
+  --bg: #1a1a2e;
+  --bg-start: #1a1a2e;
+  --bg-mid: #1a1a2e;
+  --bg-end: #1a1a2e;
+  --login-bg: #1a1a2e;
+  --login-bg-end: #1a1a2e88;
+  --card-bg: #1e1e32;
+  --text: #e0e0e0;
+  --text-secondary: #888;
+  --sidebar-border: #2a2a3e;
+  --sidebar-icon: #8ecac8;
+  --text: #e0e0e0;
+  --text-secondary: #888;
+  --card-bg: #1e1e32;
+  --card-border: #2a2a3e;
+  --header-border: #2a2a3e;
+}

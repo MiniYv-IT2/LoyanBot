@@ -1,0 +1,26 @@
+const adapters = {
+  empty: "Пока нет добавленных ботов, здесь пусто~",
+  create_title: "Выберите адаптер платформы",
+  cancel: "Отмена",
+  save: "Сохранить",
+  delete: "Удалить",
+  saved: "Создано",
+  save_failed: "Ошибка создания",
+  schema_failed: "Не удалось загрузить конфиг",
+  enabled: "Вкл",
+  disabled: "Выкл",
+  required_hint: "обязательно",
+  enabled_label: "Вкл",
+  delete_title: "Подтверждение удаления",
+  delete_confirm: "Решите пример для подтверждения:",
+  delete_wrong: "Неверный ответ",
+  delete_success: "Удалено",
+  edit_title: "Редакт.",
+  qr_title: "QR-вход — Сканируйте QQ",
+  manual_title: "Вручную — Введите AppID/Secret",
+  qr_hint: "Сканируйте QR-код в QQ",
+  qr_expired: "QR истёк, нажмите для обновления",
+  qr_success: "QR успешно! Создано",
+} as const;
+
+export default adapters;

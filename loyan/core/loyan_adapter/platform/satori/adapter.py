@@ -59,28 +59,12 @@ class SatoriAdapter(LoyanAdapter):
 
     # ── 生命周期 ──
 
-    def start(self, on_event: Callable[[LoyanEvent], None]) -> None:
-        """启动适配器，开始监听消息"""
+    async def start(self, on_event: Callable[[LoyanEvent], None]) -> None:
         self._on_event = on_event
-
-        try:
-            loop = asyncio.get_event_loop()
-            self._task = loop.create_task(self._async_start())
-        except RuntimeError:
-            _logger.error("Satori 适配器启动失败: 无运行中的事件循环")
+        self._task = asyncio.ensure_future(self._async_start())
 
     async def _async_start(self):
-        """异步启动 Satori 客户端"""
         from satori.client import App, WebsocketsInfo
-
-        try:
-            from loguru import logger as loguru_logger
-            loguru_logger.disable("launart")
-            loguru_logger.disable("satori")
-        except ImportError:
-            pass
-
-        _logger.info(f"Satori 适配器正在启动 ({self._host}:{self._port}{self._path})...")
 
         self._app = App(
             WebsocketsInfo(
@@ -125,7 +109,6 @@ class SatoriAdapter(LoyanAdapter):
                 _logger.info(f"Satori 连接就绪，account: {account}, state: {state}")
                 # 补发暂存消息（OneBot 同款逻辑）
                 if adapter_self._pending_messages:
-                    _logger.debug(f"补发 {len(adapter_self._pending_messages)} 条暂存消息")
                     pending = adapter_self._pending_messages[:]
                     adapter_self._pending_messages.clear()
                     for target, segments, chat_type in pending:
@@ -147,28 +130,24 @@ class SatoriAdapter(LoyanAdapter):
                 loyan_event = _satori_event_to_loyan(event, adapter_self.tag)
                 if loyan_event and adapter_self._on_event:
                     _logger.debug(f"事件转换成功: {loyan_event.raw_text}")
-                    adapter_self._on_event(loyan_event)
+                    await adapter_self._on_event(loyan_event)
                 else:
                     _logger.debug(f"事件转换返回 None: type={event.type}")
             except Exception as e:
                 _logger.error(f"Satori 事件转换异常: {e}", exc_info=True)
 
-        _logger.debug(f"event_callbacks 数量: {len(self._app.event_callbacks)}")
         await self._app.run_async()
 
-    def stop(self) -> None:
-        """停止适配器，释放资源"""
-        _logger.info("Satori 适配器正在停止...")
+    async def stop(self) -> None:
         self._pending_messages.clear()
         if self._task and not self._task.done():
             self._task.cancel()
-        if self._app:
             try:
-                loop = asyncio.get_event_loop()
-                loop.create_task(self._app.shutdown())
-            except RuntimeError:
+                await asyncio.wait_for(self._task, timeout=5)
+            except (asyncio.CancelledError, asyncio.TimeoutError):
                 pass
-        _logger.info("Satori 适配器已停止")
+        if self._app:
+            await self._app.shutdown()
 
     # ── 消息发送 ──
 
@@ -183,12 +162,11 @@ class SatoriAdapter(LoyanAdapter):
         if not segments:
             return False
 
-        _logger.info(f"send called: target={target!r} chat_type={chat_type!r}")
+
 
         # 未连接时暂存（OneBot 同款逻辑）
         if not self._ready.is_set() or not self._account:
             self._pending_messages.append((target, segments, chat_type))
-            _logger.debug(f"未连接，消息暂存（共{len(self._pending_messages)}条）")
             return False
 
         try:
@@ -261,7 +239,7 @@ class SatoriAdapter(LoyanAdapter):
 
     # ── 平台信息 ──
 
-    def get_platform_info(self) -> dict:
+    async def get_platform_info(self) -> dict:
         import time
         now = time.time()
         if self._platform_info_cache and (now - self._platform_info_cache_time) < 60:
@@ -316,7 +294,6 @@ def _satori_event_to_loyan(event, tag: IdentityTag) -> Optional[LoyanEvent]:
 
     # 只处理消息创建事件（Satori 协议用连字符）
     if event.type != "message-created":
-        _logger.debug(f"忽略 Satori 事件类型: {event.type}")
         return None
 
     # 提取消息数据
@@ -344,7 +321,6 @@ def _satori_event_to_loyan(event, tag: IdentityTag) -> Optional[LoyanEvent]:
                 break
 
     if self_id and sender_id == self_id:
-        _logger.debug(f"忽略自身消息: sender={sender_id}")
         return None
 
     channel = event.channel
@@ -359,7 +335,7 @@ def _satori_event_to_loyan(event, tag: IdentityTag) -> Optional[LoyanEvent]:
         target_id = str(channel.id) if channel else ""
     else:
         target_id = str(guild.id) if guild else (str(channel.id) if channel else "")
-    _logger.info(f"target={target_id} chat={chat_type} ch_id={channel.id if channel else '?'} guild_id={guild.id if guild else '?'} ch_type={channel.type if channel else '?'}")
+
 
     from loyan.core.loyan_adapter.platform.satori.message import satori_to_loyan, extract_plain_text
     elements = getattr(message, 'message', None) or message.content

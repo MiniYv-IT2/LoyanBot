@@ -14,14 +14,11 @@ class BotMixin:
     """机器人信息 Mixin — 依赖 AuthMixin 的 token 和 api_base"""
 
     async def get_gateway_url(self) -> Optional[str]:
-        """获取 WebSocket Gateway 接入点地址"""
         token = await self.get_access_token()
         if not token:
             return None
-
         url = f"{self._api_base}/gateway"
         headers = {"Authorization": f"QQBot {token}"}
-
         try:
             session = await self._get_session()
             resp = await asyncio.wait_for(session.get(url, headers=headers), timeout=10)
@@ -38,14 +35,11 @@ class BotMixin:
             return None
 
     async def get_bot_info(self) -> Optional[dict]:
-        """获取机器人信息"""
         token = await self.get_access_token()
         if not token:
             return None
-
         url = f"{self._api_base}/v1/me"
         headers = {"Authorization": f"QQBot {token}"}
-
         try:
             session = await self._get_session()
             resp = await asyncio.wait_for(session.get(url, headers=headers), timeout=10)

@@ -2,14 +2,14 @@ import { Select } from "antd";
 import { GlobalOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 
-const LANG_OPTIONS = [
-  { value: "zh-CN", label: "简体中文" },
-  { value: "en-US", label: "English" },
-  { value: "ru-RU", label: "Русский" },
-];
-
 export default function LanguageSelector({ style }) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  const LANG_OPTIONS = [
+    { value: "zh-CN", label: t("lang.zh") },
+    { value: "en-US", label: t("lang.en") },
+    { value: "ru-RU", label: t("lang.ru") },
+  ];
 
   const handleChange = (value) => {
     i18n.changeLanguage(value);

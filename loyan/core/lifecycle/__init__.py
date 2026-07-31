@@ -26,3 +26,7 @@ from .hooks import (
 from .health import (
     MetricsCollector, HealthReporter, HealthCheck, LambdaCheck, CompositeChecker,
 )
+
+
+# ── 全局单例（模块间共享同一个生命周期实例） ──
+lifecycle = LifecycleManager()

@@ -68,37 +68,32 @@ class OneBotAdapter(LoyanAdapter):
 
     # ── 生命周期 ──
 
-    def start(self, on_event: Callable[[LoyanEvent], None]) -> None:
-        """启动通道"""
-        self._http.start(on_event)
-        # 注册 HTTP parser 供 /callback 路由查找
+    async def start(self, on_event: Callable[[LoyanEvent], None]) -> None:
+        await self._http.start(on_event)
         if self._robot_id:
             register_http_parser(self._robot_id, self._http)
         if self._ws_enabled:
-            self._ws.start(on_event)
-        _logger.info("[OneBotAdapter] 统一适配器启动完成")
+            await self._ws.start(on_event)
 
-    def stop(self) -> None:
-        """停止通道"""
+
+    async def stop(self) -> None:
         if self._ws_enabled:
-            self._ws.stop()
-        _logger.info("[OneBotAdapter] 统一适配器已停止")
+            await self._ws.stop()
+
 
     # ── 发送消息 ──
 
-    def send(self, target: str, segments: List[LoyanMsg], chat_type: str) -> bool:
-        """发送消息（WS 优先，未连接时自动暂存等待补发）"""
+    async def send(self, target: str, segments: List[LoyanMsg], chat_type: str) -> bool:
         if self._ws_enabled:
-            return self._ws.send(target, segments, chat_type)
-        return self._http.send(target, segments, chat_type)
+            return await self._ws.send(target, segments, chat_type)
+        return await self._http.send(target, segments, chat_type)
 
-    def call_api(self, action: str, params: dict = None) -> Optional[dict]:
-        """调用 OneBot API（WS 优先，未连接时自动暂存等待补发）"""
+    async def call_api(self, action: str, params: dict = None) -> Optional[dict]:
         if self._ws_enabled:
-            return self._ws.call_api(action, params or {})
-        return self._http.call_api(action, params or {})
+            return await self._ws.call_api(action, params or {})
+        return await self._http.call_api(action, params or {})
 
-    def get_platform_info(self) -> dict:
+    async def get_platform_info(self) -> dict:
         """获取平台统计信息"""
         if self._ws_enabled:
             return self._ws.get_platform_info()

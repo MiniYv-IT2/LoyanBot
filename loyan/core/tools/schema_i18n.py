@@ -85,3 +85,18 @@ async def list_source_types() -> list[str]:
             if t not in types:
                 types.append(t)
     return types
+
+async def list_adapter_types() -> list[str]:
+    """仅返回消息平台适配器类型（不包含 provider）。"""
+    loop = asyncio.get_running_loop()
+    base = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        "loyan_adapter", "source")
+    if not os.path.isdir(base):
+        return []
+    def _scan():
+        result = []
+        for fname in sorted(os.listdir(base)):
+            if fname.endswith(".schema_conf.json"):
+                result.append(fname.replace(".schema_conf.json", ""))
+        return result
+    return await loop.run_in_executor(None, _scan)

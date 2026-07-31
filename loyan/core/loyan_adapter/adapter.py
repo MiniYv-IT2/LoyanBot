@@ -22,49 +22,22 @@ class LoyanAdapter(ABC):
     """
 
     @abstractmethod
-    def start(self, on_event: Callable[[LoyanEvent], None]) -> None:
-        """启动适配器，开始监听消息
-
-        Args:
-            on_event: 收到消息时的回调，传入归一化后的 LoyanEvent
-        """
+    async def start(self, on_event: Callable[[LoyanEvent], None]) -> None:
         ...
 
     @abstractmethod
-    def send(self, target: str, segments: List[LoyanMsg], chat_type: str) -> bool:
-        """发送消息到指定目标
-
-        Args:
-            target: 目标 ID
-            segments: 结构化消息段列表（支持 LoyanText, LoyanImage, LoyanAt, LoyanReply, LoyanVoice, LoyanFile, LoyanVideo, LoyanForward）
-            chat_type: "private" | "group"
-
-        Returns:
-            发送成功返回 True
-        """
+    async def send(self, target: str, segments: List[LoyanMsg], chat_type: str) -> bool:
         ...
 
     @abstractmethod
-    def stop(self) -> None:
-        """停止适配器，释放资源"""
+    async def stop(self) -> None:
         ...
 
-    def call_api(self, action: str, params: dict = None) -> Optional[dict]:
-        """通用 API 调用（可选，各平台按需实现）
-
-        默认返回 None，表示不支持或未实现。
-
-        Args:
-            action: 平台特定的 API 名称
-            params: 参数字典
-
-        Returns:
-            成功返回 data 字段，失败返回 None
-        """
+    async def call_api(self, action: str, params: dict = None) -> Optional[dict]:
         return None
 
     @abstractmethod
-    def get_platform_info(self) -> dict:
+    async def get_platform_info(self) -> dict:
         """获取平台/机器人统计信息（所有平台必须实现）
 
         返回统一结构，各平台自行填充：
@@ -102,6 +75,18 @@ class LoyanAdapter(ABC):
     def tag(self, value: IdentityTag) -> None:
         """设置适配器身份标签"""
         self._tag = value
+
+    @property
+    def is_connected(self) -> bool:
+        """是否已连接
+
+        各平台根据自身协议判断连通性。
+        如果子类有 is_ws_connected 方法则调用它，否则返回 True。
+        """
+        ws_check = getattr(self, 'is_ws_connected', None)
+        if ws_check is not None:
+            return ws_check()
+        return False
 
     def register_routes(self, app) -> None:
         """注册 HTTP 路由到框架应用（可选，仅需 HTTP 入站的适配器实现）

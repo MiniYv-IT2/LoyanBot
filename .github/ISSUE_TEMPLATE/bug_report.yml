@@ -29,6 +29,7 @@ body:
         - OneBot
         - Satori
         - QQ Official
+        - Telegram
         - 其他
 
   - type: textarea

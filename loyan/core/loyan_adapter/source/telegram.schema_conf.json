@@ -1,0 +1,36 @@
+{
+  "token": {
+    "type": "str",
+    "default": "",
+    "description": "Bot Token",
+    "required": true,
+    "secret": true
+  },
+  "proxy_url": {
+    "type": "str",
+    "default": "",
+    "description": "代理地址（可选）"
+  },
+  "webhook_url": {
+    "type": "str",
+    "default": "",
+    "description": "Webhook URL（留空则长轮询）"
+  },
+  "webhook_port": {
+    "type": "int",
+    "default": 8443,
+    "description": "Webhook 端口"
+  },
+  "admins_id": {
+    "type": "list",
+    "default": [],
+    "description": "管理员 ID 列表",
+    "hint": "多个用逗号分隔"
+  },
+  "bot_name": {
+    "type": "str",
+    "default": "",
+    "description": "备注名称",
+    "required": true
+  }
+}

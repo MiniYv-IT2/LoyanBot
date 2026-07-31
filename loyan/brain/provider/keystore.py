@@ -25,8 +25,6 @@ class KeyStore:
         await self._db.execute(
             "CREATE TABLE IF NOT EXISTS keys (name TEXT PRIMARY KEY, value TEXT)"
         )
-        _logger.info("密钥库已初始化")
-
         row = await self._db.fetchone("SELECT value FROM keys WHERE name = ?", "_encrypted")
         if row:
             self._password = row[0]
@@ -38,12 +36,9 @@ class KeyStore:
     def set_password(self, password: str):
         self._password = password
         self._fernet = Fernet(self._derive_key(password))
-        _logger.info("密钥加密已开启")
-
     def disable_encryption(self):
         self._password = ""
         self._fernet = None
-        _logger.info("密钥加密已关闭")
 
     @property
     def is_encrypted(self) -> bool:

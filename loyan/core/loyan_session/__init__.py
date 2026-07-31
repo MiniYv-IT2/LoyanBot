@@ -18,6 +18,7 @@ from .loyan_session import LoyanSession
 from .loyan_session_manager import (
     LoyanSessionManager,
     loyan_get_session_manager,
+    loyan_init_session_manager,
     loyan_get_session,
     loyan_get_or_create_session,
     loyan_create_session,

@@ -41,6 +41,8 @@ dependencies = [
     "aiosqlite>=0.20.0",
     "cryptography>=42.0.0",
     "litellm>=1.60.0",
+    "pycryptodome>=3.23.0",
+    "python-telegram-bot>=22.0",
 ]
 
 [project.optional-dependencies]
