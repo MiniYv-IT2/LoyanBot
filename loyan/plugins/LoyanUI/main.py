@@ -202,7 +202,7 @@ def _create_app():
     @app.route("/api/loyanui/instances", methods=["POST"])
     async def panel_create_instance():
         from loyan.core.tools.paths import get_instances_dir
-        from loyan.core.main import start_instance
+        from loyan.core.runtime.manager import start_instance
         import json
         data = await request.get_json()
         if not data or not data.get("name"):
@@ -221,7 +221,7 @@ def _create_app():
     @app.route("/api/loyanui/instances/<name>", methods=["PATCH"])
     async def panel_update_instance(name):
         from loyan.core.tools.paths import get_instances_dir
-        from loyan.core.main import reload_instance, rename_instance
+        from loyan.core.runtime.manager import reload_instance, rename_instance
         import json
         data = await request.get_json()
         if not data:
@@ -244,7 +244,7 @@ def _create_app():
 
     @app.route("/api/loyanui/instances/<name>/reload", methods=["POST"])
     async def panel_reload_instance(name):
-        from loyan.core.main import reload_instance
+        from loyan.core.runtime.manager import reload_instance
         result = await reload_instance(name)
         return result
 
@@ -309,7 +309,7 @@ def _create_app():
 
     @app.route("/api/loyanui/instances/<name>/rename", methods=["POST"])
     async def panel_rename_instance(name):
-        from loyan.core.main import rename_instance
+        from loyan.core.runtime.manager import rename_instance
         data = await request.get_json()
         new_name = data.get("new_name", "").strip()
         if not new_name:
@@ -320,7 +320,7 @@ def _create_app():
     @app.route("/api/loyanui/instances/<name>", methods=["DELETE"])
     async def panel_delete_instance(name):
         from loyan.core.tools.paths import get_instances_dir
-        from loyan.core.main import stop_instance
+        from loyan.core.runtime.manager import stop_instance
         import shutil
         await stop_instance(name)
         data = await request.get_json()

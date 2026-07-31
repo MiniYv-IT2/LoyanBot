@@ -1491,6 +1491,15 @@ def test_global_lifecycle_singleton():
     assert lifecycle is _lifecycle
 
 
+def test_instance_manager_hooks_registered():
+    """导入 runtime.manager 后应注册 adapters_start 钩子"""
+    from loyan.core.lifecycle import lifecycle, LifecycleEvent
+    import loyan.core.runtime.manager  # noqa: F401
+    names = [e.name for e in lifecycle._hooks._entries
+             if e.event == LifecycleEvent.AFTER_INSTANCES_READY]
+    assert "adapters_start" in names
+
+
 def test_panel_hooks_registered_on_import():
     """导入 panel.server 后，AFTER_INSTANCES_READY 应有 panel_start/panel_commands 钩子"""
     from loyan.core.lifecycle import lifecycle, LifecycleEvent

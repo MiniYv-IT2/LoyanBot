@@ -33,8 +33,7 @@ from loyan.core.monitor import monitor_manager
 
 from loyan.core.webserv import Quart, send_from_directory, Blueprint, request, Config, serve
 
-from loyan.core.lifecycle import LifecycleManager, LifecycleEvent
-from loyan.core.main import _lifecycle
+from loyan.core.lifecycle import lifecycle
 
 from loyan.core.pipeline import Stage
 from loyan.core.runtime import RuntimeRegistry
