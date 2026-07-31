@@ -17,13 +17,31 @@ class MonitorManager:
     _instance = None
     _lock = threading.Lock()
     
-    def __new__(cls):
+    def __new__(cls, *args, **kwargs):
+        # 构造注入：显式传入依赖时创建独立实例（可测试）；
+        # 无参构造回落模块级单例（向后兼容，调用方零改动）
+        injected = {k: v for k, v in kwargs.items() if v is not None}
+        if injected:
+            instance = super(MonitorManager, cls).__new__(cls)
+            instance._set_dependencies(**injected)
+            instance._initialize()
+            return instance
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
                     cls._instance = super(MonitorManager, cls).__new__(cls)
+                    cls._instance._set_dependencies()
                     cls._instance._initialize()
         return cls._instance
+
+    def __init__(self, logger=None):
+        self._set_dependencies(logger=logger)
+
+    def _set_dependencies(self, logger=None):
+        if logger is None:
+            from loyan.core.utils import logger as _default_logger
+            logger = _default_logger
+        self.logger = logger
     
     def _initialize(self):
 
@@ -51,8 +69,8 @@ class MonitorManager:
 
         import os as _os
         if _os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-            logger.info("监控管理器已初始化并启动")
-            logger.info("结构化日志监控管理器已初始化并启动加载 核心模块加载完成，版本")
+            self.logger.info("监控管理器已初始化并启动")
+            self.logger.info("结构化日志监控管理器已初始化并启动加载 核心模块加载完成，版本")
     
     def _background_monitor(self):
 
@@ -88,7 +106,7 @@ class MonitorManager:
                 time.sleep(60)
                 
             except Exception as e:
-                logger.error(f"后台监控线程发生异常: {str(e)}", exc_info=True)
+                self.logger.error(f"后台监控线程发生异常: {str(e)}", exc_info=True)
                 time.sleep(10)
     
     def record_message_received(self):

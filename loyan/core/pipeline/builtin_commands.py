@@ -17,17 +17,36 @@ _logger = logging.getLogger("Core.Pipeline")
 # ── 框架内部注册的内置命令（插件开发者不可见） ──
 
 _BUILTIN_COMMAND_REGISTRY: dict = {}
+# 内置命令注册顺序（长命令优先，避免 /chat 吞掉 /chat reset）
+_BUILTIN_COMMAND_ORDER: list[str] = []
 
 
 def register_builtin_command(command: str, handler, *, require_admin: bool = False) -> None:
-    """注册框架内部内置命令（仅限框架模块调用，不暴露给插件）"""
+    """注册框架内部内置命令（仅限框架模块调用，不暴露给插件）
+
+    支持带参数命令：/chat 注册后，"/chat xxx" 也会命中，
+    精确匹配优先于前缀匹配，长命令优先于短命令。
+    """
+    if command not in _BUILTIN_COMMAND_REGISTRY:
+        _BUILTIN_COMMAND_ORDER.append(command)
     _BUILTIN_COMMAND_REGISTRY[command] = {"handler": handler, "require_admin": require_admin}
+
+
+def _match_builtin(raw_msg: str) -> Optional[dict]:
+    """匹配内置命令：先精确，后按注册顺序前缀匹配"""
+    entry = _BUILTIN_COMMAND_REGISTRY.get(raw_msg)
+    if entry is not None:
+        return entry
+    for command in _BUILTIN_COMMAND_ORDER:
+        if raw_msg.startswith(command + " "):
+            return _BUILTIN_COMMAND_REGISTRY[command]
+    return None
 
 
 async def _dispatch_registered(ctx: PluginContext) -> Optional[PluginContext]:
     """分发注册表里的内置命令；命中返回 ctx（已消费），未命中返回 None"""
     raw_msg = ctx.raw_text.strip()
-    entry = _BUILTIN_COMMAND_REGISTRY.get(raw_msg)
+    entry = _match_builtin(raw_msg)
     if entry is None:
         return None
     if entry["require_admin"] and not is_master(ctx):
@@ -52,6 +71,9 @@ class BuiltinCommands(Stage):
         target_id = str(ctx.target_id)
         chat_type = ctx.chat_type
         is_master_user = is_master(ctx)
+
+        from loyan.core.pipeline.helpers import inject_send_reply
+        inject_send_reply(ctx)
 
         dispatched = await _dispatch_registered(ctx)
         if dispatched is not None:

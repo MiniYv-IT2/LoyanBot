@@ -11,8 +11,11 @@ from enum import Enum
 from loyan.core.config_manager import config_manager
 from loyan.core.logger_manager import logger_manager
 
+_DEFAULT_CONFIG_MANAGER = config_manager
+_DEFAULT_LOGGER_MANAGER = logger_manager
+
 # 获取日志器
-logger = logger_manager.get_logger("Core.Security")
+logger = _DEFAULT_LOGGER_MANAGER.get_logger("Core.Security")
 
 # 角色枚举类
 class UserRole(Enum):
@@ -131,11 +134,28 @@ class SecurityManager:
     """
     _instance = None
     
-    def __new__(cls):
+    def __new__(cls, *args, **kwargs):
+        # 构造注入：显式传入依赖时创建独立实例（可测试）；
+        # 无参构造回落模块级单例（向后兼容，调用方零改动）
+        injected = {k: v for k, v in kwargs.items() if v is not None}
+        if injected:
+            instance = super(SecurityManager, cls).__new__(cls)
+            instance._set_dependencies(**injected)
+            instance._initialize()
+            return instance
         if cls._instance is None:
             cls._instance = super(SecurityManager, cls).__new__(cls)
+            cls._instance._set_dependencies()
             cls._instance._initialize()
         return cls._instance
+
+    def __init__(self, config_manager=None, logger_manager=None):
+        self._set_dependencies(config_manager=config_manager, logger_manager=logger_manager)
+
+    def _set_dependencies(self, config_manager=None, logger_manager=None):
+        self.config_manager = config_manager if config_manager is not None else _DEFAULT_CONFIG_MANAGER
+        self.logger_manager = logger_manager if logger_manager is not None else _DEFAULT_LOGGER_MANAGER
+        self.logger = self.logger_manager.get_logger("Core.Security")
     
     def _initialize(self):
         # 初始化组件
@@ -184,16 +204,16 @@ class SecurityManager:
             from loyan.core.event import event_bus
             event_bus.subscribe("*", self._event_filter, priority=100)
             self._subscribed = True
-            logger.debug("已注册到 EventBus（优先级高）")
+            self.logger.debug("已注册到 EventBus（优先级高）")
         except Exception as e:
-            logger.warning(f"EventBus 订阅失败: {e}")
+            self.logger.warning(f"EventBus 订阅失败: {e}")
 
     async def _event_filter(self, event) -> None:
         """EventBus 订阅者：黑名单拦截 + 审计日志（懒订阅）"""
         self._ensure_subscribed()
         # 黑名单拦截
         if hasattr(event, 'sender_id') and self.is_blocked(str(event.sender_id)):
-            logger.info(f"[EventBus] 黑名单拦截用户 {event.sender_id}")
+            self.logger.info(f"[EventBus] 黑名单拦截用户 {event.sender_id}")
             event.cancel()
             return
         # 审计日志
@@ -212,7 +232,7 @@ class SecurityManager:
     def _load_config(self):
         """从配置管理器加载安全配置"""
         # 从配置中加载主人 ID
-        master_id = config_manager.get('master_id', '')
+        master_id = self.config_manager.get('master_id', '')
         if master_id:
             self.user_roles[str(master_id)] = UserRole.ADMIN
         
@@ -233,7 +253,7 @@ class SecurityManager:
             return self.user_roles[user_id]
         
         # 检查是否机器人自身（从配置中获取自己的 ID，使用 robot_id）
-        self_id = config_manager.get('robot_id', '')
+        self_id = self.config_manager.get('robot_id', '')
         if self_id and str(user_id) == str(self_id):
             return UserRole.SELF
         
@@ -261,8 +281,8 @@ class SecurityManager:
         
         # 检查权限
         if permission in self.role_permissions[role]:
-            logger_manager.log_with_context(
-                logger,
+            self.logger_manager.log_with_context(
+                self.logger,
                 logging.DEBUG,
                 "权限校验通过",
                 context={
@@ -273,8 +293,8 @@ class SecurityManager:
             )
             return True, f"权限校验通过（{role.value}）"
         else:
-            logger_manager.log_with_context(
-                logger,
+            self.logger_manager.log_with_context(
+                self.logger,
                 logging.DEBUG,
                 "权限校验失败",
                 context={
@@ -305,8 +325,8 @@ class SecurityManager:
         # 检查危险命令
         for pattern in self.dangerous_commands:
             if re.search(pattern, content, re.IGNORECASE):
-                logger_manager.log_with_context(
-                    logger,
+                self.logger_manager.log_with_context(
+                    self.logger,
                     logging.DEBUG,
                     "检测到危险命令",
                     context={"pattern": pattern, "content_preview": content[:100]}
@@ -318,8 +338,8 @@ class SecurityManager:
         # 允许命令前缀的斜杠，但检查其他位置的敏感字符
         content_without_prefix = content[1:] if content.startswith('/') else content
         if re.search(sensitive_pattern, content_without_prefix):
-            logger_manager.log_with_context(
-                    logger,
+            self.logger_manager.log_with_context(
+                    self.logger,
                     logging.DEBUG,
                     "检测到敏感字符",
                     context={"content_preview": content[:100]}
@@ -335,8 +355,8 @@ class SecurityManager:
         ]
         for pattern in sql_patterns:
             if re.search(pattern, content, re.IGNORECASE):
-                logger_manager.log_with_context(
-                    logger,
+                self.logger_manager.log_with_context(
+                    self.logger,
                     logging.ERROR,
                     "检测到SQL注入尝试",
                     context={"pattern": pattern, "content_preview": content[:100]}
@@ -371,8 +391,8 @@ class SecurityManager:
             self.audit_logs = self.audit_logs[-1000:]
         
         # 记录到日志文件
-        logger_manager.log_with_context(
-            logger,
+        self.logger_manager.log_with_context(
+            self.logger,
             logging.INFO if success else logging.WARNING,
             "审计日志",
             context=audit_entry
@@ -391,8 +411,8 @@ class SecurityManager:
             'duration': duration
         }
         
-        logger_manager.log_with_context(
-            logger,
+        self.logger_manager.log_with_context(
+            self.logger,
             logging.INFO,
             "用户被添加到黑名单",
             context={
@@ -409,8 +429,8 @@ class SecurityManager:
         """
         if user_id in self.blacklist:
             del self.blacklist[user_id]
-            logger_manager.log_with_context(
-                logger,
+            self.logger_manager.log_with_context(
+                self.logger,
                 logging.INFO,
                 "用户从黑名单移除",
                 context={"sender_id": user_id}
@@ -442,7 +462,7 @@ class SecurityManager:
         """
         # 生成包含时间戳的令牌
         timestamp = str(int(time.time()))
-        data = f"{user_id}:{timestamp}:{config_manager.get('secret_key', 'default_secret')}"
+        data = f"{user_id}:{timestamp}:{self.config_manager.get('secret_key', 'default_secret')}"
         token = hashlib.sha256(data.encode()).hexdigest()
         return f"{user_id}.{timestamp}.{token}"
     
@@ -464,13 +484,13 @@ class SecurityManager:
                 return False
             
             # 重新计算哈希
-            data = f"{user_id}:{timestamp}:{config_manager.get('secret_key', 'default_secret')}"
+            data = f"{user_id}:{timestamp}:{self.config_manager.get('secret_key', 'default_secret')}"
             expected_hash = hashlib.sha256(data.encode()).hexdigest()
             
             # 验证哈希
             return token_hash == expected_hash
         except Exception as e:
-            logger.warning(f"[安全令牌] 验证异常: {e}")
+            self.logger.warning(f"[安全令牌] 验证异常: {e}")
             return False
             
     def validate_input(self, data: Dict) -> bool:
@@ -490,18 +510,18 @@ class SecurityManager:
             # 检查数据大小，防止过大的请求，但设置更大的阈值
             data_str = json.dumps(data, ensure_ascii=False)
             if len(data_str) > 50000:
-                logger.warning(f"[安全防护] 请求数据过大：{len(data_str)} 字符")
+                self.logger.warning(f"[安全防护] 请求数据过大：{len(data_str)} 字符")
                 return False
             
             # 只对明显超长的字符串进行限制
             for key, value in data.items():
                 if isinstance(value, str) and len(value) > 5000:
-                    logger.warning(f"[安全防护] 字段 {key} 值过长")
+                    self.logger.warning(f"[安全防护] 字段 {key} 值过长")
                     return False
             
             return True
         except Exception as e:
-            logger.error(f"[安全防护] 输入验证异常：{str(e)}")
+            self.logger.error(f"[安全防护] 输入验证异常：{str(e)}")
             # 为了让机器人正常工作，即使验证过程出错也返回True
             return True
             
@@ -527,7 +547,7 @@ class SecurityManager:
             # 其他命令默认通过基础验证
             return True
         except Exception as e:
-            logger.error(f"命令验证异常: {str(e)}")
+            self.logger.error(f"命令验证异常: {str(e)}")
             return False
     
     def validate_plugin_access(self, plugin_name: str, user_id: str) -> bool:
@@ -549,7 +569,7 @@ class SecurityManager:
             # 这里可以扩展为从配置中读取插件权限设置
             return True  # 默认允许访问，后续可扩展更细粒度的权限控制
         except Exception as e:
-            logger.error(f"插件访问验证异常: {str(e)}")
+            self.logger.error(f"插件访问验证异常: {str(e)}")
             return False
     
     def check_rate_limit(self, key: str) -> Tuple[bool, Optional[str]]:

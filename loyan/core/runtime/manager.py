@@ -2,6 +2,11 @@
 
 从 core/main.py 拆出的实例域，面板 API 与启动流程共用。
 公共 API（名称不变）：init_instances / reload_instance / start_instance / rename_instance / stop_instance
+
+结构：
+    - InstanceManager：生产级类，构造注入 pool/registry/plugin_manager/event_bus
+      （每实例操作锁 + 显式状态机 + reload 失败回滚）
+    - 模块级兼容层：_instance = InstanceManager(全局单例)，模块级函数转发到 _instance
 """
 
 import asyncio
@@ -26,7 +31,9 @@ from loyan.core.lifecycle import lifecycle, LifecycleEvent
 
 _logger = logging.getLogger("Core.Instance")
 
-_on_event_callback = None  # 运行时注入，供实例启动/热重载使用
+# 模块级默认依赖（兼容层 _instance 使用；类方法显式注入，不依赖这些别名）
+_module_plugin_manager = plugin_manager
+_module_adapter_pool = adapter_pool
 
 
 def _instances_dir() -> str:
@@ -57,7 +64,7 @@ def _discover_instance_configs() -> list[dict]:
     return results
 
 
-def _build_runtime(cfg: dict) -> Runtime:
+def _build_runtime(cfg: dict, plugin_manager=None, adapter_pool=None) -> Runtime:
     """根据实例配置构建 Runtime（含 Pipeline）"""
     instance_name = cfg.get("_dir_name", "unknown")
     robot_id = cfg.get("robot_id", "")
@@ -65,13 +72,15 @@ def _build_runtime(cfg: dict) -> Runtime:
     platform = cfg.get("platform", "")
     bot_name = cfg.get("bot_name", instance_name)
     tag = IdentityTag(platform=platform, bot_name=bot_name)
+    pm = plugin_manager if plugin_manager is not None else _module_plugin_manager
+    ap = adapter_pool if adapter_pool is not None else _module_adapter_pool
     runtime = Runtime(
         instance_name=instance_name,
         robot_id=robot_id,
         master_id=master_id,
         adapter_tag=tag,
-        plugin_manager=plugin_manager,
-        adapter_pool=adapter_pool,
+        plugin_manager=pm,
+        adapter_pool=ap,
     )
     pipeline = Pipeline()
     pipeline.add_stage(SecurityFilter())
@@ -130,191 +139,323 @@ async def _create_and_prepare_adapter(cfg: dict, runtime=None):
     return adapter, tag
 
 
-async def _register_instance(cfg: dict, default: bool = False, runtime=None) -> None:
+async def _register_instance(cfg: dict, default: bool = False, runtime=None, pool=None) -> None:
     result = await _create_and_prepare_adapter(cfg, runtime=runtime)
     if result is None:
         return
     adapter, tag = result
-    adapter_pool.register(adapter, tag, default=default)
+    target = pool if pool is not None else _module_adapter_pool
+    target.register(adapter, tag, default=default)
     platform = cfg.get("platform", "")
     bot_name = cfg.get("bot_name", cfg.get("_dir_name", "unknown"))
     conn_type = getattr(adapter, 'conn_type_display', '') or ''
     _logger.info(f"[Adapter] {platform}/{bot_name} ({conn_type}) started")
 
 
+# ──────────────────────────────────────────────────────────────
+# InstanceManager — 生产级实例管理器（构造注入）
+# ──────────────────────────────────────────────────────────────
+
+class InstanceManager:
+    """实例管理器：发现/注册/热重载/启停/重命名
+
+    构造注入 pool / registry / plugin_manager / event_bus，不依赖全局单例，
+    便于单测替换为 Fake。每实例一把 asyncio.Lock，串行化 reload/start/stop/rename；
+    显式状态机（stopped/starting/running/stopping/error）供健康检查。
+    """
+
+    def __init__(self, pool, registry, plugin_manager, event_bus):
+        self._pool = pool
+        self._registry = registry
+        self._plugin_manager = plugin_manager
+        self._event_bus = event_bus
+        self._locks: dict[str, asyncio.Lock] = {}
+        self._states: dict[str, str] = {}
+        self._event_callback = None
+
+    # ── 锁与状态 ──
+
+    def _lock(self, name: str) -> asyncio.Lock:
+        if name not in self._locks:
+            self._locks[name] = asyncio.Lock()
+        return self._locks[name]
+
+    def state(self, name: str) -> str:
+        """查询实例状态（stopped/starting/running/stopping/error）"""
+        return self._states.get(name, "stopped")
+
+    # ── 事件回调 ──
+
+    def set_event_callback(self, cb) -> None:
+        """注入事件回调（适配器启动时用）；None 时回退到 event_bus.publish"""
+        self._event_callback = cb
+
+    def _get_event_callback(self):
+        if self._event_callback is not None:
+            return self._event_callback
+        return lambda e: asyncio.create_task(self._event_bus.publish(e))
+
+    # ── 池/注册表辅助 ──
+
+    def _find_in_pool(self, name: str):
+        """按实例名查找 (adapter, tag)，找不到返回 (None, None)"""
+        for tag in self._pool.all_tags:
+            if tag.bot_name == name or tag.identity_key.endswith(f"/{name}"):
+                return self._pool.get(tag), tag
+        return None, None
+
+    def _is_default(self, tag) -> bool:
+        if tag is None:
+            return False
+        default_tag = self._pool.get_default_tag()
+        return default_tag is not None and default_tag.identity_key == tag.identity_key
+
+    def _update_runtime_tag(self, name: str, tag) -> None:
+        """更新注册表中该实例 runtime 的 adapter_tag"""
+        for runtime in self._registry.get_all():
+            if runtime.instance_name == name:
+                self._registry.unregister(runtime)
+                runtime.adapter_tag = tag
+                self._registry.register(runtime)
+                break
+
+    async def _rollback(self, name: str, old_adapter, old_tag, was_default: bool) -> bool:
+        """reload 失败回滚：恢复旧适配器注册与旧 runtime tag，保证机器人不掉线"""
+        if old_adapter is None or old_tag is None:
+            self._states[name] = "error"
+            return False
+        restored = False
+        try:
+            if self._pool.get(old_tag) is None:
+                self._pool.register(old_adapter, old_tag, default=was_default)
+                try:
+                    await old_adapter.start(self._get_event_callback())
+                except Exception as e:
+                    _logger.warning(f"rollback start failed: {name} - {e}")
+            restored = True
+        except Exception as e:
+            _logger.error(f"rollback failed: {name} - {e}")
+        self._update_runtime_tag(name, old_tag)
+        self._states[name] = "running" if restored else "error"
+        return restored
+
+    # ── 公共操作 ──
+
+    async def init_instances(self) -> int:
+        """启动时加载全部实例配置；返回成功注册数"""
+        try:
+            await stats_collector.init()
+        except Exception:
+            pass
+
+        configs = _discover_instance_configs()
+        if not configs:
+            return 0
+
+        loaded = 0
+        failed: list[str] = []
+        for idx, cfg in enumerate(configs):
+            name = cfg.get("_dir_name", "?")
+            try:
+                runtime = _build_runtime(cfg, plugin_manager=self._plugin_manager, adapter_pool=self._pool)
+                self._registry.register(runtime)
+                await _register_instance(cfg, default=(idx == 0), runtime=runtime, pool=self._pool)
+                self._states[name] = "running"
+                loaded += 1
+            except Exception as e:
+                self._states[name] = "error"
+                failed.append(f"{name}({type(e).__name__}: {e})")
+
+        if failed:
+            _logger.error(
+                f"[InstanceManager] {len(failed)}/{len(configs)} instances failed: {'; '.join(failed)}"
+            )
+        return loaded
+
+    async def reload(self, name: str) -> dict:
+        """热重载指定实例：停旧启新；失败回滚旧适配器，机器人不掉线"""
+        async with self._lock(name):
+            self._states[name] = "starting"
+            cfg_path = os.path.join(get_instances_dir(), name, "config.json")
+            if not os.path.isfile(cfg_path):
+                self._states[name] = "error"
+                return {"success": False, "error": "not_found"}
+            with open(cfg_path, encoding="utf-8") as f:
+                cfg = json.load(f)
+            cfg["_dir_name"] = name
+            cfg["_config_path"] = cfg_path
+
+            old_adapter, old_tag = self._find_in_pool(name)
+            was_default = self._is_default(old_tag)
+
+            try:
+                result = await _create_and_prepare_adapter(cfg)
+                if result is None:
+                    self._states[name] = "error"
+                    return {"success": False, "error": "create_failed"}
+                new_adapter, new_tag = result
+
+                if old_adapter is not None:
+                    try:
+                        await old_adapter.stop()
+                    except Exception as e:
+                        _logger.warning(f"stop failed: {name} - {e}")
+
+                if old_tag is not None:
+                    self._pool.unregister(old_tag)
+
+                try:
+                    await new_adapter.start(self._get_event_callback())
+                except Exception as e:
+                    _logger.error(f"start failed: {name} - {e}")
+                    await self._rollback(name, old_adapter, old_tag, was_default)
+                    return {"success": False, "error": f"start_failed: {e}"}
+
+                self._pool.register(new_adapter, new_tag, default=was_default)
+                self._update_runtime_tag(name, new_tag)
+                self._states[name] = "running"
+                _logger.info(f"reload ok: {name}")
+                return {"success": True}
+            except Exception as e:
+                _logger.error(f"reload failed: {name} - {e}")
+                await self._rollback(name, old_adapter, old_tag, was_default)
+                return {"success": False, "error": str(e)}
+
+    async def start(self, name: str) -> dict:
+        async with self._lock(name):
+            return await self._start_unlocked(name)
+
+    async def _start_unlocked(self, name: str) -> dict:
+        """启动新创建的实例（假设已持有该实例锁）"""
+        self._states[name] = "starting"
+        cfg_path = os.path.join(get_instances_dir(), name, "config.json")
+        if not os.path.isfile(cfg_path):
+            self._states[name] = "error"
+            return {"success": False, "error": "not_found"}
+        with open(cfg_path, encoding="utf-8") as f:
+            cfg = json.load(f)
+        cfg["_dir_name"] = name
+        cfg["_config_path"] = cfg_path
+
+        try:
+            runtime = None
+            robot_id = cfg.get("robot_id", "")
+            if robot_id:
+                runtime = self._registry.get_by_robot_id(robot_id)
+            if runtime is None:
+                for r in self._registry.get_all():
+                    if r.instance_name == name:
+                        runtime = r
+                        break
+            if runtime is None:
+                runtime = _build_runtime(cfg, plugin_manager=self._plugin_manager, adapter_pool=self._pool)
+                self._registry.register(runtime)
+            else:
+                self._registry.unregister(runtime)
+                runtime.adapter_tag = IdentityTag(platform=cfg.get("platform", ""), bot_name=cfg.get("bot_name", name))
+                self._registry.register(runtime)
+
+            result = await _create_and_prepare_adapter(cfg, runtime=runtime)
+            if result is None:
+                self._states[name] = "error"
+                return {"success": False, "error": "create_failed"}
+            adapter, tag = result
+
+            try:
+                await adapter.start(self._get_event_callback())
+            except Exception as e:
+                _logger.error(f"start failed: {name} - {e}")
+                self._states[name] = "error"
+                return {"success": False, "error": f"start_failed: {e}"}
+
+            self._pool.register(adapter, tag)
+            self._states[name] = "running"
+            _logger.info(f"[Adapter] {tag.log_tag} started")
+            return {"success": True}
+        except Exception as e:
+            _logger.error(f"start failed: {name} - {e}")
+            self._states[name] = "error"
+            return {"success": False, "error": str(e)}
+
+    async def rename(self, old_name: str, new_name: str) -> dict:
+        """重命名实例目录并热重载（stop → os.rename → start）"""
+        async with self._lock(old_name):
+            old_dir = os.path.join(get_instances_dir(), old_name)
+            new_dir = os.path.join(get_instances_dir(), new_name)
+            if not os.path.isdir(old_dir):
+                return {"success": False, "error": "not_found"}
+            if os.path.isdir(new_dir):
+                return {"success": False, "error": "name_conflict"}
+            await self._stop_unlocked(old_name)
+            try:
+                os.rename(old_dir, new_dir)
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+            return await self._start_unlocked(new_name)
+
+    async def stop(self, name: str) -> dict:
+        async with self._lock(name):
+            return await self._stop_unlocked(name)
+
+    async def _stop_unlocked(self, name: str) -> dict:
+        """停止并注销指定实例（假设已持有该实例锁）"""
+        self._states[name] = "stopping"
+        adapter, tag = self._find_in_pool(name)
+        if adapter is None or tag is None:
+            self._states[name] = "stopped"
+            return {"success": False, "error": "not_running"}
+        try:
+            await adapter.stop()
+        except Exception as e:
+            _logger.warning(f"stop failed: {name} - {e}")
+        self._pool.unregister(tag)
+        for runtime in self._registry.get_all():
+            if runtime.instance_name == name:
+                self._registry.unregister(runtime)
+                break
+        self._states[name] = "stopped"
+        return {"success": True}
+
+
+# ──────────────────────────────────────────────────────────────
+# 模块级兼容层 — 用全局单例装配，对外 API 名称/参数/返回结构不变
+# ──────────────────────────────────────────────────────────────
+
+_instance = InstanceManager(adapter_pool, RuntimeRegistry, plugin_manager, event_bus)
+
+_on_event_callback = None  # 运行时注入，供实例启动/热重载使用
+
+
+def set_event_callback(cb) -> None:
+    """注入事件回调（模块级，同时同步到 _instance）"""
+    global _on_event_callback
+    _on_event_callback = cb
+    _instance.set_event_callback(cb)
+
+
 async def init_instances() -> int:
     """启动时加载全部实例配置；返回成功注册数"""
-    try:
-        await stats_collector.init()
-    except Exception:
-        pass
-
-    configs = _discover_instance_configs()
-    if not configs:
-        return 0
-
-    loaded = 0
-    failed: list[str] = []
-    for idx, cfg in enumerate(configs):
-        try:
-            runtime = _build_runtime(cfg)
-            RuntimeRegistry.register(runtime)
-            await _register_instance(cfg, default=(idx == 0), runtime=runtime)
-            loaded += 1
-        except Exception as e:
-            failed.append(f"{cfg.get('_dir_name', '?')}({type(e).__name__}: {e})")
-
-    if failed:
-        _logger.error(
-            f"[InstanceManager] {len(failed)}/{len(configs)} instances failed to load: {'; '.join(failed)}"
-        )
-    return loaded
+    return await _instance.init_instances()
 
 
 async def reload_instance(name: str) -> dict:
-    """热重载指定实例：停旧启新"""
-    cfg_path = os.path.join(get_instances_dir(), name, "config.json")
-    if not os.path.isfile(cfg_path):
-        return {"success": False, "error": "not_found"}
-    with open(cfg_path, encoding="utf-8") as f:
-        cfg = json.load(f)
-    cfg["_dir_name"] = name
-    cfg["_config_path"] = cfg_path
-
-    old_adapter = None
-    old_tag = None
-    for adp, tg in adapter_pool._adapters.values():
-        if tg.bot_name == name or tg.identity_key.endswith(f"/{name}"):
-            old_adapter = adp
-            old_tag = tg
-            break
-
-    try:
-        result = await _create_and_prepare_adapter(cfg)
-        if result is None:
-            return {"success": False, "error": "create_failed"}
-        new_adapter, new_tag = result
-
-        was_default = (old_tag is not None and
-                       adapter_pool._default_key == old_tag.identity_key)
-
-        if old_adapter is not None:
-            try:
-                await old_adapter.stop()
-            except Exception as e:
-                _logger.warning(f"stop failed: {name} - {e}")
-
-        if old_tag is not None:
-            adapter_pool.unregister(old_tag)
-
-        if _on_event_callback:
-            try:
-                await new_adapter.start(_on_event_callback)
-            except Exception as e:
-                _logger.error(f"start failed: {name} - {e}")
-                return {"success": False, "error": f"start_failed: {e}"}
-
-        adapter_pool.register(new_adapter, new_tag, default=was_default)
-
-        for runtime in RuntimeRegistry.get_all():
-            if runtime.instance_name == name:
-                RuntimeRegistry.unregister(runtime)
-                runtime.adapter_tag = new_tag
-                RuntimeRegistry.register(runtime)
-                break
-
-        _logger.info(f"reload ok: {name}")
-        return {"success": True}
-    except Exception as e:
-        _logger.error(f"reload failed: {name} - {e}")
-        return {"success": False, "error": str(e)}
+    """热重载指定实例：停旧启新；失败回滚旧适配器"""
+    return await _instance.reload(name)
 
 
 async def start_instance(name: str) -> dict:
     """启动新创建的实例"""
-    cfg_path = os.path.join(get_instances_dir(), name, "config.json")
-    if not os.path.isfile(cfg_path):
-        return {"success": False, "error": "not_found"}
-    with open(cfg_path, encoding="utf-8") as f:
-        cfg = json.load(f)
-    cfg["_dir_name"] = name
-    cfg["_config_path"] = cfg_path
-
-    try:
-        runtime = None
-        robot_id = cfg.get("robot_id", "")
-        if robot_id:
-            runtime = RuntimeRegistry.get_by_robot_id(robot_id)
-        if runtime is None:
-            for r in RuntimeRegistry.get_all():
-                if r.instance_name == name:
-                    runtime = r
-                    break
-        if runtime is None:
-            runtime = _build_runtime(cfg)
-            RuntimeRegistry.register(runtime)
-        else:
-            RuntimeRegistry.unregister(runtime)
-            runtime.adapter_tag = IdentityTag(platform=cfg.get("platform", ""), bot_name=cfg.get("bot_name", name))
-            RuntimeRegistry.register(runtime)
-
-        result = await _create_and_prepare_adapter(cfg, runtime=runtime)
-        if result is None:
-            return {"success": False, "error": "create_failed"}
-        adapter, tag = result
-
-        if _on_event_callback:
-            try:
-                await adapter.start(_on_event_callback)
-            except Exception as e:
-                _logger.error(f"start failed: {name} - {e}")
-                return {"success": False, "error": f"start_failed: {e}"}
-
-        adapter_pool.register(adapter, tag)
-        _logger.info(f"[Adapter] {tag.log_tag} started")
-        return {"success": True}
-    except Exception as e:
-        _logger.error(f"start failed: {name} - {e}")
-        return {"success": False, "error": str(e)}
+    return await _instance.start(name)
 
 
 async def rename_instance(old_name: str, new_name: str) -> dict:
     """重命名实例目录并热重载"""
-    old_dir = os.path.join(get_instances_dir(), old_name)
-    new_dir = os.path.join(get_instances_dir(), new_name)
-    if not os.path.isdir(old_dir):
-        return {"success": False, "error": "not_found"}
-    if os.path.isdir(new_dir):
-        return {"success": False, "error": "name_conflict"}
-    await stop_instance(old_name)
-    try:
-        os.rename(old_dir, new_dir)
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-    start_result = await start_instance(new_name)
-    return start_result
+    return await _instance.rename(old_name, new_name)
 
 
 async def stop_instance(name: str) -> dict:
     """停止并注销指定实例"""
-    target = None
-    for adp, tg in adapter_pool._adapters.values():
-        if tg.bot_name == name or tg.identity_key.endswith(f"/{name}"):
-            target = (adp, tg)
-            break
-    if target is None:
-        return {"success": False, "error": "not_running"}
-    adapter, tag = target
-    try:
-        await adapter.stop()
-    except Exception as e:
-        _logger.warning(f"stop failed: {name} - {e}")
-    adapter_pool.unregister(tag)
-    for runtime in RuntimeRegistry.get_all():
-        if runtime.instance_name == name:
-            RuntimeRegistry.unregister(runtime)
-            break
-    return {"success": True}
+    return await _instance.stop(name)
 
 
 # ── 生命周期接入：实例就绪后注册事件回调并启动适配器 ──
@@ -323,6 +464,7 @@ def _bind_event_callback() -> None:
     global _on_event_callback
     if _on_event_callback is None:
         _on_event_callback = lambda e: asyncio.create_task(event_bus.publish(e))
+    _instance.set_event_callback(_on_event_callback)
 
 
 async def _start_all_adapters(context: dict | None = None) -> None:

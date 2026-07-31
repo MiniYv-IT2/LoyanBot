@@ -114,6 +114,10 @@ async def run_bot():
     import loyan.graci as _graci_pkg
     sys.modules.setdefault('graci', _graci_pkg)
 
+    # 组合根：构建全局依赖容器（惰性构建，组件通过 get_container() 获取依赖）
+    from loyan.core.container import get_container, set_container
+    set_container(get_container())
+
     try:
         from loyan.res.loyan_logo import LoyanBotLogo
         LoyanBotLogo().print_logo()
@@ -145,7 +149,11 @@ async def run_bot():
         logger.error(f"plugin manager init failed: {str(e)}")
 
 
-    import loyan.brain
+    try:
+        import loyan.brain  # 加载 AI 核心包（内部自注册 /chat 等内置指令 + 自启初始化）
+    except Exception as e:
+        logger.error(f"brain load failed: {e}")
+
     await _lifecycle.fire_event_async(LifecycleEvent.AFTER_BRAIN_READY)
 
 

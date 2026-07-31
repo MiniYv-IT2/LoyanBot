@@ -13,10 +13,26 @@ from loyan.core.webserv import request, jsonify
 from loyan.core.loyan_adapter.message import LoyanText
 from loyan.core.loyan_adapter.send import loyan_send_msg
 from loyan.core.loyan_adapter.event import LoyanEvent
-from loyan.core.event import event_bus
 from loyan.core.utils import logger, logger_manager
 
 _DEDUP_TTL = 1  # 去重窗口（秒）
+
+
+def _get_event_bus():
+    """获取 EventBus：优先从全局容器注入，回落到模块级单例。
+
+    正常流程 get_container() 惰性构建的默认容器注册的是同一模块级
+    event_bus，行为不变；测试用 set_container() 注入 Fake。
+    """
+    try:
+        from loyan.core.container import get_container
+        bus = get_container().get("event_bus")
+        if bus is not None:
+            return bus
+    except Exception:
+        pass
+    from loyan.core.event import event_bus
+    return event_bus
 
 # self_id → OneBot HTTP parser 映射（由 register_routes 填充）
 _http_parsers: dict[str, "LoyanOneBot"] = {}  # type: ignore[name-defined]
@@ -102,7 +118,7 @@ def _create_callback_route(app):
 
                 # EventBus 发布
                 try:
-                    await event_bus.publish(http_event)
+                    await _get_event_bus().publish(http_event)
                 except Exception as e:
                     logger_manager.log_with_context(
                         logger, logging.WARNING, f"EventBus 发布失败: {e}", context

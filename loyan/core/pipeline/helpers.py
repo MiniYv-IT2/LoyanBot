@@ -7,6 +7,33 @@ from loyan.core.decorators.context import PluginContext
 _logger = __import__("logging").getLogger("Core.Pipeline")
 
 
+def inject_send_reply(ctx: PluginContext) -> None:
+    """注入 ctx.send / ctx.reply（幂等，已注入则跳过）
+
+    供 Pipeline 各阶段共用：内置指令在 BuiltinCommands 阶段直接执行，
+    PluginHandler 在插件执行前注入，两者都需要 send/reply 工具。
+    """
+    if ctx.send is not None and ctx.reply is not None:
+        return
+    from loyan.core.loyan_adapter.send import loyan_send_msg
+    from loyan.core.loyan_adapter.message import LoyanText
+
+    if ctx.send is None:
+        async def _send(*segs, ct=None):
+            return await loyan_send_msg(
+                ctx.target_id, *segs, chat_type=ct or ctx.chat_type,
+                tag=ctx.adapter_tag,
+            )
+        ctx.send = _send
+    if ctx.reply is None:
+        async def _reply(text):
+            return await loyan_send_msg(
+                ctx.target_id, LoyanText(text=text), chat_type=ctx.chat_type,
+                tag=ctx.adapter_tag,
+            )
+        ctx.reply = _reply
+
+
 def _get_adapter(ctx: PluginContext):
     if ctx.pool and ctx.adapter_tag:
         return ctx.pool.get(ctx.adapter_tag)

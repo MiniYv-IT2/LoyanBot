@@ -1,14 +1,15 @@
-"""Brain 对话命令"""
+"""Brain 对话命令（框架内置指令）"""
 
-from loyan.graci import on_command, plugin_handler, PluginContext, get_logger
+from loyan.core.decorators.handler import plugin_handler
+from loyan.core.decorators.context import PluginContext
+from loyan.core.utils import logger
 from loyan.brain import get_brain
 from loyan.i18n import t
-from loyan.core.decorators.registration import _register_decorated_function, DECORATOR_COMMAND_REGISTRY
+from loyan.core.pipeline.builtin_commands import register_builtin_command
 
-logger = get_logger("Brain.cmd")
+logger = logger.getChild("Brain.cmd")
 
 
-@on_command("/chat", "/ai")
 @plugin_handler
 async def handle_chat(ctx: PluginContext):
     """与 AI 对话：/chat <消息>"""
@@ -27,7 +28,6 @@ async def handle_chat(ctx: PluginContext):
     await ctx.reply(content)
 
 
-@on_command("/chat reset")
 @plugin_handler
 async def handle_chat_reset(ctx: PluginContext):
     """重置当前对话会话"""
@@ -36,7 +36,7 @@ async def handle_chat_reset(ctx: PluginContext):
     logger.info(f"用户 {ctx.sender_id} 重置了对话")
 
 
-# ── 模块导入时自动注册 ──
-for _name, _obj in list(globals().items()):
-    if hasattr(_obj, "_loyan_on_command"):
-        _register_decorated_function(_obj, plugin_name="brain")
+# ── 框架内置指令注册（brain 是核心包，不经过插件系统） ──
+register_builtin_command("/chat", handle_chat)
+register_builtin_command("/ai", handle_chat)
+register_builtin_command("/chat reset", handle_chat_reset)

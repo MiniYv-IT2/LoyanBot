@@ -174,8 +174,11 @@ def _register_decorated_function(
 ):
     """将装饰器标记的函数注册到 DECORATOR_COMMAND_REGISTRY
 
-    由 plugin_manager.py 在加载插件时调用。
+    仅限 plugin_manager 在加载插件时调用（调用栈校验）。
+    框架核心模块（brain 等）的命令请使用 register_builtin_command()。
     """
+    _ensure_plugin_load_context(func)
+
     entry = {
         "commands": [],
         "patterns": [],
@@ -202,6 +205,20 @@ def _register_decorated_function(
 
     DECORATOR_COMMAND_REGISTRY.append(entry)
     return entry
+
+
+def _ensure_plugin_load_context(func) -> None:
+    """校验调用来自 plugin_manager 插件加载流程，禁止框架核心模块越权注册"""
+    import inspect
+    caller_module = inspect.currentframe().f_back.f_back.f_globals.get("__name__", "")
+    if caller_module.startswith("loyan.core.plugin_manager"):
+        return
+    if caller_module.startswith("loyan.core.test") or caller_module.startswith("tests"):
+        return
+    raise RuntimeError(
+        f"插件命令注册必须在插件加载流程中调用: {func.__name__} "
+        f"(caller={caller_module})。框架核心命令请用 register_builtin_command()"
+    )
 
 
 # ── 清理 ──

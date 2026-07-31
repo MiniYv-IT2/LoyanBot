@@ -1,14 +1,15 @@
-"""人设命令"""
+"""人设命令（框架内置指令）"""
 
-from loyan.graci import on_command, plugin_handler, PluginContext, get_logger
+from loyan.core.decorators.handler import plugin_handler
+from loyan.core.decorators.context import PluginContext
+from loyan.core.utils import logger
 from loyan.brain.chat.persona import persona_mgr
 from loyan.i18n import t
-from loyan.core.decorators.registration import _register_decorated_function, DECORATOR_COMMAND_REGISTRY
+from loyan.core.pipeline.builtin_commands import register_builtin_command
 
-logger = get_logger("Brain.cmd")
+logger = logger.getChild("Brain.cmd")
 
 
-@on_command("/persona")
 @plugin_handler
 async def handle_persona(ctx: PluginContext):
     args = ctx.raw_text[len("/persona"):].strip().split(maxsplit=2)
@@ -57,7 +58,5 @@ async def handle_persona(ctx: PluginContext):
     await ctx.reply(t("persona.usage"))
 
 
-# ── 模块导入时自动注册 ──
-for _name, _obj in list(globals().items()):
-    if hasattr(_obj, "_loyan_on_command"):
-        _register_decorated_function(_obj, plugin_name="brain")
+# ── 框架内置指令注册（brain 是核心包，不经过插件系统） ──
+register_builtin_command("/persona", handle_persona)

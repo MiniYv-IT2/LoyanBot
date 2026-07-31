@@ -24,12 +24,29 @@ class PluginManager:
     """插件管理器单例 — 扫描、加载、注册、匹配、重载、禁用"""
     _instance = None
 
-    def __new__(cls):
+    def __new__(cls, *args, **kwargs):
+        # 构造注入：显式传入依赖时创建独立实例（可测试）；
+        # 无参构造回落模块级单例（向后兼容，调用方零改动）
+        injected = bool(args) or any(v is not None for v in kwargs.values())
+        if injected:
+            return super().__new__(cls)
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self):
+    def __init__(self, config_manager=None, logger=None, logger_manager=None):
+        if config_manager is None:
+            from loyan.core.config_manager import config_manager as _default_config_manager
+            config_manager = _default_config_manager
+        if logger is None:
+            from loyan.core.utils import logger as _default_logger
+            logger = _default_logger
+        if logger_manager is None:
+            from loyan.core.logger_manager import logger_manager as _default_logger_manager
+            logger_manager = _default_logger_manager
+        self.config_manager = config_manager
+        self.logger = logger
+        self.logger_manager = logger_manager
         self._initialized = False
         self._plugin_configs: Dict[str, dict] = {}
         self._registry: List[Dict] = []
@@ -99,7 +116,7 @@ class PluginManager:
             with open(path, 'w', encoding='utf-8') as f:
                 json.dump({"disabled": sorted(disabled)}, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            logger.error(f" 保存禁用列表失败: {e}")
+            self.logger.error(f" 保存禁用列表失败: {e}")
 
     # ── on_ready 钩子 ──
 
@@ -113,7 +130,7 @@ class PluginManager:
             try:
                 hook()
             except Exception as e:
-                logger.error(f" on_ready 钩子执行失败: {e}")
+                self.logger.error(f" on_ready 钩子执行失败: {e}")
 
     # ── 循环依赖检测 ──
 
@@ -129,7 +146,7 @@ class PluginManager:
                 elif dep in path:
                     cycle_start = path.index(dep)
                     cycle = " -> ".join(path[cycle_start:]) + " -> " + dep
-                    logger.error(f" 检测到循环依赖: {cycle}")
+                    self.logger.error(f" 检测到循环依赖: {cycle}")
                     return True
         path.pop()
         return False
@@ -156,7 +173,7 @@ class PluginManager:
     def init(self) -> None:
         """第一阶段（同步）：扫描元数据 + 依赖检测"""
         if self._initialized:
-            logger.warning(" 插件管理器已初始化，无需重复调用")
+            self.logger.warning(" 插件管理器已初始化，无需重复调用")
             return
         self._registry.clear()
         self._versions.clear()
@@ -177,7 +194,7 @@ class PluginManager:
         for pname in self._dep_graph:
             if pname not in self._visited:
                 if self.check_circular_dependency(pname, set(), []):
-                    logger.error(" 检测到循环依赖，初始化失败！")
+                    self.logger.error(" 检测到循环依赖，初始化失败！")
                     return
 
         self._plugins_meta = plugins_meta
@@ -185,7 +202,7 @@ class PluginManager:
     async def async_load(self) -> None:
         """第二阶段（异步）：加载模块 → 扫描子目录 → 合并注册表"""
         if not getattr(self, '_plugins_meta', None):
-            logger.error(" 请先调用 init()")
+            self.logger.error(" 请先调用 init()")
             return
 
         await asyncio.to_thread(self._load_plugins_by_dependency, self._plugins_meta)
@@ -194,15 +211,14 @@ class PluginManager:
         self._registry.sort(key=lambda p: p.get("priority", 50), reverse=True)
 
         self._initialized = True
-        from loyan.core.logger_manager import logger_manager
         import logging
-        logger_manager.log_with_context(logger, logging.INFO, f"\n 插件管理器初始化完成！")
-        logger_manager.log_with_context(logger, logging.INFO, f" 共注册成功 {len(self._registry)} 个插件:")
+        self.logger_manager.log_with_context(self.logger, logging.INFO, f"\n 插件管理器初始化完成！")
+        self.logger_manager.log_with_context(self.logger, logging.INFO, f" 共注册成功 {len(self._registry)} 个插件:")
         for idx, plugin in enumerate(self._registry, 1):
             show_cmds = plugin['commands'][:3] + ["..."] if len(plugin['commands']) > 3 else plugin['commands']
             ver_info = f" | 版本：{plugin.get('version', '未指定')}"
             pri_info = f" | 优先级：{plugin.get('priority', 50)}"
-            logger_manager.log_with_context(logger, logging.INFO, f"   {idx}. {plugin['name']}{ver_info}{pri_info} | 指令：{show_cmds}")
+            self.logger_manager.log_with_context(self.logger, logging.INFO, f"   {idx}. {plugin['name']}{ver_info}{pri_info} | 指令：{show_cmds}")
 
     # ── 第一阶段：扫描元信息 ──
 
@@ -210,21 +226,21 @@ class PluginManager:
         """扫描所有插件的 metadata.toml，返回 {name: meta}"""
         plugins_meta = {}
         if not os.path.exists(plugin_dir):
-            logger.error(f" 插件目录 {plugin_dir} 不存在，跳过插件加载")
+            self.logger.error(f" 插件目录 {plugin_dir} 不存在，跳过插件加载")
             return plugins_meta
 
         disabled_set = self.load_disabled_plugins()
 
         for plugin_name in os.listdir(plugin_dir):
             if plugin_name in disabled_set:
-                logger.debug(f" 插件 {plugin_name} 已被禁用，跳过加载")
+                self.logger.debug(f" 插件 {plugin_name} 已被禁用，跳过加载")
                 continue
             plugin_path = os.path.join(plugin_dir, plugin_name)
             if not os.path.isdir(plugin_path):
                 continue
             toml_path = os.path.join(plugin_path, "metadata.toml")
             if not os.path.exists(toml_path):
-                logger.warning(f" 插件 {plugin_name} 缺少 metadata.toml，跳过加载")
+                self.logger.warning(f" 插件 {plugin_name} 缺少 metadata.toml，跳过加载")
                 continue
             try:
                 meta = load_plugin_toml(toml_path, plugin_path)
@@ -233,9 +249,9 @@ class PluginManager:
                 self._dep_graph[plugin_name] = [d["name"] for d in deps] if deps else []
                 plugins_meta[plugin_name] = meta
             except TOMLPluginError as e:
-                logger.error(f" {e}")
+                self.logger.error(f" {e}")
             except Exception as e:
-                logger.error(f" 插件 {plugin_name} metadata.toml 加载异常: {e}", exc_info=True)
+                self.logger.error(f" 插件 {plugin_name} metadata.toml 加载异常: {e}", exc_info=True)
         return plugins_meta
 
     # ── 第二阶段：按依赖顺序加载 ──
@@ -248,7 +264,7 @@ class PluginManager:
             if plugin_name in loaded:
                 return True
             if plugin_name not in plugins_meta:
-                logger.error(f" 依赖插件 '{plugin_name}' 不存在")
+                self.logger.error(f" 依赖插件 '{plugin_name}' 不存在")
                 return False
             meta = plugins_meta[plugin_name]
             for dep in meta.get("dependencies", []):
@@ -257,7 +273,7 @@ class PluginManager:
                         return False
             ok, err = self.check_plugin_dependencies(plugin_name, meta.get("dependencies", []))
             if not ok:
-                logger.error(f" 插件 '{plugin_name}' 依赖检查失败: {err}")
+                self.logger.error(f" 插件 '{plugin_name}' 依赖检查失败: {err}")
                 return False
             try:
                 plugin_path = meta["plugin_path"]
@@ -267,7 +283,7 @@ class PluginManager:
                     core_file = f"{plugin_name}.py"
                     core_path = os.path.join(plugin_path, core_file)
                     if not os.path.exists(core_path):
-                        logger.error(f" 插件 {plugin_name} 缺失核心文件 main.py 或 {core_file}，跳过加载")
+                        self.logger.error(f" 插件 {plugin_name} 缺失核心文件 main.py 或 {core_file}，跳过加载")
                         return False
                 mod_name = f"loyan.plugins.{plugin_name}.{core_file[:-3]}"
                 parent_name = f"loyan.plugins.{plugin_name}"
@@ -283,11 +299,11 @@ class PluginManager:
 
                 handler_name = meta["handler"]
                 if not hasattr(module, handler_name):
-                    logger.error(f" 插件 {plugin_name} 中缺失处理函数 {handler_name}，跳过加载")
+                    self.logger.error(f" 插件 {plugin_name} 中缺失处理函数 {handler_name}，跳过加载")
                     return False
                 handler_func = getattr(module, handler_name)
                 if not callable(handler_func):
-                    logger.error(f" 插件 {plugin_name} 中 {handler_name} 不可调用，跳过加载")
+                    self.logger.error(f" 插件 {plugin_name} 中 {handler_name} 不可调用，跳过加载")
                     return False
 
                 # 扫描装饰器
@@ -317,10 +333,10 @@ class PluginManager:
                 self._versions[plugin_name] = meta["version"]
                 loaded.add(plugin_name)
                 self._init_plugin_config(plugin_name, plugin_path)
-                logger.debug(f" 插件 {plugin_name} (v{meta['version']}) 注册")
+                self.logger.debug(f" 插件 {plugin_name} (v{meta['version']}) 注册")
                 return True
             except Exception as e:
-                logger.error(f" 加载插件 {plugin_name} 异常: {e}", exc_info=True)
+                self.logger.error(f" 加载插件 {plugin_name} 异常: {e}", exc_info=True)
                 return False
 
         for pname in plugins_meta:
@@ -353,7 +369,7 @@ class PluginManager:
                                 is_at_required=meta.get("is_at_required", False),
                             )
                 except Exception as e:
-                    logger.error(f" 子模块扫描失败 {mod_name}: {e}")
+                    self.logger.error(f" 子模块扫描失败 {mod_name}: {e}")
 
     async def _async_scan_all(self) -> None:
         tasks = []
@@ -371,37 +387,23 @@ class PluginManager:
     # ── 第三阶段：合并装饰器注册 ──
 
     def _merge_decorator_registry(self) -> None:
-        """将 DECORATOR_COMMAND_REGISTRY 合并到 self._registry"""
-        existing_names = {p["name"] for p in self._registry}
+        """将 DECORATOR_COMMAND_REGISTRY 合并到已扫描的插件
+
+        插件注册的唯一入口是目录扫描（系统目录 + 用户目录）。
+        装饰器命令只合并到目录扫描已存在的插件；未被任何插件目录
+        声明的孤儿条目（如框架核心模块误注册）一律忽略，不允许
+        凭空创建插件。
+        """
+        existing = {p["name"]: p for p in self._registry}
         for entry in DECORATOR_COMMAND_REGISTRY:
             pname = entry.get("plugin_name", "unknown")
-            if pname in existing_names:
-                for p in self._registry:
-                    if p["name"] == pname:
-                        for cmd in entry.get("commands", []):
-                            if cmd not in p["commands"]:
-                                p["commands"].append(cmd)
-                            p.setdefault("command_handlers", {})[cmd] = entry["handler_func"]
-                        break
-            else:
-                merged = {
-                    "name": pname,
-                    "version": "0.0.0",
-                    "author": "",
-                    "description": "",
-                    "priority": 50,
-                    "commands": entry.get("commands", []),
-                    "handler_func": entry["handler_func"],
-                    "chat_type": entry.get("chat_type", ["private", "group"]),
-                    "permission": entry.get("permission", "all"),
-                    "is_at_required": entry.get("is_at_required", False),
-                    "plugin_path": "",
-                    "from_decorator": True,
-                }
-                self._registry.append(merged)
-                self._versions[pname] = merged["version"]
-                existing_names.add(pname)
-                logger.debug(f" [装饰器] 纯装饰器插件: {pname} 命令: {merged['commands']}")
+            plugin = existing.get(pname)
+            if plugin is None:
+                continue
+            for cmd in entry.get("commands", []):
+                if cmd not in plugin["commands"]:
+                    plugin["commands"].append(cmd)
+                plugin.setdefault("command_handlers", {})[cmd] = entry["handler_func"]
 
     # ── 指令匹配（供 Pipeline 调用） ──
 
@@ -481,17 +483,17 @@ class PluginManager:
                 plugin_path = p.get('plugin_path')
                 break
         if not plugin_path:
-            logger.error(f" 未找到插件 {plugin_name}")
+            self.logger.error(f" 未找到插件 {plugin_name}")
             return False
         try:
             self._registry[:] = [p for p in self._registry if p.get('name') != plugin_name]
             self._versions.pop(plugin_name, None)
             self._initialized = False
             self.init()
-            logger.info(f" 插件 {plugin_name} 重载完成")
+            self.logger.info(f" 插件 {plugin_name} 重载完成")
             return True
         except Exception as e:
-            logger.error(f" 重载插件 {plugin_name} 异常: {e}", exc_info=True)
+            self.logger.error(f" 重载插件 {plugin_name} 异常: {e}", exc_info=True)
             return False
 
     # ── 配置初始化 ──
@@ -550,7 +552,7 @@ class PluginManager:
                 self._plugin_configs[plugin_name] = dict(default)
             return self._plugin_configs[plugin_name]
         except Exception as e:
-            logger.error(f" 插件 {plugin_name} 配置初始化失败: {e}")
+            self.logger.error(f" 插件 {plugin_name} 配置初始化失败: {e}")
             self._plugin_configs[plugin_name] = {}
             return {}
 
@@ -563,7 +565,7 @@ class PluginManager:
                     try:
                         func()
                     except Exception as e:
-                        logger.error(f"调用插件 {plugin.get('name', '?')} on_shutdown 时出错: {e}")
+                        self.logger.error(f"调用插件 {plugin.get('name', '?')} on_shutdown 时出错: {e}")
         self._registry.clear()
         self._versions.clear()
         self._dep_graph.clear()

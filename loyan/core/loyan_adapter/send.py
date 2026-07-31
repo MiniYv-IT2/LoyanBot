@@ -21,7 +21,6 @@ from typing import List, Optional
 
 from loyan.core.loyan_adapter.message import LoyanMsg
 from loyan.core.loyan_adapter.identity import IdentityTag
-from loyan.core.loyan_adapter.pool import adapter_pool
 
 try:
     from loyan.res.styling import encrypt_user_id
@@ -29,6 +28,23 @@ except ImportError:
     from res.styling import encrypt_user_id
 
 _logger = logging.getLogger("Adapter.Send")
+
+
+def _get_pool():
+    """获取 AdapterPool：优先从全局容器注入，回落到模块级单例。
+
+    正常流程 get_container() 惰性构建的默认容器注册的是同一模块级
+    adapter_pool，行为不变；测试用 set_container() 注入 FakePool。
+    """
+    try:
+        from loyan.core.container import get_container
+        pool = get_container().get("adapter_pool")
+        if pool is not None:
+            return pool
+    except Exception:
+        pass
+    from loyan.core.loyan_adapter.pool import adapter_pool
+    return adapter_pool
 
 
 def _get_runtime_tag() -> Optional[IdentityTag]:
@@ -61,7 +77,7 @@ async def loyan_send_msg(target: str, *segments: LoyanMsg,
         tag = _get_runtime_tag()
 
     seg_list: List[LoyanMsg] = list(segments)
-    success = await adapter_pool.send(target, seg_list, chat_type, tag=tag)
+    success = await _get_pool().send(target, seg_list, chat_type, tag=tag)
     preview = _segments_preview(segments)
     type_cn = "私聊" if chat_type == "private" else "群聊"
     status = "成功发送" if success else "发送失败"
@@ -115,7 +131,8 @@ async def loyan_call_api(action: str, params: dict = None,
     """
     if tag is None:
         tag = _get_runtime_tag()
-    adapter = adapter_pool.get(tag) if tag else adapter_pool.get_default()
+    pool = _get_pool()
+    adapter = pool.get(tag) if tag else pool.get_default()
     if adapter is None:
         _logger.error("[API] 无可用适配器")
         return None
@@ -127,7 +144,8 @@ async def loyan_call_api(action: str, params: dict = None,
 async def loyan_get_platform_info(tag: Optional[IdentityTag] = None) -> dict:
     if tag is None:
         tag = _get_runtime_tag()
-    adapter = adapter_pool.get(tag) if tag else adapter_pool.get_default()
+    pool = _get_pool()
+    adapter = pool.get(tag) if tag else pool.get_default()
     if adapter is None:
         return {"friend_count": None, "group_count": None, "platform": "unknown", "protocol_version": None}
     if hasattr(adapter, 'get_platform_info'):

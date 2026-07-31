@@ -33,23 +33,9 @@ class PluginHandler(Stage):
         start_time = time.time()
         plugin_name = ctx.plugin_name
 
-        # ── 注入 ctx.send / ctx.reply ──
-        from loyan.core.loyan_adapter.send import loyan_send_msg
-        from loyan.core.loyan_adapter.message import LoyanText
-        if ctx.send is None:
-            async def _send(*segs, ct=None):
-                return await loyan_send_msg(
-                    ctx.target_id, *segs, chat_type=ct or ctx.chat_type,
-                    tag=ctx.adapter_tag,
-                )
-            ctx.send = _send
-        if ctx.reply is None:
-            async def _reply(text):
-                return await loyan_send_msg(
-                    ctx.target_id, LoyanText(text=text), chat_type=ctx.chat_type,
-                    tag=ctx.adapter_tag,
-                )
-            ctx.reply = _reply
+        # ── 注入 ctx.send / ctx.reply（公共函数，BuiltinCommands 同样使用） ──
+        from loyan.core.pipeline.helpers import inject_send_reply
+        inject_send_reply(ctx)
 
         try:
             priority = ctx.extra.get("priority")
