@@ -94,6 +94,31 @@ def _build_runtime(cfg: dict, plugin_manager=None, adapter_pool=None) -> Runtime
     return runtime
 
 
+def _merge_adapter_schema_defaults(platform: str, cfg: dict) -> dict:
+    """实例配置缺字段时用适配器 schema 默认值补全（schema 为默认值唯一来源）"""
+    try:
+        from loyan.core.config_manager import deep_merge_config
+        schema = _load_platform_schema(platform)
+        if not schema:
+            return cfg
+        defaults = {key: info.get("default") for key, info in schema.items()}
+        return deep_merge_config(defaults, cfg)
+    except Exception:
+        return cfg
+
+
+def _load_platform_schema(platform: str) -> dict | None:
+    schema_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "loyan_adapter", "source", f"{platform}.schema_conf.json",
+    )
+    try:
+        with open(schema_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
 async def _create_and_prepare_adapter(cfg: dict, runtime=None):
     """根据配置创建适配器实例，返回 (adapter, tag) 或 None"""
     platform = cfg.get("platform", "")
@@ -116,7 +141,7 @@ async def _create_and_prepare_adapter(cfg: dict, runtime=None):
 
     try:
         create_fn = getattr(module, "create_adapter")
-        adapter = create_fn(cfg)
+        adapter = create_fn(_merge_adapter_schema_defaults(platform, cfg))
     except AttributeError:
         _logger.warning(f"adapter module missing create_adapter: {platform}")
         return None
@@ -194,6 +219,19 @@ class InstanceManager:
         if self._event_callback is not None:
             return self._event_callback
         return lambda e: asyncio.create_task(self._event_bus.publish(e))
+
+    async def _emit(self, event_name: str, payload: dict) -> None:
+        """发送业务事件（事件类型延迟导入，失败不影响主流程）
+
+        事件类型定义在 event/types.py（另一模块负责），运行时才导入。
+        """
+        try:
+            from loyan.core.event import EventType, BusinessEvent
+            await self._event_bus.publish_business(
+                BusinessEvent(type=getattr(EventType, event_name), payload=payload, source="instance_manager")
+            )
+        except Exception as e:
+            _logger.error(f"emit {event_name} failed: {e}")
 
     # ── 池/注册表辅助 ──
 
@@ -279,6 +317,7 @@ class InstanceManager:
             cfg_path = os.path.join(get_instances_dir(), name, "config.json")
             if not os.path.isfile(cfg_path):
                 self._states[name] = "error"
+                await self._emit("INSTANCE_ERROR", {"name": name, "error": "not_found"})
                 return {"success": False, "error": "not_found"}
             with open(cfg_path, encoding="utf-8") as f:
                 cfg = json.load(f)
@@ -292,6 +331,7 @@ class InstanceManager:
                 result = await _create_and_prepare_adapter(cfg)
                 if result is None:
                     self._states[name] = "error"
+                    await self._emit("INSTANCE_ERROR", {"name": name, "error": "create_failed"})
                     return {"success": False, "error": "create_failed"}
                 new_adapter, new_tag = result
 
@@ -308,17 +348,38 @@ class InstanceManager:
                     await new_adapter.start(self._get_event_callback())
                 except Exception as e:
                     _logger.error(f"start failed: {name} - {e}")
-                    await self._rollback(name, old_adapter, old_tag, was_default)
+                    restored = await self._rollback(name, old_adapter, old_tag, was_default)
+                    if restored:
+                        await self._emit("INSTANCE_RELOADED", {
+                            "name": name,
+                            "tag": old_tag.identity_key if old_tag else "",
+                            "success": False,
+                        })
+                    else:
+                        await self._emit("INSTANCE_ERROR", {"name": name, "error": f"start_failed: {e}"})
                     return {"success": False, "error": f"start_failed: {e}"}
 
                 self._pool.register(new_adapter, new_tag, default=was_default)
                 self._update_runtime_tag(name, new_tag)
                 self._states[name] = "running"
                 _logger.info(f"reload ok: {name}")
+                await self._emit("INSTANCE_RELOADED", {
+                    "name": name,
+                    "tag": new_tag.identity_key if new_tag else "",
+                    "success": True,
+                })
                 return {"success": True}
             except Exception as e:
                 _logger.error(f"reload failed: {name} - {e}")
-                await self._rollback(name, old_adapter, old_tag, was_default)
+                restored = await self._rollback(name, old_adapter, old_tag, was_default)
+                if restored:
+                    await self._emit("INSTANCE_RELOADED", {
+                        "name": name,
+                        "tag": old_tag.identity_key if old_tag else "",
+                        "success": False,
+                    })
+                else:
+                    await self._emit("INSTANCE_ERROR", {"name": name, "error": str(e)})
                 return {"success": False, "error": str(e)}
 
     async def start(self, name: str) -> dict:
@@ -371,6 +432,11 @@ class InstanceManager:
             self._pool.register(adapter, tag)
             self._states[name] = "running"
             _logger.info(f"[Adapter] {tag.log_tag} started")
+            await self._emit("INSTANCE_STARTED", {
+                "name": name,
+                "tag": tag.identity_key,
+                "platform": tag.platform,
+            })
             return {"success": True}
         except Exception as e:
             _logger.error(f"start failed: {name} - {e}")
@@ -414,6 +480,10 @@ class InstanceManager:
                 self._registry.unregister(runtime)
                 break
         self._states[name] = "stopped"
+        await self._emit("INSTANCE_STOPPED", {
+            "name": name,
+            "tag": tag.identity_key,
+        })
         return {"success": True}
 
 

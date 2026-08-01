@@ -26,6 +26,7 @@ class TelegramGateway:
         webhook_url: Optional[str] = None,
         webhook_port: int = 8443,
         proxy_url: Optional[str] = None,
+        parse_business: Optional[Callable] = None,
     ):
         self._token = token
         self._proxy_url = proxy_url
@@ -34,6 +35,7 @@ class TelegramGateway:
         self._webhook_url = webhook_url
         self._webhook_port = webhook_port
         self._proxy_url = proxy_url
+        self._parse_business = parse_business
         self._app: Optional[Application] = None
         self._running = False
         self._reconnect_delay = 1
@@ -106,11 +108,26 @@ class TelegramGateway:
         try:
             event = update_to_loyan(update, self._tag)
             if event and self._on_event:
-                self._on_event(event)
+                await self._on_event(event)
+            # 业务事件（进群/退群/禁言等）与消息事件并行发布
+            if self._parse_business:
+                biz = self._parse_business(update)
+                if biz is not None:
+                    await self._publish_business(biz)
         except ValueError:
             pass
         except Exception:
             _logger.error(f"[Telegram] 处理异常", exc_info=True)
+
+    async def _publish_business(self, biz) -> None:
+        """发布业务事件到 EventBus（总线未就绪时静默跳过）"""
+        try:
+            from loyan.core.event import event_bus
+            publish = getattr(event_bus, "publish_business", None)
+            if publish is not None:
+                await publish(biz)
+        except Exception:
+            pass
 
     async def _handle_error(self, update: Update, context: CallbackContext):
         _logger.error(f"[Telegram] 更新处理异常: {context.error}", exc_info=True)

@@ -16,9 +16,20 @@ import aiohttp
 from loyan.core.loyan_adapter.event import LoyanEvent
 from loyan.core.loyan_adapter.identity import IdentityTag
 from loyan.core.loyan_adapter.platform.satori.protocol import SatoriOpcode, parse_satori_event
-from loyan.core.loyan_adapter.platform.satori.event import satori_event_to_loyan
+from loyan.core.loyan_adapter.platform.satori.event import satori_event_to_loyan, satori_event_to_business
 
 _logger = logging.getLogger("Adapter.Satori.gateway")
+
+
+async def _publish_business(biz) -> None:
+    """发布业务事件到 EventBus（总线未就绪时静默跳过）"""
+    try:
+        from loyan.core.event import event_bus
+        publish = getattr(event_bus, "publish_business", None)
+        if publish is not None:
+            await publish(biz)
+    except Exception:
+        pass
 
 
 class SatoriGateway:
@@ -191,6 +202,11 @@ class SatoriGateway:
                 event = satori_event_to_loyan(event_data, self._tag)
                 if event and self._on_event:
                     self._on_event(event)
+                else:
+                    # 非消息事件 → 业务事件转换并发布
+                    biz = satori_event_to_business(event_data)
+                    if biz is not None:
+                        await _publish_business(biz)
         elif op == SatoriOpcode.RECONNECT.value:
             _logger.warning("Satori Gateway 收到重连指令")
             raise ConnectionError("收到重连指令")

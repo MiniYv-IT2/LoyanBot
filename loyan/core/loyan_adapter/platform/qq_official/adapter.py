@@ -195,6 +195,10 @@ class QQOfficialAdapter(LoyanAdapter):
     async def call_api(self, action: str, params: dict = None) -> Optional[dict]:
         return None
 
+    def parse_business_event(self, raw: dict) -> Optional["BusinessEvent"]:
+        """QQ 官方平台无业务事件（仅订阅消息意图），恒返回 None"""
+        return None
+
 
 # backward compatibility: 从 factory 导出 create_adapter
 from .factory import create_adapter  # noqa: E402, F401

@@ -136,6 +136,7 @@ from graci import (
     on_regex,               # @on_regex(r"pattern")
     on_keyword,             # @on_keyword("关键词")
     on_fallback,            # @on_fallback() 兜底处理
+    on_event,               # @on_event("group_member_joined") 订阅业务事件
     plugin_handler,         # @plugin_handler 核心包装器
     require_permission,     # @require_permission("master")
     require_master,         # @require_master 快捷主人权限
@@ -144,6 +145,28 @@ from graci import (
     with_session,           # @with_session 自动注入 session
     PluginContext,          # handler 上下文类型
 )
+```
+
+### 事件订阅
+
+```python
+from graci import on_event
+from loyan.core.event import EventType, BusinessEvent
+
+# 事件名或 EventType 枚举均可，key 为 biz:{type.value}
+@on_event("group_member_joined")
+async def on_join(ev: BusinessEvent):
+    # ev.payload["group_id"] / ev.type / ev.source ...
+    ...
+
+@on_event(EventType.GROUP_MEMBER_JOINED)  # 枚举传法等效
+async def on_join_enum(ev: BusinessEvent): ...
+
+# 通配订阅所有业务事件
+@on_event("*")
+async def watcher(ev: BusinessEvent): ...
+
+# 订阅函数可调用 ev.cancel() 拦截，后续订阅者不再收到
 ```
 
 ### PluginContext 属性

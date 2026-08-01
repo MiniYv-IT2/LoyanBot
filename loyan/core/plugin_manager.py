@@ -67,6 +67,25 @@ class PluginManager:
         """已加载插件的版本号映射"""
         return self._versions
 
+    # ── 业务事件发送 ──
+
+    async def _emit(self, event_name: str, payload: dict) -> None:
+        """发送业务事件（await；事件类型延迟导入避免循环，失败不影响主流程）"""
+        try:
+            from loyan.core.event import EventType, BusinessEvent, event_bus
+            await event_bus.publish_business(
+                BusinessEvent(type=getattr(EventType, event_name), payload=payload, source="plugin_manager")
+            )
+        except Exception as e:
+            self.logger.error(f"emit {event_name} failed: {e}")
+
+    def _emit_async(self, event_name: str, payload: dict) -> None:
+        """同步上下文发送业务事件（fire-and-forget）"""
+        try:
+            asyncio.create_task(self._emit(event_name, payload))
+        except Exception as e:
+            self.logger.error(f"emit {event_name} failed: {e}")
+
     # ── 版本工具 ──
 
     def parse_version(self, version: str) -> List[int]:
@@ -211,6 +230,12 @@ class PluginManager:
         self._registry.sort(key=lambda p: p.get("priority", 50), reverse=True)
 
         self._initialized = True
+        for plugin in self._registry:
+            await self._emit("PLUGIN_LOADED", {
+                "name": plugin.get("name", ""),
+                "version": plugin.get("version", ""),
+                "author": plugin.get("author", ""),
+            })
         import logging
         self.logger_manager.log_with_context(self.logger, logging.INFO, f"\n 插件管理器初始化完成！")
         self.logger_manager.log_with_context(self.logger, logging.INFO, f" 共注册成功 {len(self._registry)} 个插件:")
@@ -484,6 +509,7 @@ class PluginManager:
                 break
         if not plugin_path:
             self.logger.error(f" 未找到插件 {plugin_name}")
+            self._emit_async("PLUGIN_ERROR", {"name": plugin_name, "error": "not_found"})
             return False
         try:
             self._registry[:] = [p for p in self._registry if p.get('name') != plugin_name]
@@ -491,9 +517,11 @@ class PluginManager:
             self._initialized = False
             self.init()
             self.logger.info(f" 插件 {plugin_name} 重载完成")
+            self._emit_async("PLUGIN_LOADED", {"name": plugin_name})
             return True
         except Exception as e:
             self.logger.error(f" 重载插件 {plugin_name} 异常: {e}", exc_info=True)
+            self._emit_async("PLUGIN_ERROR", {"name": plugin_name, "error": str(e)})
             return False
 
     # ── 配置初始化 ──

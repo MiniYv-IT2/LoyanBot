@@ -9,6 +9,10 @@ _SOURCE_DIRS = [
                  "loyan_adapter", "source"),
     os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
                  "brain", "provider", "source"),
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                 "config"),
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                 "webserv", "panel", "source"),
 ]
 
 

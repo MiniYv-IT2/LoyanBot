@@ -62,6 +62,14 @@ class LoyanAdapter(ABC):
         """
         return None
 
+    def parse_business_event(self, raw: dict) -> Optional["BusinessEvent"]:
+        """平台事件 → BusinessEvent；不认识/不支持返回 None（可选实现）
+
+        可选实现：不实现则业务事件被忽略（默认行为）。
+        实现位置不限：adapter.py 内联或拆 business.py re-export。
+        """
+        return None
+
     @property
     def tag(self) -> Optional[IdentityTag]:
         """获取适配器身份标签

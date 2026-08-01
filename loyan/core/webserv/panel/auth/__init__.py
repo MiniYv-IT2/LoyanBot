@@ -94,6 +94,32 @@ def change_password(old_pw: str, new_pw: str) -> bool:
     return True
 
 
+def get_panel_settings() -> dict:
+    """面板设置（不回密码）"""
+    config = _ensure_defaults()
+    return {k: config.get(k) for k in ("username", "port", "ssl_enable", "ssl_cert", "ssl_key")}
+
+
+def save_panel_settings(data: dict, old_password: str = "", new_password: str = "") -> tuple[bool, str]:
+    """保存面板设置；提供新旧密码时改密"""
+    config = _ensure_defaults()
+    for key in ("username", "port", "ssl_enable", "ssl_cert", "ssl_key"):
+        if key in data:
+            config[key] = data[key]
+    if new_password:
+        if not verify_password(old_password):
+            return False, "旧密码错误"
+        ok, msg = validate_password(new_password)
+        if not ok:
+            return False, msg
+        salt = secrets.token_hex(16)
+        h = hashlib.md5((new_password + salt).encode()).hexdigest()
+        config["password"] = h
+        config["salt"] = salt
+    _save_config(config)
+    return True, ""
+
+
 def create_token() -> str:
     token = secrets.token_hex(32)
     _tokens[token] = time.time() + _TOKEN_EXPIRE

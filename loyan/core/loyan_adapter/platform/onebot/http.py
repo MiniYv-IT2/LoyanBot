@@ -188,6 +188,11 @@ class LoyanOneBot(LoyanAdapter):
         """实现 LoyanAdapter.parse_http_request — 委托给 parse_event"""
         return self.parse_event(body)
 
+    def parse_business_event(self, raw: dict) -> Optional["BusinessEvent"]:
+        """OneBot notice 事件 → BusinessEvent（委托 business.py）"""
+        from loyan.core.loyan_adapter.platform.onebot.business import parse_onebot_business
+        return parse_onebot_business(raw)
+
     # ── 生命周期 ──
 
     async def start(self, on_event: Callable[[LoyanEvent], None]) -> None:

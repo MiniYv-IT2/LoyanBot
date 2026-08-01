@@ -214,6 +214,10 @@ class ConfigManager:
         if item:
             return item.value
         return default
+
+    def list_keys(self) -> list:
+        """返回所有已注册配置项的 key 列表（供面板设置页枚举）"""
+        return list(self._config_items.keys())
     
     def set(self, key: str, value: Any) -> bool:
 
@@ -378,14 +382,29 @@ class ConfigManager:
     def _get_plugin_instance_file(self, plugin_name: str, instance_name: str) -> str:
         return os.path.join(get_plugin_config_instance_dir(instance_name), plugin_name, "config.json")
 
-    def _schema_defaults(self, schema: dict) -> dict:
+    def schema_defaults(self, schema: dict) -> dict:
         result = {}
         for key, info in schema.items():
             if info.get("type") == "object" and "items" in info:
-                result[key] = self._schema_defaults(info["items"])
+                result[key] = self.schema_defaults(info["items"])
             else:
                 result[key] = info.get("default", None)
         return result
+
+    def register_configs_from_schema(self, schema_path: str) -> dict:
+        """从 schema JSON 文件批量注册配置项，返回 schema 字典"""
+        schema = self._load_json_file(schema_path)
+        for key, info in schema.items():
+            options = info.get("options")
+            self.register_config(ConfigItem(
+                key=key,
+                default=info.get("default"),
+                description=info.get("description", ""),
+                required=info.get("required", False),
+                env_var=info.get("env_var"),
+                validate_func=(lambda x, opts=options: x in opts) if options else None,
+            ))
+        return schema
 
     def _load_json_file(self, filepath: str) -> dict:
         try:
@@ -408,11 +427,11 @@ class ConfigManager:
 
     def _load_plugin_config(self, plugin_name: str, instance_name: Optional[str] = None) -> dict:
         schema = self._plugin_schemas.get(plugin_name, {})
-        config = self._schema_defaults(schema)
+        config = self.schema_defaults(schema)
 
         global_file = self._get_plugin_global_file(plugin_name)
         global_data = self._load_json_file(global_file)
-        merged_global = deep_merge_config(self._schema_defaults(schema), global_data)
+        merged_global = deep_merge_config(self.schema_defaults(schema), global_data)
         if merged_global != global_data:
             os.makedirs(os.path.dirname(global_file), exist_ok=True)
             try:
@@ -432,7 +451,7 @@ class ConfigManager:
             instance_file = self._get_plugin_instance_file(plugin_name, inst_name)
             instance_data = self._load_json_file(instance_file)
             if instance_data:
-                merged_inst = deep_merge_config(self._schema_defaults(schema), instance_data)
+                merged_inst = deep_merge_config(self.schema_defaults(schema), instance_data)
                 if merged_inst != instance_data:
                     os.makedirs(os.path.dirname(instance_file), exist_ok=True)
                     try:

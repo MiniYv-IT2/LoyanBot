@@ -1,0 +1,34 @@
+{
+  "username": {
+    "type": "str",
+    "default": "Admin",
+    "description": "面板用户名"
+  },
+  "password": {
+    "type": "str",
+    "default": "",
+    "description": "登录密码",
+    "secret": true,
+    "hint": "至少 6 位，包含字母和数字"
+  },
+  "port": {
+    "type": "int",
+    "default": 5090,
+    "description": "面板端口"
+  },
+  "ssl_enable": {
+    "type": "bool",
+    "default": false,
+    "description": "启用 HTTPS"
+  },
+  "ssl_cert": {
+    "type": "str",
+    "default": "",
+    "description": "SSL 证书路径"
+  },
+  "ssl_key": {
+    "type": "str",
+    "default": "",
+    "description": "SSL 私钥路径"
+  }
+}

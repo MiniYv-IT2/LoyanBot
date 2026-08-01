@@ -8,11 +8,8 @@ from loyan.core.config import AUTO_REPLIES, LOG_LEVEL, DEBUG_MODE
 # 导入配置管理器
 from loyan.core.config_manager import config_manager
 
-# 先导入logger_manager但不使用，避免循环导入问题
-from loyan.core.logger_manager import LoggerManager
-
-# 创建日志管理器实例（延迟初始化，由 main.py 在启动时调用 setup_logging）
-logger_manager = LoggerManager()
+# 复用 logger_manager 模块的全局实例（单一实例，避免双实例日志配置不一致）
+from loyan.core.logger_manager import logger_manager
 
 logger = logger_manager.get_logger('Loyan')
 

@@ -1,0 +1,26 @@
+{
+  "username": {
+    "en-US": { "description": "Panel username", "hint": "" },
+    "ru-RU": { "description": "Имя пользователя панели", "hint": "" }
+  },
+  "password": {
+    "en-US": { "description": "Login password", "hint": "At least 6 chars, letters and digits" },
+    "ru-RU": { "description": "Пароль входа", "hint": "Минимум 6 символов, буквы и цифры" }
+  },
+  "port": {
+    "en-US": { "description": "Panel port", "hint": "" },
+    "ru-RU": { "description": "Порт панели", "hint": "" }
+  },
+  "ssl_enable": {
+    "en-US": { "description": "Enable HTTPS", "hint": "" },
+    "ru-RU": { "description": "Включить HTTPS", "hint": "" }
+  },
+  "ssl_cert": {
+    "en-US": { "description": "SSL certificate path", "hint": "" },
+    "ru-RU": { "description": "Путь к SSL-сертификату", "hint": "" }
+  },
+  "ssl_key": {
+    "en-US": { "description": "SSL private key path", "hint": "" },
+    "ru-RU": { "description": "Путь к SSL-ключу", "hint": "" }
+  }
+}

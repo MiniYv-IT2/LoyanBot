@@ -124,6 +124,19 @@ def _create_callback_route(app):
                         logger, logging.WARNING, f"EventBus 发布失败: {e}", context
                     )
             else:
+                # 非消息事件 → 业务事件转换并发布
+                if parser:
+                    biz = parser.parse_business_event(json_data)
+                    if biz is not None:
+                        bus = _get_event_bus()
+                        publish = getattr(bus, "publish_business", None)
+                        if publish is not None:
+                            try:
+                                await publish(biz)
+                            except Exception as e:
+                                logger_manager.log_with_context(
+                                    logger, logging.WARNING, f"业务事件发布失败: {e}", context
+                                )
                 return jsonify({"retcode": 0})
 
             return jsonify({"retcode": 0})

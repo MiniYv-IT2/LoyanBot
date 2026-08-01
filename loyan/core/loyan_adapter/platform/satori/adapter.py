@@ -28,6 +28,17 @@ from loyan.core.loyan_adapter.message import LoyanMsg, LoyanText
 _logger = logging.getLogger("Adapter.Satori")
 
 
+async def _publish_business(biz) -> None:
+    """发布业务事件到 EventBus（总线未就绪时静默跳过）"""
+    try:
+        from loyan.core.event import event_bus
+        publish = getattr(event_bus, "publish_business", None)
+        if publish is not None:
+            await publish(biz)
+    except Exception:
+        pass
+
+
 class SatoriAdapter(LoyanAdapter):
     """Satori 协议适配器（基于 satori-python-client）"""
 
@@ -125,14 +136,17 @@ class SatoriAdapter(LoyanAdapter):
             adapter_self._account = account
             if not adapter_self._ready.is_set():
                 adapter_self._ready.set()
-            _logger.debug(f"收到事件: type={event.type}")
+            _logger.debug(f"received event: type={event.type}")
             try:
                 loyan_event = _satori_event_to_loyan(event, adapter_self.tag)
                 if loyan_event and adapter_self._on_event:
-                    _logger.debug(f"事件转换成功: {loyan_event.raw_text}")
+                    _logger.debug(f"event converted: {loyan_event.raw_text}")
                     await adapter_self._on_event(loyan_event)
                 else:
-                    _logger.debug(f"事件转换返回 None: type={event.type}")
+                    # 非消息事件 → 业务事件转换并发布
+                    biz = adapter_self.parse_business_event(event)
+                    if biz is not None:
+                        await _publish_business(biz)
             except Exception as e:
                 _logger.error(f"Satori 事件转换异常: {e}", exc_info=True)
 
@@ -262,6 +276,11 @@ class SatoriAdapter(LoyanAdapter):
         return result
 
     # ── 工厂函数 ──
+
+    def parse_business_event(self, raw) -> Optional["BusinessEvent"]:
+        """Satori 事件 → BusinessEvent（委托 event.py，支持 dict/Event 对象）"""
+        from loyan.core.loyan_adapter.platform.satori.event import satori_event_to_business
+        return satori_event_to_business(raw)
 
     @staticmethod
     def create_adapter(config: dict) -> "SatoriAdapter":

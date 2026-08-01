@@ -269,6 +269,11 @@ class LoyanOneBotWS(LoyanAdapter):
             raw_data=data,
         )
 
+    def parse_business_event(self, raw: dict) -> Optional["BusinessEvent"]:
+        """OneBot notice 事件 → BusinessEvent（委托 business.py）"""
+        from loyan.core.loyan_adapter.platform.onebot.business import parse_onebot_business
+        return parse_onebot_business(raw)
+
     # ── 生命周期 ──
 
     async def start(self, on_event: Callable[[LoyanEvent], None]) -> None:
@@ -441,6 +446,17 @@ class LoyanOneBotWS(LoyanAdapter):
                     await event_bus.publish(event)
                 except Exception as e:
                     self._logger.error(f"[OneBotWS] EventBus 派发失败: {e}")
+            else:
+                # 非消息事件 → 业务事件转换并发布
+                try:
+                    biz = self.parse_business_event(data)
+                    if biz is not None:
+                        from loyan.core.event import event_bus
+                        publish = getattr(event_bus, "publish_business", None)
+                        if publish is not None:
+                            await publish(biz)
+                except Exception as e:
+                    self._logger.error(f"[OneBotWS] 业务事件发布失败: {e}")
 
     async def _drain_api_send_queue_async(self, ws) -> None:
         """消费 worker 线程入队的 API 请求（异步版，recv_loop 内调用）"""

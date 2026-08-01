@@ -1,0 +1,45 @@
+{
+  "log_encoding": {
+    "type": "str",
+    "default": "utf-8",
+    "description": "日志编码格式"
+  },
+  "debug_mode": {
+    "type": "bool",
+    "default": false,
+    "description": "调试模式"
+  },
+  "auto_replies": {
+    "type": "dict",
+    "default": {
+      "你好": "哈喽～ 我是 LoyanBot，有什么可以帮你呀？",
+      "在吗": "在呢在呢～ 随时在线为你服务！",
+      "谢谢": "不客气呀～ 能帮到你我也很开心！",
+      "再见": "拜拜～ 下次见啦，祝你生活愉快！",
+      "早上好": "早上好呀～ 新的一天也要元气满满哦！",
+      "晚上好": "晚上好～ 记得早点休息，不要熬夜呀！",
+      "吃了吗": "哈哈，已经吃过啦～ 你也要按时吃饭呀！",
+      "天气怎么样": "抱歉呀，我暂时没法查询天气，记得关注天气预报哦～",
+      "你是谁": "我是 LoyanBot，很高兴认识你！",
+      "加油": "谢谢鼓励～ 你也超棒的，一起加油呀！"
+    },
+    "description": "关键词自动回复配置"
+  },
+  "log_level": {
+    "type": "str",
+    "default": "INFO",
+    "description": "日志级别",
+    "options": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+  },
+  "store_url": {
+    "type": "str",
+    "default": "",
+    "description": "插件商店源地址",
+    "hint": "留空使用默认源"
+  },
+  "auto_update": {
+    "type": "bool",
+    "default": true,
+    "description": "每日自动更新插件"
+  }
+}

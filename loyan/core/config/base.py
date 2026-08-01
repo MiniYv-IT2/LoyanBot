@@ -2,67 +2,26 @@
 
 robot_id / master_id 等实例级配置已迁移到 storage/instances/<name>/config.json，
 每个实例独立管理，不再全局共享。
+
+配置唯一来源：settings.schema_conf.json（字段定义 + 默认值）。
+本文件只做：生成 DEFAULT_CONFIG、暴露常量。
 """
 
 import os
 import time
-from loyan.core.config_manager import config_manager, ConfigItem
+from loyan import __version__ as BOT_VERSION
+from loyan.core.config_manager import config_manager
 
-# ═══════════════ 框架默认值 ═══════════════
+_SCHEMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "settings.schema_conf.json")
 
-DEFAULT_CONFIG = {
-    "bot_version": "0.1.dev0",
 
-    "log_encoding": "utf-8",
-    "log_level": "INFO",
-    "debug_mode": False,
-    "auto_replies": {
-        "你好": "哈喽～ 我是 LoyanBot，有什么可以帮你呀？",
-        "在吗": "在呢在呢～ 随时在线为你服务！",
-        "谢谢": "不客气呀～ 能帮到你我也很开心！",
-        "再见": "拜拜～ 下次见啦，祝你生活愉快！",
-        "早上好": "早上好呀～ 新的一天也要元气满满哦！",
-        "晚上好": "晚上好～ 记得早点休息，不要熬夜呀！",
-        "吃了吗": "哈哈，已经吃过啦～ 你也要按时吃饭呀！",
-        "天气怎么样": "抱歉呀，我暂时没法查询天气，记得关注天气预报哦～",
-        "你是谁": "我是 LoyanBot，很高兴认识你！",
-        "加油": "谢谢鼓励～ 你也超棒的，一起加油呀！"
-    }
-}
+# ═══════════════ 框架默认值（schema 为唯一来源，注册在 config_manager 内完成） ═══════════════
+
+DEFAULT_CONFIG = config_manager.schema_defaults(
+    config_manager.register_configs_from_schema(_SCHEMA_PATH)
+)
 """完整默认配置字典（框架级，不含实例级字段如 robot_id/master_id）。"""
-
-# ═══════════════ 框架级配置（存储在 config.json）═══════════════
-
-config_manager.register_config(ConfigItem(
-    key="bot_version",
-    default="v1.9.57",
-    description="机器人版本"
-))
-
-config_manager.register_config(ConfigItem(
-    key="log_encoding",
-    default="utf-8",
-    description="日志编码格式"
-))
-
-config_manager.register_config(ConfigItem(
-    key="debug_mode",
-    default=False,
-    description="调试模式"
-))
-
-config_manager.register_config(ConfigItem(
-    key="auto_replies",
-    default={},
-    description="关键词自动回复配置"
-))
-
-config_manager.register_config(ConfigItem(
-    key="log_level",
-    default="WARNING",
-    description="日志级别",
-    validate_func=lambda x: x in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-))
 
 # ═══════════════ 加载配置 ═══════════════
 
@@ -74,7 +33,6 @@ config_manager.load()
 
 # ═══════════════ 模块常量（框架级，不包含实例级字段） ═══════════════
 
-BOT_VERSION = config_manager.get("bot_version")
 LOG_ENCODING = config_manager.get("log_encoding")
 AUTO_REPLIES = config_manager.get("auto_replies")
 DEBUG_MODE = config_manager.get("debug_mode")

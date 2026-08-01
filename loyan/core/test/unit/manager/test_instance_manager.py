@@ -145,6 +145,9 @@ class FakeEventBus:
     async def publish(self, event):
         self.published.append(event)
 
+    async def publish_business(self, event):
+        self.published.append(event)
+
 
 # ══════════════════════════════════════════════════════════
 # fixtures

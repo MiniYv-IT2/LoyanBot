@@ -114,9 +114,11 @@ async def run_bot():
     import loyan.graci as _graci_pkg
     sys.modules.setdefault('graci', _graci_pkg)
 
-    # 组合根：构建全局依赖容器（惰性构建，组件通过 get_container() 获取依赖）
-    from loyan.core.container import get_container, set_container
-    set_container(get_container())
+    # 组合根：构建全局依赖容器并预构建（启动即暴露装配错误）
+    from loyan.core.container import build_container, set_container
+    container = build_container()
+    container.build()
+    set_container(container)
 
     try:
         from loyan.res.loyan_logo import LoyanBotLogo

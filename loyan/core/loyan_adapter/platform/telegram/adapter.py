@@ -71,6 +71,7 @@ class TelegramAdapter(LoyanAdapter):
             on_event=on_event, tag=self.tag,
             webhook_url=self._webhook_url or None,
             webhook_port=self._webhook_port,
+            parse_business=self.parse_business_event,
         )
         self._gateway_task = asyncio.ensure_future(self._gateway.start())
 
@@ -115,6 +116,11 @@ class TelegramAdapter(LoyanAdapter):
 
     async def call_api(self, action: str, params: dict = None) -> Optional[dict]:
         return None
+
+    def parse_business_event(self, raw) -> Optional["BusinessEvent"]:
+        """Telegram Update → BusinessEvent（委托 business.py）"""
+        from loyan.core.loyan_adapter.platform.telegram.business import parse_telegram_business
+        return parse_telegram_business(raw)
 
     def is_admin(self, user_id: str) -> bool:
         return self._admin_binding.is_admin(user_id)

@@ -15,6 +15,68 @@ from loyan.core.loyan_adapter.message import LoyanText, LoyanAt
 _logger = logging.getLogger("Adapter.Satori.event")
 
 
+def _get(obj, key, default=None):
+    """兼容 dict 与 satori 模型对象的字段提取"""
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    if obj is None:
+        return default
+    return getattr(obj, key, default)
+
+
+def satori_event_to_business(raw) -> Optional["BusinessEvent"]:
+    """Satori 事件 → BusinessEvent；不支持返回 None
+
+    支持 member_added/member_removed/friend_request（兼容连字符风格类型名）。
+    raw 可为 dict 或 satori 模型对象。
+    """
+    try:
+        from loyan.core.event import EventType, BusinessEvent
+    except ImportError:
+        return None
+
+    event_type = str(_get(raw, "type", "")).replace("-", "_")
+    guild = _get(raw, "guild") or {}
+    channel = _get(raw, "channel") or {}
+    user = _get(raw, "user") or {}
+    operator = _get(raw, "operator") or {}
+    group_id = str(_get(guild, "id") or _get(channel, "parent_id") or "")
+    user_id = str(_get(user, "id") or "")
+    operator_id = str(_get(operator, "id") or "")
+
+    if event_type == "member_added":
+        return BusinessEvent(
+            type=EventType.GROUP_MEMBER_JOINED,
+            payload={
+                "group_id": group_id,
+                "user_id": user_id,
+                "operator_id": operator_id,
+                "at": int(_get(raw, "timestamp", 0) or 0),
+            },
+            source="satori",
+        )
+
+    if event_type == "member_removed":
+        return BusinessEvent(
+            type=EventType.GROUP_MEMBER_LEFT,
+            payload={"group_id": group_id, "user_id": user_id},
+            source="satori",
+        )
+
+    if event_type == "friend_request":
+        # Satori 好友申请：请求者通常在 operator，fallback 到 user
+        uid = operator_id or user_id
+        nickname = str(_get(operator, "name") or _get(user, "name") or "")
+        message = str(_get(operator, "message") or _get(raw, "message") or "")
+        return BusinessEvent(
+            type=EventType.FRIEND_REQUEST,
+            payload={"user_id": uid, "nickname": nickname, "message": message},
+            source="satori",
+        )
+
+    return None
+
+
 def satori_event_to_loyan(
     satori_event: dict,
     tag: IdentityTag,
