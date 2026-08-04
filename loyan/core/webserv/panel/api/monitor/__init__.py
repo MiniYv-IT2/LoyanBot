@@ -1,5 +1,6 @@
 """监控接口 — stats / health / metrics / status"""
 
+import json
 from datetime import datetime
 
 from loyan.core.webserv.quart import request, jsonify
@@ -20,6 +21,28 @@ def register_routes(app) -> None:
 
             from loyan.core.plugin_manager import plugin_manager
             plugins = plugin_manager.get_plugin_count()
+
+            import os as _os
+            from loyan.core.tools.paths import get_instances_dir
+            inst_dir = get_instances_dir()
+            instances_total = 0
+            if _os.path.isdir(inst_dir):
+                instances_total = len([
+                    d for d in _os.listdir(inst_dir)
+                    if _os.path.isfile(_os.path.join(inst_dir, d, "config.json"))
+                ])
+            instances_enabled = 0
+            if _os.path.isdir(inst_dir):
+                for d in _os.listdir(inst_dir):
+                    cfg_path = _os.path.join(inst_dir, d, "config.json")
+                    if not _os.path.isfile(cfg_path):
+                        continue
+                    try:
+                        with open(cfg_path, "r", encoding="utf-8") as f:
+                            if json.load(f).get("enabled", True):
+                                instances_enabled += 1
+                    except Exception:
+                        pass
 
             from loyan.core.decorators.registration import DECORATOR_COMMAND_REGISTRY
             plugin_cmds = sum(len(p.get("commands", [])) for p in plugin_manager.registry)
@@ -43,6 +66,8 @@ def register_routes(app) -> None:
                     "total_commands": total_commands,
                     "uptime_seconds": uptime,
                     "plugins": plugins,
+                    "instances": instances_total,
+                    "instances_enabled": instances_enabled,
                 },
             }
         except Exception as e:

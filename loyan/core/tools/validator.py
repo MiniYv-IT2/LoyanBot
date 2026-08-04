@@ -92,6 +92,11 @@ def load_plugin_toml(toml_path: str, plugin_path: str) -> dict:
     meta["icon"]           = plugin_section.get("icon")
     meta["priority"]       = plugin_section.get("priority", 50)
     meta["dependencies"]   = plugin_section.get("dependencies", [])
+    meta["category"]       = plugin_section.get("category")
+    meta["tags"]           = plugin_section.get("tags", [])
+    meta["repo"]           = plugin_section.get("repo")
+    meta["docs_url"]       = plugin_section.get("docs_url")
+    meta["min_framework"]  = plugin_section.get("min_framework")
 
     meta["handler"]        = handler_section.get("entry")
     meta["commands"]       = trigger_section.get("commands")
@@ -123,6 +128,8 @@ def load_plugin_toml(toml_path: str, plugin_path: str) -> dict:
         raise TOMLPluginError(plugin_name, "is_at_required 必须是布尔值")
     if not isinstance(meta["dependencies"], list):
         raise TOMLPluginError(plugin_name, "dependencies 必须是列表")
+    if not isinstance(meta["tags"], list):
+        raise TOMLPluginError(plugin_name, "tags 必须是列表")
     if not isinstance(meta["priority"], int) or meta["priority"] < 0:
         raise TOMLPluginError(plugin_name, "priority 必须是正整数")
 

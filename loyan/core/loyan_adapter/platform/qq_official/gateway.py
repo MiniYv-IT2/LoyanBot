@@ -118,7 +118,7 @@ class QQOfficialGateway:
                     except ConnectionError:
                         raise
                     except Exception as e:
-                        _logger.error(f"处理消息异常: {e}")
+                        _logger.error(f"处理消息异常: {e}", exc_info=True)
                 elif msg.type == aiohttp.WSMsgType.CLOSED:
                     break
 

@@ -17,3 +17,5 @@ playwright>=1.40.0
 litellm>=1.60.0
 pycryptodome>=3.23.0
 python-telegram-bot>=22.0
+
+watchfiles>=0.21.0

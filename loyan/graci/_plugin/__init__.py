@@ -50,4 +50,34 @@ __all__ = [
     "on_fallback", "DECORATOR_COMMAND_REGISTRY",
     "on_event",
     "PluginContext",
+    "list_plugins", "enable_plugin", "disable_plugin", "reload_plugin",
 ]
+
+
+# ── 插件管理透传（薄转发，无业务逻辑） ──
+
+async def _await_maybe(result):
+    import inspect
+    if inspect.iscoroutine(result):
+        return await result
+    return result
+
+
+async def list_plugins():
+    from loyan.core.plugin_manager import plugin_manager
+    return await _await_maybe(plugin_manager.list_plugins())
+
+
+async def enable_plugin(name: str):
+    from loyan.core.plugin_manager import plugin_manager
+    return await _await_maybe(plugin_manager.enable_plugin(name))
+
+
+async def disable_plugin(name: str):
+    from loyan.core.plugin_manager import plugin_manager
+    return await _await_maybe(plugin_manager.disable_plugin(name))
+
+
+async def reload_plugin(name: str):
+    from loyan.core.plugin_manager import plugin_manager
+    return await _await_maybe(plugin_manager.reload_plugin(name))

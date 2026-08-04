@@ -5,6 +5,8 @@ import {
   HomeOutlined,
   ApiOutlined,
   CloudOutlined,
+  AppstoreOutlined,
+  ShoppingOutlined,
   RobotOutlined,
   ToolOutlined,
   BookOutlined,
@@ -29,6 +31,10 @@ const menuItems = (t) => [
   getItem(t("dashboard.sidebar.home"), "/", <HomeOutlined />),
   getItem(t("dashboard.sidebar.adapters"), "/adapters", <ApiOutlined />),
   getItem(t("dashboard.sidebar.providers"), "/providers", <CloudOutlined />),
+  getItem(t("dashboard.sidebar.plugins"), "/plugins", <AppstoreOutlined />, [
+    getItem(t("dashboard.sidebar.plugin_store"), "/plugins/store", <ShoppingOutlined />),
+    getItem(t("dashboard.sidebar.plugin_settings"), "/plugins/settings", <ToolOutlined />),
+  ]),
   getItem(t("dashboard.sidebar.ai_tools"), "/ai-tools", <RobotOutlined />, [
     getItem(t("dashboard.sidebar.mcp"), "/ai-tools/mcp", <ToolOutlined />),
     getItem(t("dashboard.sidebar.knowledge"), "/ai-tools/knowledge", <BookOutlined />),

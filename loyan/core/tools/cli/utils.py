@@ -5,7 +5,7 @@ import shutil
 import subprocess
 from pathlib import Path
 from typing import Optional
-from loyan.core.tools.paths import get_project_root, get_plugins_dir, get_config_path
+from loyan.core.tools.paths import get_project_root, get_plugins_dir, get_user_plugins_dir, get_config_path
 
 
 def find_project_root() -> Optional[Path]:
@@ -36,6 +36,12 @@ def find_config(root: Path) -> Path:
 
 
 def find_plugins_dir(root: Path) -> Path:
+    """用户插件目录（安装目标，与商店一致；pip 升级不覆盖）"""
+    return Path(get_user_plugins_dir())
+
+
+def system_plugins_dir() -> Path:
+    """系统内置插件目录（pip 包内，只读）"""
     return Path(get_plugins_dir())
 
 

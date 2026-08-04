@@ -16,9 +16,12 @@ import Memory from "../pages/Dashboard/AiTools/Memory";
 import Agent from "../pages/Dashboard/AiTools/Agent";
 import Skill from "../pages/Dashboard/AiTools/Skill";
 import Logs from "../pages/Dashboard/Logs";
+import PluginStore from "../pages/Dashboard/Plugins/Store";
+import PluginSettings from "../pages/Dashboard/Plugins/Settings";
 import Settings from "../pages/Dashboard/Settings";
 import AiSettings from "../pages/Dashboard/Settings/Ai";
 import GeneralSettings from "../pages/Dashboard/Settings/General";
+import NotFound from "../pages/NotFound";
 import { verifyToken } from "../api";
 
 function ProtectedRoute({ children }) {
@@ -55,6 +58,8 @@ export default function AppRoutes() {
         <Route path="providers" element={<ProvidersList />} />
         <Route path="providers/create" element={<ProviderCreate />} />
         <Route path="providers/:id/edit" element={<ProviderEdit />} />
+        <Route path="plugins/store" element={<PluginStore />} />
+        <Route path="plugins/settings" element={<PluginSettings />} />
         <Route path="ai-tools" element={<AiTools />} />
         <Route path="ai-tools/mcp" element={<Mcp />} />
         <Route path="ai-tools/knowledge" element={<Knowledge />} />
@@ -66,7 +71,7 @@ export default function AppRoutes() {
         <Route path="settings/ai" element={<AiSettings />} />
         <Route path="settings/general" element={<GeneralSettings />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

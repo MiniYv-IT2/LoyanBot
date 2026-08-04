@@ -5,6 +5,7 @@ const dashboard = {
     commands: "Commands",
     uptime: "Uptime",
     plugins: "Plugins",
+        instances: "Enabled Instances",
   },
   sidebar: {
     home: "Home",
@@ -20,6 +21,9 @@ const dashboard = {
     settings: "Settings",
     ai_settings: "AI Settings",
     general: "General",
+    plugins: "Plugins",
+    plugin_store: "Loyan Store",
+    plugin_settings: "Plugin Settings",
     github: "GitHub Repository",
   },
 } as const;

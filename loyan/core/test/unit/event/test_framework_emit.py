@@ -344,7 +344,14 @@ async def test_reload_plugin_success_emits_plugin_reloaded(recording_bus, monkey
     pm = make_pm()
     pm._registry = [{"name": "demo", "plugin_path": "/tmp/whatever", "commands": []}]
     pm._versions = {"demo": "1.0.0"}
-    monkeypatch.setattr(pm, "init", lambda: None)
+    import loyan.core.plugin_manager as pm_mod
+    monkeypatch.setattr(pm_mod.os.path, "exists", lambda _p: True)
+    monkeypatch.setattr(pm_mod, "load_plugin_toml", lambda _p, _d: {
+        "name": "demo", "version": "1.0.0", "handler": "h", "dependencies": [],
+        "commands": [], "chat_type": [], "permission": "all", "is_at_required": False,
+    })
+    monkeypatch.setattr(pm, "check_plugin_dependencies", lambda _a, _b: (True, ""))
+    monkeypatch.setattr(pm, "_load_single_plugin", lambda _n, _m: True)
     result = pm.reload_plugin("demo")
     assert result is True
     await asyncio.sleep(0)

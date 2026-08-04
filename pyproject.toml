@@ -43,6 +43,7 @@ dependencies = [
     "litellm>=1.60.0",
     "pycryptodome>=3.23.0",
     "python-telegram-bot>=22.0",
+    "watchfiles>=0.21.0",
 ]
 
 [project.optional-dependencies]
@@ -56,8 +57,8 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/MiniYv/LoyanBot"
-Repository = "https://github.com/MiniYv/LoyanBot"
+Homepage = "https://github.com/MiniYv-IT2/LoyanBot"
+Repository = "https://github.com/MiniYv-IT2/LoyanBot"
 
 [project.scripts]
 loyan = "loyan.core.tools.cli.main:app"
@@ -71,13 +72,15 @@ include-package-data = false
 [tool.setuptools.package-data]
 "loyan.core" = ["*.json", "*.toml"]
 "loyan.res" = ["*.py", "resource/*", "resource/**/*"]
-"loyan.plugins.Easysearch" = ["*.toml"]
-"loyan.plugins.Help_plugin" = ["*.toml"]
-"loyan.plugins.LLM_Chat" = ["*.toml", "*.json"]
-"loyan.plugins.Screenshot" = ["*.toml"]
-"loyan.plugins.Update_Plugin" = ["*.toml"]
-"loyan.plugins.Xiaoyu_plugin" = ["*.toml"]
-"loyan.plugins.MonitorPlugin" = ["*.toml"]
-"loyan.plugins.SysInfo_plugin" = ["*.toml"]
-"loyan.plugins.ExamplePlugin" = ["*.toml"]
-"loyan.plugins.GracyUI_plugin" = ["*.toml", "frontend/dist/*", "frontend/dist/assets/*"]
+"loyan.plugins.Help_plugin" = ["*.toml", "*.json", "config.py"]
+"loyan.plugins.Xiaoyu_plugin" = ["*.toml", "*.json", "config.py"]
+"loyan.plugins.LoyanUI" = ["requirements.txt"]
+"loyan.panel-dist" = ["*", "assets/*", "assets/**/*"]
+"loyan.core.config" = ["*.json"]
+"loyan.core.config.i18n" = ["*.json"]
+"loyan.core.loyan_adapter.source" = ["*.json"]
+"loyan.core.loyan_adapter.source.i18n" = ["*.json"]
+"loyan.core.webserv.panel.source" = ["*.json"]
+"loyan.core.webserv.panel.source.i18n" = ["*.json"]
+"loyan.brain.provider.source" = ["*.json"]
+"loyan.brain.provider.source.i18n" = ["*.json"]

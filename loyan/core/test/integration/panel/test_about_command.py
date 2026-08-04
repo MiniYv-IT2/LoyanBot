@@ -20,6 +20,13 @@ sys.modules.setdefault("graci", _graci_pkg)
 
 import pytest
 
+
+@pytest.fixture(autouse=True)
+def _default_cmd_prefix(monkeypatch):
+    from loyan.core.config import user_config
+    monkeypatch.setattr(user_config, "get_effective_cached",
+                        lambda inst: {"command_prefix": "/"})
+
 from loyan.core.event import event_bus
 from loyan.core.loyan_adapter.adapter import LoyanAdapter
 from loyan.core.loyan_adapter.event import LoyanEvent

@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import Dict, Any, Optional, TypeVar, Generic
 
-from loyan.core.tools.paths import get_config_path, get_plugin_config_global_dir, get_plugin_config_instance_dir, get_plugins_dir, get_user_plugins_dir
+from loyan.core.tools.paths import get_config_path, get_plugin_config_global_dir, get_plugin_config_instance_dir, get_plugins_dir, get_user_plugins_dir, get_res_config_dir
 
 CONFIG_FILE_PATH = None
 
@@ -395,6 +395,8 @@ class ConfigManager:
         """从 schema JSON 文件批量注册配置项，返回 schema 字典"""
         schema = self._load_json_file(schema_path)
         for key, info in schema.items():
+            if info.get("type") == "object" and "items" in info:
+                continue
             options = info.get("options")
             self.register_config(ConfigItem(
                 key=key,
@@ -510,6 +512,50 @@ class ConfigManager:
         except Exception as e:
             self._logger.error(f" 保存插件配置失败: {filepath}: {e}")
             return False
+
+    # ── 插件商店配置（config.json 的 store 段） ─────────────────────
+
+    def get_store_config(self) -> dict:
+        """获取插件商店配置（框架共有，不支持每实例覆盖）"""
+        self._migrate_legacy_store_config()
+        return self._file_config.get("store", {})
+
+    def save_store_config(self, config: dict) -> bool:
+        """保存插件商店配置（合并写入 config.json 的 store 段）"""
+        current = self._file_config.get("store", {})
+        merged = deep_merge_config(current, config)
+        self._file_config["store"] = merged
+        if not self._save_config_file():
+            return False
+        self._logger.info(" 插件商店配置已保存到: %s", CONFIG_FILE_PATH)
+        return True
+
+    def _save_config_file(self) -> bool:
+        try:
+            with open(CONFIG_FILE_PATH, 'w', encoding='utf-8') as f:
+                json.dump(self._file_config, f, ensure_ascii=False, indent=2)
+            return True
+        except Exception as e:
+            self._logger.error(f" 保存配置文件失败: {str(e)}")
+            return False
+
+    def _migrate_legacy_store_config(self) -> None:
+        """一次性迁移旧 storage/config/store_config.json → config.json 的 store 段"""
+        legacy = os.path.join(get_res_config_dir(), "store_config.json")
+        if not os.path.exists(legacy):
+            return
+        try:
+            with open(legacy, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            if not isinstance(data, dict):
+                return
+            current = self._file_config.get("store", {})
+            self._file_config["store"] = deep_merge_config(current, data)
+            if self._save_config_file():
+                os.remove(legacy)
+                self._logger.info(" 插件商店配置已迁移到 config.json（旧文件已删除）")
+        except Exception as e:
+            self._logger.error(f" 插件商店配置迁移失败: {e}")
 
 
 config_manager = ConfigManager()

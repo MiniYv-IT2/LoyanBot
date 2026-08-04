@@ -79,6 +79,7 @@ def get_db_path(plugin_name: str) -> str:
     return os.path.join(get_data_dir(), f"{plugin_name}.db")
 
 
+@functools.lru_cache(maxsize=1)
 def get_plugin_config_global_dir() -> str:
     return os.path.join(get_storage_dir(), "config")
 

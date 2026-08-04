@@ -31,15 +31,41 @@
     "description": "日志级别",
     "options": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
   },
-  "store_url": {
-    "type": "str",
-    "default": "",
-    "description": "插件商店源地址",
-    "hint": "留空使用默认源"
-  },
   "auto_update": {
     "type": "bool",
     "default": true,
     "description": "每日自动更新插件"
+  },
+  "store": {
+    "type": "object",
+    "description": "插件商店配置（框架共有，不支持每实例覆盖）",
+    "items": {
+      "sources": {
+        "type": "list",
+        "default": [
+          {
+            "name": "官方源",
+            "store_url": "http://38.55.145.10:16385/store.json",
+            "enabled": true
+          }
+        ],
+        "description": "插件源列表"
+      },
+      "git_mirrors": {
+        "type": "list",
+        "default": ["https://ghproxy.com/"],
+        "description": "GitHub 下载镜像"
+      },
+      "download_base": {
+        "type": "str",
+        "default": "",
+        "description": "下载代理基础地址（空则直连 codeload）"
+      },
+      "stats_url": {
+        "type": "str",
+        "default": "http://38.55.145.10:16385",
+        "description": "插件统计服务地址"
+      }
+    }
   }
 }

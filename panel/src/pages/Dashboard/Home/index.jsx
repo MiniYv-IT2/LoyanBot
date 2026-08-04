@@ -30,6 +30,10 @@ export default function DashboardHome() {
     { label: t("dashboard.stats.commands"), value: stats?.total_commands ?? "--" },
     { label: t("dashboard.stats.uptime"), value: stats ? formatUptime(stats.uptime_seconds) : "--" },
     { label: t("dashboard.stats.plugins"), value: stats?.plugins ?? "--" },
+    {
+      label: t("dashboard.stats.instances"),
+      value: stats?.instances_enabled ?? "--",
+    },
   ];
 
   return (

@@ -32,21 +32,33 @@ def register_builtin_command(command: str, handler, *, require_admin: bool = Fal
     _BUILTIN_COMMAND_REGISTRY[command] = {"handler": handler, "require_admin": require_admin}
 
 
-def _match_builtin(raw_msg: str) -> Optional[dict]:
-    """匹配内置命令：先精确，后按注册顺序前缀匹配"""
+def _match_builtin(raw_msg: str, prefix: str = "/") -> Optional[dict]:
+    """匹配内置命令：先精确，后按注册顺序前缀匹配；支持前缀替换（/ 开头命令）"""
     entry = _BUILTIN_COMMAND_REGISTRY.get(raw_msg)
     if entry is not None:
         return entry
     for command in _BUILTIN_COMMAND_ORDER:
-        if raw_msg.startswith(command + " "):
-            return _BUILTIN_COMMAND_REGISTRY[command]
+        if command.startswith("/"):
+            variants = [prefix + command[1:]] if prefix and prefix != "/" else [command]
+        else:
+            variants = [command]
+        for v in variants:
+            if raw_msg == v or raw_msg.startswith(v + " "):
+                return _BUILTIN_COMMAND_REGISTRY[command]
     return None
 
 
 async def _dispatch_registered(ctx: PluginContext) -> Optional[PluginContext]:
     """分发注册表里的内置命令；命中返回 ctx（已消费），未命中返回 None"""
     raw_msg = ctx.raw_text.strip()
-    entry = _match_builtin(raw_msg)
+    prefix = "/"
+    try:
+        from loyan.core.config.user_config import get_effective_cached
+        instance = getattr(getattr(ctx, "runtime", None), "instance_name", "") or ""
+        prefix = get_effective_cached(instance).get("command_prefix", "/") or "/"
+    except Exception:
+        pass
+    entry = _match_builtin(raw_msg, prefix)
     if entry is None:
         return None
     if entry["require_admin"] and not is_master(ctx):
@@ -72,6 +84,23 @@ class BuiltinCommands(Stage):
         chat_type = ctx.chat_type
         is_master_user = is_master(ctx)
 
+        prefix = "/"
+        try:
+            from loyan.core.config.user_config import get_effective_cached
+            instance = getattr(getattr(ctx, "runtime", None), "instance_name", "") or ""
+            prefix = get_effective_cached(instance).get("command_prefix", "/") or "/"
+        except Exception:
+            pass
+        if prefix and prefix != "/":
+            if raw_msg.startswith(prefix):
+                canonical = "/" + raw_msg[len(prefix):]
+            elif raw_msg.startswith("/"):
+                canonical = ""
+            else:
+                canonical = raw_msg
+        else:
+            canonical = raw_msg
+
         from loyan.core.pipeline.helpers import inject_send_reply
         inject_send_reply(ctx)
 
@@ -79,7 +108,7 @@ class BuiltinCommands(Stage):
         if dispatched is not None:
             return dispatched
 
-        if raw_msg == "/关机":
+        if canonical == "/关机":
             if is_master_user:
                 await loyan_send_msg(target_id, LoyanText(text=" 正在执行关机操作...机器人将在3秒后关闭"), chat_type=chat_type)
                 _logger.info(f"[内置命令] 主人{sender_id}执行/关机命令")
@@ -112,7 +141,7 @@ class BuiltinCommands(Stage):
                 _logger.warning(f"[安全防护] 用户{sender_id}尝试关机，权限不足")
             return None
 
-        if raw_msg == "/重启":
+        if canonical == "/重启":
             if is_master_user:
                 await loyan_send_msg(target_id, LoyanText(text=" 正在执行重启操作...机器人将在5秒后重启"), chat_type=chat_type)
                 _logger.info(f"[内置命令] 主人{sender_id}执行/重启命令")
@@ -139,7 +168,7 @@ class BuiltinCommands(Stage):
                 _logger.warning(f"[安全防护] 用户{sender_id}尝试重启，权限不足")
             return None
 
-        if raw_msg == "/开机":
+        if canonical == "/开机":
             if is_master_user:
                 await loyan_send_msg(target_id, LoyanText(text=" 正在执行开机操作...机器人服务将在3秒后启动"), chat_type=chat_type)
                 _logger.info(f"[内置命令] 主人{sender_id}执行/开机命令")
@@ -174,7 +203,7 @@ class BuiltinCommands(Stage):
                 _logger.warning(f"[安全防护] 用户{sender_id}尝试开机，权限不足")
             return None
 
-        if raw_msg == "/关于":
+        if canonical == "/关于":
             try:
                 from loyan.core.loyan_adapter.pool import adapter_pool
                 tags = adapter_pool.all_tags

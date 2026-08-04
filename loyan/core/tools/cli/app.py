@@ -17,6 +17,7 @@ import typer
 from .plugins import (
     list_plugins,
     install_plugin,
+    update_plugin,
     remove_plugin,
 )
 from .system import (
@@ -232,33 +233,43 @@ def cmd_set(
 
 @plugin_cli.command("list")
 def cmd_plugin_list():
-    """列出已安装插件"""
-    root = _ensure_local_root()
+    """列出已安装插件（系统内置 + 用户安装）"""
+    root = _ensure_root()
     plugins = list_plugins(root)
     if not plugins:
         typer.echo("  ℹ  没有安装任何插件")
         return
     typer.echo(f"  共 {len(plugins)} 个插件:")
     for p in plugins:
+        mark = "[系统]" if p["source"] == "system" else "[用户]"
         deps = " " if p["has_requirements"] else ""
-        typer.echo(f"    • {p['name']}{deps}")
+        typer.echo(f"    {mark} {p['name']}{deps}")
 
 
 @plugin_cli.command("install")
 def cmd_plugin_install(
-    source: str = typer.Argument(..., help="本地路径 / Git URL / GitHub user/repo"),
+    source: str = typer.Argument(..., help="user/repo / 本地路径 / Git URL"),
 ):
-    """安装插件（自动安装依赖）"""
-    root = _ensure_local_root()
+    """安装插件（商店优先，失败回退 git clone；自动安装依赖）"""
+    root = _ensure_root()
     install_plugin(root, source)
+
+
+@plugin_cli.command("update")
+def cmd_plugin_update(
+    name: str = typer.Argument(..., help="插件名称（目录名）"),
+):
+    """更新插件（商店插件自动备份回滚）"""
+    root = _ensure_root()
+    update_plugin(root, name)
 
 
 @plugin_cli.command("remove")
 def cmd_plugin_remove(
     name: str = typer.Argument(..., help="插件名称（目录名）"),
 ):
-    """卸载插件"""
-    root = _ensure_local_root()
+    """卸载用户插件"""
+    root = _ensure_root()
     remove_plugin(root, name)
 
 
@@ -281,6 +292,7 @@ def cmd_disable(
     disabled.add(name)
     plugin_manager.save_disabled_plugins(disabled)
     typer.echo(f"   已禁用插件 {name}（下次启动生效）")
+    typer.echo(f"   若机器人正在运行，需重启或到面板操作")
 
 
 @loyan_cli.command("enable")

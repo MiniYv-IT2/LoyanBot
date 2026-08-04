@@ -31,5 +31,11 @@
     "default": [],
     "description": "黑名单用户列表",
     "hint": "多个用逗号分隔，留空则使用全局设置"
+  },
+  "command_aliases": {
+    "type": "dict",
+    "default": {},
+    "description": "插件命令别名映射",
+    "hint": "格式: {插件名: {命令: [别名]}}"
   }
 }

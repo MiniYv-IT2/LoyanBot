@@ -9,6 +9,7 @@
     - 所有操作线程安全（使用 threading.Lock）
 """
 
+import asyncio
 import logging
 import threading
 from typing import Callable, Dict, List, Optional, Tuple
@@ -157,10 +158,12 @@ class AdapterPool:
         with self._lock:
             items = list(self._adapters.items())
 
-        def _wrapped_on_event(event: LoyanEvent) -> None:
+        async def _wrapped_on_event(event: LoyanEvent) -> None:
             if event.source is None:
                 _logger.debug(f"[AdapterPool] 事件无 source，保留原样: sender={event.sender_id}")
-            on_event(event)
+            result = on_event(event)
+            if asyncio.iscoroutine(result):
+                await result
 
         for key, (adapter, tag) in items:
             try:

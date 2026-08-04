@@ -1,18 +1,52 @@
 {
   "auto_replies": {
-    "en-US": { "description": "Keyword auto-replies", "hint": "One reply per keyword, multiple allowed" },
-    "ru-RU": { "description": "Автоответы по ключевым словам", "hint": "Несколько пар ключевое слово — ответ" }
+    "en-US": {
+      "description": "Keyword auto-replies",
+      "hint": "One reply per keyword, multiple allowed"
+    },
+    "ru-RU": {
+      "description": "Автоответы по ключевым словам",
+      "hint": "Несколько пар ключевое слово — ответ"
+    }
   },
   "agent_enable": {
-    "en-US": { "description": "Agent switch", "hint": "" },
-    "ru-RU": { "description": "Переключатель агента", "hint": "" }
+    "en-US": {
+      "description": "Agent switch",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Переключатель агента",
+      "hint": ""
+    }
   },
   "command_prefix": {
-    "en-US": { "description": "Command prefix", "hint": "" },
-    "ru-RU": { "description": "Префикс команд", "hint": "" }
+    "en-US": {
+      "description": "Command prefix",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Префикс команд",
+      "hint": ""
+    }
   },
   "blacklist": {
-    "en-US": { "description": "Blacklist users", "hint": "Comma separated; leave empty to use global settings" },
-    "ru-RU": { "description": "Черный список пользователей", "hint": "Через запятую; пусто — использовать глобальные настройки" }
+    "en-US": {
+      "description": "Blacklist users",
+      "hint": "Comma separated; leave empty to use global settings"
+    },
+    "ru-RU": {
+      "description": "Черный список пользователей",
+      "hint": "Через запятую; пусто — использовать глобальные настройки"
+    }
+  },
+  "command_aliases": {
+    "en-US": {
+      "description": "Plugin command aliases",
+      "hint": "Format: {plugin: {command: [aliases]}}"
+    },
+    "ru-RU": {
+      "description": "Псевдонимы команд плагинов",
+      "hint": "Формат: {плагин: {команда: [псевдонимы]}}"
+    }
   }
 }

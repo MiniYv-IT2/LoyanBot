@@ -6,6 +6,7 @@ import dashboard from "./dashboard";
 import theme from "./theme";
 import theme from "./theme";
 import adapters from "./adapters";
+import plugins from "./plugins";
 
 const ruRU = {
   app,
@@ -16,6 +17,7 @@ const ruRU = {
   theme,
   theme,
   adapters,
+  plugins,
 };
 
 export default ruRU;

@@ -33,6 +33,7 @@ select, input, textarea, button, .ant-select { font-size: 16px !important; }
 /* ── 布局 ── */
 .app-container {
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--bg-start) linear-gradient(180deg, var(--bg-start) 0%, var(--bg-mid) 15%, var(--bg-end) 40%, #fff 60%);
 }
 [data-theme="white"] .app-container,
@@ -103,6 +104,8 @@ select, input, textarea, button, .ant-select { font-size: 16px !important; }
 .content-area {
   margin-left: 240px;
   min-height: 100vh;
+  min-height: 100dvh;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   transition: margin-left 0.3s ease;
@@ -124,7 +127,15 @@ select, input, textarea, button, .ant-select { font-size: 16px !important; }
   padding: 24px;
 }
 
-.topbar-mobile { display: none; }
+.topbar-mobile {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  z-index: 100;
+}
 
 /* ── 移动端 ── */
 .adapter-title { display: flex; align-items: center; gap: 0; }
@@ -133,9 +144,95 @@ select, input, textarea, button, .ant-select { font-size: 16px !important; }
 
 @media (max-width: 768px) {
   .sidebar-desktop { display: none !important; }
-  .content-area { margin-left: 0 !important; width: 100% !important; }
+  .content-area { margin-left: 0 !important; width: 100% !important; padding-top: 56px; }
   .content-header { display: none !important; }
   .content-body { padding: 16px !important; }
   .topbar-mobile { display: flex !important; }
   .adapter-title { flex-direction: column; align-items: flex-start; gap: 4px; }
+}
+
+/* ── 插件商店布局 ── */
+.store-title-row {
+  margin-bottom: 10px;
+}
+.store-fixed-bar {
+  position: static;
+}
+.store-search-mobile {
+  display: none;
+}
+.store-search-desktop {
+  display: block;
+}
+.store-cat-mobile {
+  display: none;
+}
+.plugin-store-body {
+  display: flex;
+  flex-direction: column;
+}
+.plugin-cats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 0;
+  margin-bottom: 12px;
+  flex-wrap: nowrap;
+}
+.plugin-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.plugin-card {
+  padding: 12px;
+  border-radius: 8px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.plugin-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+}
+.pa-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.pa-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+@media (max-width: 768px) {
+  .store-title-row { display: block; }
+  .store-fixed-bar {
+    position: sticky;
+    top: 56px;
+    z-index: 50;
+    background: var(--card-bg);
+    padding: 8px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .store-search-mobile { display: flex; }
+  .store-search-desktop { display: none !important; }
+  .store-toolbar { margin-top: 8px !important; gap: 10px !important; }
+  .store-cat-mobile { display: block; }
+  .plugin-cats { display: none !important; }
+  .plugin-store-body { flex-direction: column; }
+  .plugin-grid { grid-template-columns: repeat(1, 1fr); }
+  .plugin-actions { flex-direction: column; align-items: stretch; gap: 6px; }
+  .pa-right { justify-content: flex-end; margin-left: 0; }
 }

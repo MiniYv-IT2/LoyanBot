@@ -15,10 +15,6 @@
     "en-US": { "description": "Log level", "hint": "" },
     "ru-RU": { "description": "Уровень логов", "hint": "" }
   },
-  "store_url": {
-    "en-US": { "description": "Plugin store source URL", "hint": "Leave empty to use the default source" },
-    "ru-RU": { "description": "URL источника плагинов", "hint": "Оставьте пустым для источника по умолчанию" }
-  },
   "auto_update": {
     "en-US": { "description": "Auto update plugins daily", "hint": "" },
     "ru-RU": { "description": "Автообновление плагинов", "hint": "" }
