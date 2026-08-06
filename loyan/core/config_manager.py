@@ -379,6 +379,10 @@ class ConfigManager:
     def _get_plugin_global_file(self, plugin_name: str) -> str:
         return os.path.join(get_plugin_config_global_dir(), plugin_name, "config.json")
 
+    def _get_plugin_bot_file(self, plugin_name: str, bot_name: str) -> str:
+        """bot 专属插件配置：storage/config/{插件名}/config_{botname}.json"""
+        return os.path.join(get_plugin_config_global_dir(), plugin_name, f"config_{bot_name}.json")
+
     def _get_plugin_instance_file(self, plugin_name: str, instance_name: str) -> str:
         return os.path.join(get_plugin_config_instance_dir(instance_name), plugin_name, "config.json")
 
@@ -427,6 +431,17 @@ class ConfigManager:
             pass
         return None
 
+    def _get_runtime_bot_name(self) -> Optional[str]:
+        """当前消息上下文所属 bot 名（bot 级插件配置用）"""
+        try:
+            from loyan.core.runtime import RuntimeContext
+            runtime = RuntimeContext.get()
+            if runtime and runtime.adapter_tag:
+                return runtime.adapter_tag.bot_name
+        except Exception:
+            pass
+        return None
+
     def _load_plugin_config(self, plugin_name: str, instance_name: Optional[str] = None) -> dict:
         schema = self._plugin_schemas.get(plugin_name, {})
         config = self.schema_defaults(schema)
@@ -448,21 +463,21 @@ class ConfigManager:
 
         config = deep_merge_config(config, merged_global)
 
-        inst_name = instance_name or self._get_runtime_instance_name()
-        if inst_name:
-            instance_file = self._get_plugin_instance_file(plugin_name, inst_name)
-            instance_data = self._load_json_file(instance_file)
-            if instance_data:
-                merged_inst = deep_merge_config(self.schema_defaults(schema), instance_data)
-                if merged_inst != instance_data:
-                    os.makedirs(os.path.dirname(instance_file), exist_ok=True)
+        bot_name = self._get_runtime_bot_name()
+        if bot_name:
+            bot_file = self._get_plugin_bot_file(plugin_name, bot_name)
+            bot_data = self._load_json_file(bot_file)
+            if bot_data:
+                merged_bot = deep_merge_config(self.schema_defaults(schema), bot_data)
+                if merged_bot != bot_data:
+                    os.makedirs(os.path.dirname(bot_file), exist_ok=True)
                     try:
-                        with open(instance_file, 'w', encoding='utf-8') as f:
-                            json.dump(merged_inst, f, ensure_ascii=False, indent=2)
+                        with open(bot_file, 'w', encoding='utf-8') as f:
+                            json.dump(merged_bot, f, ensure_ascii=False, indent=2)
                     except Exception:
                         pass
-                    instance_data = merged_inst
-                config = deep_merge_config(config, instance_data)
+                    bot_data = merged_bot
+                config = deep_merge_config(config, bot_data)
 
         return config
 
@@ -490,12 +505,12 @@ class ConfigManager:
     def update_plugin(self, plugin_name: str, updates: dict, instance_name: Optional[str] = None) -> bool:
         """更新插件配置（写入对应层级文件）
 
-        有 instance_name（或当前运行时上下文）→ 写入实例级
-        无 → 写入全局
+        有 bot 上下文 → 写入 bot 级 config_{botname}.json
+        无 → 写入全局 config.json
         """
-        inst_name = instance_name or self._get_runtime_instance_name()
-        if inst_name:
-            filepath = self._get_plugin_instance_file(plugin_name, inst_name)
+        bot_name = self._get_runtime_bot_name()
+        if bot_name:
+            filepath = self._get_plugin_bot_file(plugin_name, bot_name)
         else:
             filepath = self._get_plugin_global_file(plugin_name)
 

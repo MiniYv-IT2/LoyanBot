@@ -5,6 +5,8 @@ request = None
 jsonify = None
 Blueprint = None
 send_from_directory = None
+Response = None
+stream_with_context = None
 
 Config = None  # hypercorn.config.Config
 serve = None   # hypercorn.asyncio.serve
@@ -38,12 +40,16 @@ try:
         jsonify as _jsonify,
         Blueprint as _Blueprint,
         send_from_directory as _send_from_directory,
+        Response as _Response,
+        stream_with_context as _stream_with_context,
     )
     Quart = _Quart
     request = _request
     jsonify = _jsonify
     Blueprint = _Blueprint
     send_from_directory = _send_from_directory
+    Response = _Response
+    stream_with_context = _stream_with_context
 except ImportError:
     pass
 

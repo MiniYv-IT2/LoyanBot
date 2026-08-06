@@ -239,6 +239,51 @@ class PluginManager:
         self._emit_async("PLUGIN_DISABLED", {"name": name})
         return True
 
+    def remove_plugin(self, name: str) -> bool:
+        """卸载插件：运行时卸载 + 删除目录（仅用户插件，系统内置拒绝）"""
+        import shutil
+        from loyan.core.tools.paths import get_user_plugins_dir, get_plugins_dir
+        user_dir = get_user_plugins_dir()
+        target = os.path.join(user_dir, name)
+        if not os.path.isdir(target):
+            if os.path.isdir(os.path.join(get_plugins_dir(), name)):
+                self.logger.error(f" system plugin cannot be removed: {name}")
+                return False
+            self.logger.error(f" plugin not found: {name}")
+            return False
+        found = self._find_registry_entry(name)
+        if found:
+            self._registry.remove(found)
+            for key in (name, found.get("name", ""), os.path.basename(found.get("plugin_path", ""))):
+                self._versions.pop(key, None)
+            self._purge_plugin_modules(name)
+            self._clean_decorator_entries(name)
+            if found.get("name") != name:
+                self._clean_decorator_entries(found["name"])
+            self._emit_async("PLUGIN_UNLOADED", {"name": name})
+        disabled = self.load_disabled_plugins()
+        if name in disabled:
+            disabled.discard(name)
+            self.save_disabled_plugins(disabled)
+        try:
+            shutil.rmtree(target, ignore_errors=True)
+        except Exception as e:
+            self.logger.error(f" remove plugin dir failed: {target} - {e}")
+            return False
+        self.logger.info("plugin %s removed", name)
+        return True
+
+    async def reinstall_plugin(self, name: str) -> dict:
+        """重新安装：卸载 + 从插件商店拉取安装"""
+        if not self.remove_plugin(name):
+            return {"success": False, "message": "remove_failed"}
+        from loyan.core.plugin_store import plugin_store
+        try:
+            result = await plugin_store.store_install(name)
+            return {"success": True, "message": "reinstalled", "data": result}
+        except Exception as e:
+            return {"success": False, "message": str(e)}
+
     # ── on_ready 钩子 ──
 
     def register_on_ready(self, hook: Callable) -> None:
@@ -852,6 +897,9 @@ class PluginManager:
             rel = os.path.relpath(abspath, root_abs)
             parts = rel.split(os.sep)
             if not parts or parts[0].startswith((".", "__")):
+                return None
+            # 插件运行时数据（图片/缓存/配置）不算代码变更，不触发重载
+            if any(p in ("data", "__pycache__", "cache") for p in parts[1:]):
                 return None
             return parts[0]
         return None

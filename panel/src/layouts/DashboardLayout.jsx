@@ -4,6 +4,7 @@ import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import LanguageSelector from "../components/LanguageSelector";
 import ThemeSelector from "../components/ThemeSelector";
+import UpdateChecker from "../components/UpdateChecker";
 import { useSidebar, SidebarProvider } from "../stores/useSidebarStore";
 import "../styles/global.css";
 import "../styles/themes.css";
@@ -38,6 +39,7 @@ function LayoutInner() {
       {/* 内容区 */}
       <div className="content-area">
         <div className="content-header">
+          <UpdateChecker />
           <ThemeSelector />
           <LanguageSelector />
         </div>

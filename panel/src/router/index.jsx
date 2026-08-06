@@ -9,6 +9,7 @@ import AdapterCreate from "../pages/Dashboard/Adapters/Create";
 import ProvidersList from "../pages/Dashboard/Providers";
 import ProviderCreate from "../pages/Dashboard/Providers/Create";
 import ProviderEdit from "../pages/Dashboard/Providers/[id]/Edit";
+import ChatPage from "../pages/Dashboard/Chat";
 import AiTools from "../pages/Dashboard/AiTools";
 import Mcp from "../pages/Dashboard/AiTools/Mcp";
 import Knowledge from "../pages/Dashboard/AiTools/Knowledge";
@@ -17,7 +18,7 @@ import Agent from "../pages/Dashboard/AiTools/Agent";
 import Skill from "../pages/Dashboard/AiTools/Skill";
 import Logs from "../pages/Dashboard/Logs";
 import PluginStore from "../pages/Dashboard/Plugins/Store";
-import PluginSettings from "../pages/Dashboard/Plugins/Settings";
+import PluginManage from "../pages/Dashboard/Plugins/Manage";
 import Settings from "../pages/Dashboard/Settings";
 import AiSettings from "../pages/Dashboard/Settings/Ai";
 import GeneralSettings from "../pages/Dashboard/Settings/General";
@@ -58,8 +59,9 @@ export default function AppRoutes() {
         <Route path="providers" element={<ProvidersList />} />
         <Route path="providers/create" element={<ProviderCreate />} />
         <Route path="providers/:id/edit" element={<ProviderEdit />} />
+        <Route path="chat" element={<ChatPage />} />
         <Route path="plugins/store" element={<PluginStore />} />
-        <Route path="plugins/settings" element={<PluginSettings />} />
+        <Route path="plugins/manage" element={<PluginManage />} />
         <Route path="ai-tools" element={<AiTools />} />
         <Route path="ai-tools/mcp" element={<Mcp />} />
         <Route path="ai-tools/knowledge" element={<Knowledge />} />

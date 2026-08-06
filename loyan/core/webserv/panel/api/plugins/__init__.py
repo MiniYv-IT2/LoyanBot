@@ -51,3 +51,21 @@ def register_routes(app) -> None:
     @app.route("/api/loyanui/plugins/<name>/reload", methods=["POST"])
     async def reload_plugin(name):
         return await _run_action(name, "reload_plugin")
+
+    @app.route("/api/loyanui/plugins/<name>/remove", methods=["POST"])
+    async def remove_plugin(name):
+        from graci import remove_plugin as _remove
+        try:
+            ok = await _remove(name)
+            return {"success": bool(ok)}
+        except Exception as e:
+            return {"success": False, "message": str(e)}, 400
+
+    @app.route("/api/loyanui/plugins/<name>/reinstall", methods=["POST"])
+    async def reinstall_plugin(name):
+        from graci import reinstall_plugin as _reinstall
+        try:
+            result = await _reinstall(name)
+            return result if isinstance(result, dict) else {"success": bool(result)}
+        except Exception as e:
+            return {"success": False, "message": str(e)}, 400

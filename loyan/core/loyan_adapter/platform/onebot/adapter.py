@@ -73,6 +73,7 @@ class OneBotAdapter(LoyanAdapter):
         if self._robot_id:
             register_http_parser(self._robot_id, self._http)
         if self._ws_enabled:
+            self._ws._tag = getattr(self, "tag", None)
             await self._ws.start(on_event)
 
 
@@ -96,8 +97,8 @@ class OneBotAdapter(LoyanAdapter):
     async def get_platform_info(self) -> dict:
         """获取平台统计信息"""
         if self._ws_enabled:
-            return self._ws.get_platform_info()
-        return self._http.get_platform_info()
+            return await self._ws.get_platform_info()
+        return await self._http.get_platform_info()
 
     def is_ws_connected(self) -> bool:
         """WS 通道是否已连接"""

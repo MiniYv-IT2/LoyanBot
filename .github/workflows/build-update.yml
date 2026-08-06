@@ -1,0 +1,60 @@
+name: Build Update Package
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build update package
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          PKG="loyan-update-${VER}.tar.gz"
+          # 打包完整项目（排除运行数据/环境/构建产物）
+          tar --exclude='./storage' \
+              --exclude='./.venv' \
+              --exclude='./venv' \
+              --exclude='./node_modules' \
+              --exclude='./.git' \
+              --exclude='./.pytest_cache' \
+              --exclude='./dist' \
+              --exclude='./build' \
+              --exclude='./__pycache__' \
+              -czf "${PKG}" .
+          # 校验和
+          sha256sum "${PKG}" > "${PKG}.sha256"
+          echo "PKG=${PKG}" >> "$GITHUB_ENV"
+          ls -lh "${PKG}" "${PKG}.sha256"
+
+      - name: Prepare changelog
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          # 优先取 updates/ 下对应版本的日志；没有则取最新的一个
+          if [ -f "updates/${GITHUB_REF_NAME}_*.md" ] || ls updates/${GITHUB_REF_NAME}_*.md >/dev/null 2>&1; then
+            cat updates/${GITHUB_REF_NAME}_*.md > /tmp/changelog.md
+          elif [ -f "updates/${VER}.md" ]; then
+            cat "updates/${VER}.md" > /tmp/changelog.md
+          else
+            latest=$(ls updates/*.md 2>/dev/null | sort -V | tail -1)
+            if [ -n "$latest" ]; then cat "$latest" > /tmp/changelog.md; fi
+          fi
+          [ -s /tmp/changelog.md ] || echo "LoyanBot v${VER}" > /tmp/changelog.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: LoyanBot ${{ github.ref_name }}
+          body_path: /tmp/changelog.md
+          files: |
+            ${{ env.PKG }}
+            ${{ env.PKG }}.sha256

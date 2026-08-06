@@ -28,6 +28,7 @@ from .system import (
 )
 from loyan.core.tools.paths import get_config_path, get_plugins_dir
 from .instances import instance_cli
+from .update import update_cli
 from .utils import find_project_root, is_local_project, get_platform_label, in_venv, pip_install
 from loyan.core.plugin_manager import plugin_manager
 import json
@@ -46,6 +47,7 @@ config_cli = typer.Typer(help="配置管理")
 loyan_cli.add_typer(plugin_cli, name="plugin")
 loyan_cli.add_typer(config_cli, name="config")
 loyan_cli.add_typer(instance_cli, name="instance")
+loyan_cli.add_typer(update_cli, name="update")
 
 
 # ── 共用函数 ──

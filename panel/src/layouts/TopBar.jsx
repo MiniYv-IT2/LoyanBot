@@ -1,6 +1,7 @@
 import { MenuOutlined } from "@ant-design/icons";
 import LanguageSelector from "../components/LanguageSelector";
 import ThemeSelector from "../components/ThemeSelector";
+import UpdateChecker from "../components/UpdateChecker";
 import { useSidebar } from "../stores/useSidebarStore";
 
 export default function TopBar() {
@@ -23,8 +24,11 @@ export default function TopBar() {
         style={{ fontSize: 20, cursor: "pointer" }}
         onClick={() => setMobileOpen(true)}
       />
-      <ThemeSelector />
-      <LanguageSelector />
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <UpdateChecker />
+        <ThemeSelector />
+        <LanguageSelector />
+      </div>
     </div>
   );
 }

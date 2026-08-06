@@ -44,6 +44,48 @@ async def start_panel(context: dict | None = None):
         return
     _t = threading.Thread(target=_start, daemon=True, name="LoyanUI-Quart")
     _t.start()
+    _start_update_checker()
+
+
+# ── 本体更新后台检查（启动 30s 后 + 按配置间隔，只检查不安装） ──
+
+_update_task: asyncio.Task | None = None
+
+
+def _start_update_checker():
+    global _update_task
+    if _update_task is not None and not _update_task.done():
+        return
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        return
+    if not loop.is_running():
+        return
+
+    async def _loop():
+        await asyncio.sleep(30)
+        while True:
+            try:
+                from loyan.core.config_manager import config_manager
+                from loyan.core.update_manager import update_manager
+                if not config_manager.get("auto_update_core", False):
+                    await asyncio.sleep(3600)
+                    continue
+                info = await update_manager.check()
+                if info.get("available"):
+                    _logger.info("new version available: v%s", info.get("latest"))
+                await update_manager.close()
+            except Exception as e:
+                _logger.debug("update check skipped: %s", e)
+            try:
+                from loyan.core.config_manager import config_manager
+                interval = max(1, int(config_manager.get("update_check_interval_hours", 24) or 24)) * 3600
+            except Exception:
+                interval = 24 * 3600
+            await asyncio.sleep(interval)
+
+    _update_task = loop.create_task(_loop())
 
 
 async def _register_panel_commands(context: dict | None = None):

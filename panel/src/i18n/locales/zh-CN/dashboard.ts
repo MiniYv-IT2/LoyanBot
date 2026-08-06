@@ -7,25 +7,7 @@ const dashboard = {
     plugins: "插件数",
         instances: "已启用实例",
   },
-  sidebar: {
-    home: "主页",
-    adapters: "连接适配器",
-    providers: "提供商",
-    ai_tools: "AI 工具",
-    mcp: "MCP 服务",
-    knowledge: "知识库",
-    memory: "记忆管理",
-    agent: "智能体",
-    skill: "Skill",
-    logs: "日志",
-    settings: "设置",
-    ai_settings: "AI 设置",
-    general: "通用设置",
-    plugins: "插件",
-    plugin_store: "洛颜商店",
-    plugin_settings: "插件设置",
-    github: "GitHub 仓库",
-  },
+
 } as const;
 
 export default dashboard;

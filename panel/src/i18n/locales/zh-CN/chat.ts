@@ -1,0 +1,25 @@
+const chat = {
+    chatTitle: "LLM 对话",
+    welcomeTitle: "LLM 对话",
+    welcomeDesc: "与 AI 助手自由对话，支持流式输出与思考过程展示",
+    newChat: "新建会话",
+    delete: "删除会话",
+    thinking: "思考中...",
+    inputPlaceholder: "输入消息，Enter 发送，Shift+Enter 换行",
+    model: "模型",
+    persona: "人设",
+    personaDefault: "默认",
+    showThinking: "深度思考",
+    sendFailed: "发送失败，请检查模型配置",
+    loadFailed: "加载失败，请稍后重试",
+    createFailed: "创建会话失败",
+    deleteFailed: "删除会话失败",
+    emptyHistory: "暂无历史消息",
+    prompt1: "用一段话介绍你自己",
+    prompt2: "帮我写一个 Python 快速排序",
+    prompt3: "把这段文字翻译成英文",
+    durationMinSec: "{{min}}分{{sec}}秒",
+    durationSec: "{{sec}}秒",
+} as const;
+
+export default chat;

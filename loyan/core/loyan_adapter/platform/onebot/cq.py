@@ -28,7 +28,10 @@ _CQ_PATTERN = re.compile(r"\[CQ:(\w+),([^\]]*)\]")
 # ──────────────────── 出站：LoyanMsg → CQ 码字符串 ────────────────────
 
 def loyan_to_cq(segments: List[LoyanMsg]) -> str:
-    """LoyanMsg 列表 → CQ 码字符串（发送消息时调用）"""
+    """LoyanMsg 列表 → CQ 码字符串（发送消息时调用）
+
+    图片统一走 base64:// 内嵌，避免 file:// 本地路径在协议端异机时不可达。
+    """
     parts: List[str] = []
     for seg in segments:
         if isinstance(seg, LoyanText):
@@ -37,7 +40,13 @@ def loyan_to_cq(segments: List[LoyanMsg]) -> str:
             parts.append(f"[CQ:at,qq={seg.target_id}]")
         elif isinstance(seg, LoyanImage):
             if seg.file_path:
-                parts.append(f"[CQ:image,file=file://{seg.file_path}]")
+                import base64
+                try:
+                    with open(seg.file_path, "rb") as f:
+                        b64 = base64.b64encode(f.read()).decode()
+                    parts.append(f"[CQ:image,file=base64://{b64}]")
+                except OSError:
+                    parts.append(f"[CQ:image,url=file://{seg.file_path}]")
             elif seg.url:
                 parts.append(f"[CQ:image,url={seg.url}]")
             elif seg.file_data:

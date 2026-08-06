@@ -1,0 +1,25 @@
+const chat = {
+    chatTitle: "LLM Chat",
+    welcomeTitle: "LLM Chat",
+    welcomeDesc: "Chat with the AI assistant. Supports streaming output and thinking process display.",
+    newChat: "New Chat",
+    delete: "Delete Conversation",
+    thinking: "Thinking...",
+    inputPlaceholder: "Type a message, Enter to send, Shift+Enter for newline",
+    model: "Model",
+    persona: "Persona",
+    personaDefault: "Default",
+    showThinking: "Deep Think",
+    sendFailed: "Send failed, please check the model configuration",
+    loadFailed: "Failed to load, please try again later",
+    createFailed: "Failed to create conversation",
+    deleteFailed: "Failed to delete conversation",
+    emptyHistory: "No history messages",
+    prompt1: "Introduce yourself in one paragraph",
+    prompt2: "Write a Python quicksort",
+    prompt3: "Translate this text into English",
+    durationMinSec: "{{min}}m {{sec}}s",
+    durationSec: "{{sec}}s",
+} as const;
+
+export default chat;

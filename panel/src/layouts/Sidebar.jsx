@@ -9,6 +9,7 @@ import {
   ShoppingOutlined,
   RobotOutlined,
   ToolOutlined,
+  MessageOutlined,
   BookOutlined,
   DatabaseOutlined,
   ExperimentOutlined,
@@ -28,24 +29,25 @@ function getItem(label, key, icon, children) {
 }
 
 const menuItems = (t) => [
-  getItem(t("dashboard.sidebar.home"), "/", <HomeOutlined />),
-  getItem(t("dashboard.sidebar.adapters"), "/adapters", <ApiOutlined />),
-  getItem(t("dashboard.sidebar.providers"), "/providers", <CloudOutlined />),
-  getItem(t("dashboard.sidebar.plugins"), "/plugins", <AppstoreOutlined />, [
-    getItem(t("dashboard.sidebar.plugin_store"), "/plugins/store", <ShoppingOutlined />),
-    getItem(t("dashboard.sidebar.plugin_settings"), "/plugins/settings", <ToolOutlined />),
+  getItem(t("sidebar.home"), "/", <HomeOutlined />),
+  getItem(t("sidebar.adapters"), "/adapters", <ApiOutlined />),
+  getItem(t("sidebar.providers"), "/providers", <CloudOutlined />),
+  getItem(t("sidebar.chat"), "/chat", <MessageOutlined />),
+  getItem(t("sidebar.plugins"), "/plugins", <AppstoreOutlined />, [
+    getItem(t("sidebar.plugin_store"), "/plugins/store", <ShoppingOutlined />),
+    getItem(t("sidebar.plugin_manage"), "/plugins/manage", <ToolOutlined />),
   ]),
-  getItem(t("dashboard.sidebar.ai_tools"), "/ai-tools", <RobotOutlined />, [
-    getItem(t("dashboard.sidebar.mcp"), "/ai-tools/mcp", <ToolOutlined />),
-    getItem(t("dashboard.sidebar.knowledge"), "/ai-tools/knowledge", <BookOutlined />),
-    getItem(t("dashboard.sidebar.memory"), "/ai-tools/memory", <DatabaseOutlined />),
-    getItem(t("dashboard.sidebar.agent"), "/ai-tools/agent", <ExperimentOutlined />),
-    getItem(t("dashboard.sidebar.skill"), "/ai-tools/skill", <ThunderboltOutlined />),
+  getItem(t("sidebar.ai_tools"), "/ai-tools", <RobotOutlined />, [
+    getItem(t("sidebar.mcp"), "/ai-tools/mcp", <ToolOutlined />),
+    getItem(t("sidebar.knowledge"), "/ai-tools/knowledge", <BookOutlined />),
+    getItem(t("sidebar.memory"), "/ai-tools/memory", <DatabaseOutlined />),
+    getItem(t("sidebar.agent"), "/ai-tools/agent", <ExperimentOutlined />),
+    getItem(t("sidebar.skill"), "/ai-tools/skill", <ThunderboltOutlined />),
   ]),
-  getItem(t("dashboard.sidebar.logs"), "/logs", <FileTextOutlined />),
-  getItem(t("dashboard.sidebar.settings"), "/settings", <SettingOutlined />, [
-    getItem(t("dashboard.sidebar.ai_settings"), "/settings/ai", <RobotOutlined />),
-    getItem(t("dashboard.sidebar.general"), "/settings/general", <SkinOutlined />),
+  getItem(t("sidebar.logs"), "/logs", <FileTextOutlined />),
+  getItem(t("sidebar.settings"), "/settings", <SettingOutlined />, [
+    getItem(t("sidebar.ai_settings"), "/settings/ai", <RobotOutlined />),
+    getItem(t("sidebar.general"), "/settings/general", <SkinOutlined />),
   ]),
 ];
 
@@ -65,7 +67,7 @@ export default function Sidebar({ mobile = false, onClose }) {
       <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "transparent", borderRight: "1px solid var(--sidebar-border)" }}>
         <LogoArea collapsed={false} />
         <Menu mode="inline" selectedKeys={[location.pathname]} defaultOpenKeys={["/ai-tools", "/settings"]} items={menuItems(t)} onClick={onClick} style={{ borderRight: "none", flex: 1, background: "transparent", overflowY: "auto", minHeight: 0 }} />
-        <a href="https://github.com/MiniYv-IT2/LoyanBot/" target="_blank" rel="noopener noreferrer" aria-label={t("dashboard.sidebar.github")} style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "12px 0", borderTop: "1px solid var(--sidebar-border)", color: "var(--sidebar-icon)", fontSize: 20, flexShrink: 0 }}><GithubOutlined /></a>
+        <a href="https://github.com/MiniYv-IT2/LoyanBot/" target="_blank" rel="noopener noreferrer" aria-label={t("sidebar.github")} style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "12px 0", borderTop: "1px solid var(--sidebar-border)", color: "var(--sidebar-icon)", fontSize: 20, flexShrink: 0 }}><GithubOutlined /></a>
       </div>
     );
   }
@@ -89,7 +91,7 @@ export default function Sidebar({ mobile = false, onClose }) {
         href="https://github.com/MiniYv-IT2/LoyanBot/"
         target="_blank"
         rel="noopener noreferrer"
-        aria-label={t("dashboard.sidebar.github")}
+        aria-label={t("sidebar.github")}
         style={{
           display: "flex",
           alignItems: "center",

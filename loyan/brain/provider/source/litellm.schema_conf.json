@@ -1,0 +1,46 @@
+{
+  "api_key": {
+    "type": "str",
+    "default": "",
+    "description": "API Key（ollama 等本地服务可不填）",
+    "secret": true
+  },
+  "api_base": {
+    "type": "str",
+    "default": "",
+    "description": "API 基础地址（覆盖默认端点，如 Ollama http://localhost:11434）"
+  },
+  "model_prefix": {
+    "type": "str",
+    "default": "",
+    "description": "模型名前缀（如 openai、zai、xiaomi_mimo、volcengine、tencent，统一加前缀）",
+    "hint": "留空则模型名需自带前缀"
+  },
+  "timeout": {
+    "type": "int",
+    "default": 60,
+    "description": "请求超时（秒）"
+  },
+  "max_retries": {
+    "type": "int",
+    "default": 3,
+    "description": "失败重试次数"
+  },
+  "strip_think": {
+    "type": "bool",
+    "default": true,
+    "description": "剥离推理模型的 thinking 思考内容"
+  },
+  "custom_models": {
+    "type": "list",
+    "default": [],
+    "description": "自定义模型列表",
+    "hint": "多个用逗号分隔，追加到模型列表"
+  },
+  "custom_pricing": {
+    "type": "dict",
+    "default": {},
+    "description": "自定义模型价格（litellm 未收录厂商如硅基流动，或原生未收录价格如小米 MiMo，单位：元/百万 token）",
+    "hint": "格式：{模型名: {input: 输入每百万token元, output: 输出每百万token元, max_tokens: 32768}}"
+  }
+}

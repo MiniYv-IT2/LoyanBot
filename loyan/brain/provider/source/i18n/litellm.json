@@ -1,0 +1,82 @@
+{
+  "api_key": {
+    "en-US": {
+      "description": "API Key (leave empty for local services like Ollama)",
+      "hint": "Multiple keys separated by commas; leftmost used first, auto-failover"
+    },
+    "ru-RU": {
+      "description": "API-ключ (оставьте пустым для локальных сервисов, например Ollama)",
+      "hint": "Несколько ключей через запятую; используется крайний слева, автоматический фейловер"
+    }
+  },
+  "api_base": {
+    "en-US": {
+      "description": "API Base URL (overrides default endpoint, e.g. Ollama http://localhost:11434)",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Базовый URL API (переопределяет стандартную точку, напр. Ollama http://localhost:11434)",
+      "hint": ""
+    }
+  },
+  "model_prefix": {
+    "en-US": {
+      "description": "Model name prefix (e.g. openai, zai, xiaomi_mimo, volcengine, tencent; applied to all models)",
+      "hint": "Leave empty if model names already include prefix"
+    },
+    "ru-RU": {
+      "description": "Префикс имени модели (напр. openai, zai, xiaomi_mimo, volcengine, tencent)",
+      "hint": "Оставьте пустым, если имена моделей уже содержат префикс"
+    }
+  },
+  "timeout": {
+    "en-US": {
+      "description": "Request timeout (seconds)",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Таймаут запроса (секунды)",
+      "hint": ""
+    }
+  },
+  "max_retries": {
+    "en-US": {
+      "description": "Retry count on failure",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Количество повторов при ошибке",
+      "hint": ""
+    }
+  },
+  "strip_think": {
+    "en-US": {
+      "description": "Strip thinking content of reasoning models",
+      "hint": ""
+    },
+    "ru-RU": {
+      "description": "Удалять thinking-контент моделей рассуждений",
+      "hint": ""
+    }
+  },
+  "custom_models": {
+    "en-US": {
+      "description": "Custom model list",
+      "hint": "Comma separated; appended to model list"
+    },
+    "ru-RU": {
+      "description": "Список пользовательских моделей",
+      "hint": "Через запятую; добавляется к списку моделей"
+    }
+  },
+  "custom_pricing": {
+    "en-US": {
+      "description": "Custom model pricing (vendors not in litellm like SiliconFlow, or missing prices like Xiaomi MiMo; unit: CNY per million tokens)",
+      "hint": "Format: {model: {input: CNY per million input tokens, output: CNY per million output tokens, max_tokens: 32768}}"
+    },
+    "ru-RU": {
+      "description": "Пользовательские цены моделей (вендоры не в litellm, напр. SiliconFlow, или отсутствующие цены, напр. Xiaomi MiMo; единица: юани за миллион токенов)",
+      "hint": "Формат: {модель: {input: юаней за млн входных токенов, output: юаней за млн выходных токенов, max_tokens: 32768}}"
+    }
+  }
+}

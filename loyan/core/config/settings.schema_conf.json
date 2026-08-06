@@ -36,6 +36,16 @@
     "default": true,
     "description": "每日自动更新插件"
   },
+  "update_check_interval_hours": {
+    "type": "int",
+    "default": 24,
+    "description": "本体更新检查间隔（小时）"
+  },
+  "auto_update_core": {
+    "type": "bool",
+    "default": false,
+    "description": "本体自动检查更新（安装仍需确认）"
+  },
   "store": {
     "type": "object",
     "description": "插件商店配置（框架共有，不支持每实例覆盖）",

@@ -37,12 +37,6 @@
       "value": "http"
     }
   },
-  "token": {
-    "type": "str",
-    "default": "",
-    "description": "Token",
-    "secret": true
-  },
   "admins_id": {
     "type": "list",
     "default": [],

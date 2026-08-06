@@ -67,6 +67,11 @@ class BaseProvider(ABC):
     async def list_models(self) -> list[str]:
         """获取可用模型列表"""
 
+    async def embedding(self, texts: list, model: str, **kwargs) -> list:
+        """文本向量化（记忆/知识库用；不支持时抛 ProviderNotAvailableError）"""
+        from loyan.brain.provider.errors import ProviderNotAvailableError
+        raise ProviderNotAvailableError(f"{self.name}: embedding not supported")
+
     @property
     def api_key(self) -> str:
         return self._api_key

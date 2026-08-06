@@ -1,0 +1,25 @@
+const chat = {
+    chatTitle: "LLM-чат",
+    welcomeTitle: "LLM-чат",
+    welcomeDesc: "Общайтесь с ИИ-ассистентом. Поддержка потокового вывода и отображения рассуждений.",
+    newChat: "Новый чат",
+    delete: "Удалить чат",
+    thinking: "Думаю...",
+    inputPlaceholder: "Введите сообщение, Enter — отправить, Shift+Enter — новая строка",
+    model: "Модель",
+    persona: "Персона",
+    personaDefault: "По умолчанию",
+    showThinking: "Глубокое мышление",
+    sendFailed: "Ошибка отправки, проверьте конфигурацию модели",
+    loadFailed: "Не удалось загрузить, повторите позже",
+    createFailed: "Не удалось создать чат",
+    deleteFailed: "Не удалось удалить чат",
+    emptyHistory: "Нет истории сообщений",
+    prompt1: "Расскажите о себе в одном абзаце",
+    prompt2: "Напишите быструю сортировку на Python",
+    prompt3: "Переведите этот текст на русский",
+    durationMinSec: "{{min}} мин {{sec}} с",
+    durationSec: "{{sec}} с",
+} as const;
+
+export default chat;

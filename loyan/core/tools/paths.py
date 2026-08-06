@@ -75,6 +75,15 @@ def get_data_dir() -> str:
     return os.path.join(get_storage_dir(), "data")
 
 
+def get_plugin_data_dir(plugin_name: str) -> str:
+    """插件运行时数据目录：storage/data/plugins/{插件名}/
+
+    运行时数据（图片/缓存/日志）统一放这里，不落插件代码目录，
+    避免插件目录变化触发 watchfiles 热重载。
+    """
+    return os.path.join(get_data_dir(), "plugins", plugin_name)
+
+
 def get_db_path(plugin_name: str) -> str:
     return os.path.join(get_data_dir(), f"{plugin_name}.db")
 

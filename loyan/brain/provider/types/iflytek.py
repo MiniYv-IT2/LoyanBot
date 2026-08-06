@@ -7,7 +7,6 @@ from typing import Any, AsyncIterator
 import httpx
 
 from loyan.brain.provider.base import BaseProvider, register_provider
-from loyan.i18n import t
 from loyan.brain.provider.errors import AuthError, ProviderNotAvailableError
 from loyan.brain.provider.keystore import keystore
 
@@ -33,10 +32,10 @@ class IflytekProvider(BaseProvider):
         if not creds:
             creds = await keystore.get(f"{self.name}.api_key") or ""
         if not creds:
-            raise AuthError(f"{self.name}: {t('provider.credential_not_configured')}")
+            raise AuthError(f"{self.name}: {'凭证未配置，格式为 appid|api_key|api_secret'}")
         parts = creds.split("|", 2)
         if len(parts) != 3:
-            raise AuthError(f"{self.name}: {t('provider.credential_format_error')}")
+            raise AuthError(f"{self.name}: {'凭证格式错误，应为 appid|api_key|api_secret'}")
         self._appid, self._api_key, self._api_secret = parts
         proxy = self.config.get("proxy", "")
         kwargs = {"base_url": self.api_base or DEFAULT_BASE, "timeout": 60}
@@ -73,7 +72,7 @@ class IflytekProvider(BaseProvider):
 
     async def chat(self, messages: list, model: str = "spark-3.5", **kwargs) -> str:
         if not self._client:
-            raise ProviderNotAvailableError(f"{self.name}: {t('provider.not_initialized')}")
+            raise ProviderNotAvailableError(f"{self.name}: {'未初始化'}")
         try:
             resp = await self._client.post(
                 "",
@@ -89,7 +88,7 @@ class IflytekProvider(BaseProvider):
 
     async def chat_stream(self, messages: list, model: str = "spark-3.5", **kwargs) -> AsyncIterator[str]:
         if not self._client:
-            raise ProviderNotAvailableError(f"{self.name}: {t('provider.not_initialized')}")
+            raise ProviderNotAvailableError(f"{self.name}: {'未初始化'}")
         try:
             async with self._client.stream(
                 "POST",

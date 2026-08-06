@@ -51,6 +51,7 @@ __all__ = [
     "on_event",
     "PluginContext",
     "list_plugins", "enable_plugin", "disable_plugin", "reload_plugin",
+    "remove_plugin", "reinstall_plugin",
 ]
 
 
@@ -81,3 +82,13 @@ async def disable_plugin(name: str):
 async def reload_plugin(name: str):
     from loyan.core.plugin_manager import plugin_manager
     return await _await_maybe(plugin_manager.reload_plugin(name))
+
+
+async def remove_plugin(name: str):
+    from loyan.core.plugin_manager import plugin_manager
+    return await _await_maybe(plugin_manager.remove_plugin(name))
+
+
+async def reinstall_plugin(name: str):
+    from loyan.core.plugin_manager import plugin_manager
+    return await _await_maybe(plugin_manager.reinstall_plugin(name))

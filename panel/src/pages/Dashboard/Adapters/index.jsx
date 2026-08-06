@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { RobotOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CheckOutlined, CloseOutlined, ReloadOutlined, QrcodeOutlined, FormOutlined, LoadingOutlined } from "@ant-design/icons";
 import { Button, Drawer, List, Tag, Modal, Input, Select, Switch, InputNumber, Alert } from "antd";
 import { useNavigate } from "react-router-dom";
+import SchemaForm from "../../../components/SchemaForm";
 
 import qqLogo from "../../../assets/platforms/qq.png";
 import telegramLogo from "../../../assets/platforms/telegram.svg";
@@ -17,64 +18,6 @@ const PLATFORM_META = {
 };
 
 const ADAPTER_ORDER = ["onebot", "qq_official", "telegram", "satori"];
-
-function fieldFromSchema(fieldKey, fieldConf, i18n, locale, value, onChange, formValues) {
-  if (fieldConf.showWhen && formValues?.[fieldConf.showWhen.field] !== fieldConf.showWhen.value) return null;
-  const tKey = fieldConf.description || fieldKey;
-  const label = i18n?.[locale]?.[tKey] || i18n?.["zh-CN"]?.[tKey] || fieldKey;
-  const hint = i18n?.[locale]?.[fieldConf.hint] || "";
-
-  const desc = i18n?.["zh-CN"]?.[tKey] || fieldConf.description || "";
-  const m = desc.match(/（([^）]+)）/)?.[1] || desc.match(/\(([^)]+)\)/)?.[1];
-  const options = m && m.includes(" / ") ? m.split(" / ") : null;
-
-  if (fieldConf.type === "bool") {
-    return (
-      <div key={fieldKey} style={{ marginBottom: 12 }}>
-        <div style={{ marginBottom: 4, fontSize: 13, color: "var(--text)" }}>{label}</div>
-        <Switch checked={!!value} onChange={(v) => onChange(v)} />
-      </div>
-    );
-  }
-
-  if (fieldConf.type === "int") {
-    return (
-      <div key={fieldKey} style={{ marginBottom: 12 }}>
-        <div style={{ marginBottom: 4, fontSize: 13, color: "var(--text)" }}>{label}</div>
-        <InputNumber style={{ width: "100%" }} value={value ?? fieldConf.default} onChange={(v) => onChange(v)} />
-        {hint && <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{hint}</div>}
-      </div>
-    );
-  }
-
-  if (fieldConf.type === "list") {
-    return (
-      <div key={fieldKey} style={{ marginBottom: 12 }}>
-        <div style={{ marginBottom: 4, fontSize: 13, color: "var(--text)" }}>{label}</div>
-        <Input value={(value ?? []).join(",")} onChange={(e) => onChange(e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} />
-        {hint && <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{hint}</div>}
-      </div>
-    );
-  }
-
-  return (
-    <div key={fieldKey} style={{ marginBottom: 12 }}>
-      <div style={{ marginBottom: 4, fontSize: 13, color: "var(--text)" }}>{label}
-        {fieldConf.required && <span style={{ color: "#ff4d4f", marginLeft: 4 }}>*</span>}
-      </div>
-      {options ? (
-        <Select style={{ width: "100%" }} value={value ?? fieldConf.default} onChange={(v) => onChange(v)}>
-          {options.map((o) => <Select.Option key={o} value={o}>{o}</Select.Option>)}
-        </Select>
-      ) : fieldConf.secret ? (
-        <Input.Password value={value ?? ""} onChange={(e) => onChange(e.target.value)} />
-      ) : (
-        <Input value={value ?? ""} onChange={(e) => onChange(e.target.value)} />
-      )}
-      {hint && <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{hint}</div>}
-    </div>
-  );
-}
 
 export default function AdaptersList() {
   const { t, i18n } = useTranslation();
@@ -154,6 +97,7 @@ export default function AdaptersList() {
         setSchema(res.data);
         const defaults = {};
         for (const [k, v] of Object.entries(meta)) {
+          if (v.showWhen && defaults[v.showWhen.field] !== v.showWhen.value) continue;
           if (v.default !== undefined) defaults[k] = v.default;
         }
         setFormValues(defaults);
@@ -330,7 +274,7 @@ export default function AdaptersList() {
     <div>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-          {t("app.add")}
+          {t("common.add")}
         </Button>
       </div>
 
@@ -361,7 +305,7 @@ export default function AdaptersList() {
                     </span>
                     <span className="adapter-tags-line">
                       <Tag style={{ marginLeft: 8 }}>{PLATFORM_META[item.platform]?.label || item.platform}</Tag>
-                      <Tag color={item.enabled ? "green" : "default"}>{item.enabled ? t("adapters.enabled") : t("adapters.disabled")}</Tag>
+                      <Tag color={item.enabled ? "green" : "default"}>{item.enabled ? t("common.enabled") : t("common.disabled")}</Tag>
                     </span>
                   </span>
                 }
@@ -380,8 +324,8 @@ export default function AdaptersList() {
         centered
         footer={
           selectedType && loginMode !== "qr" ? [
-            <Button key="cancel" icon={<CloseOutlined />} onClick={() => setCreateOpen(false)}>{t("adapters.cancel")}</Button>,
-            <Button key="save" type="primary" icon={<CheckOutlined />} loading={saving} onClick={handleSave}>{t("adapters.save")}</Button>,
+            <Button key="cancel" icon={<CloseOutlined />} onClick={() => setCreateOpen(false)}>{t("common.cancel")}</Button>,
+            <Button key="save" type="primary" icon={<CheckOutlined />} loading={saving} onClick={handleSave}>{t("common.save")}</Button>,
           ] : null
         }
       >
@@ -442,11 +386,11 @@ export default function AdaptersList() {
               <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{PLATFORM_META[selectedType]?.label}</span>
             </div>
             <div key="enabled" style={{ marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 13, color: "var(--text)" }}>{formValues.enabled !== false ? t("adapters.enabled") : t("adapters.disabled")}</span>
+              <span style={{ fontSize: 13, color: "var(--text)" }}>{formValues.enabled !== false ? t("common.enabled") : t("common.disabled")}</span>
               <Switch checked={formValues.enabled !== false} onChange={(v) => setFormValues((prev) => ({ ...prev, enabled: v }))} />
             </div>
-            {schema && Object.entries(schema.metadata).map(([k, conf]) =>
-              fieldFromSchema(k, conf, schema.i18n, locale, formValues[k], (v) => setFormValues((prev) => ({ ...prev, [k]: v })), formValues)
+            {schema && (
+              <SchemaForm schema={schema} values={formValues} onChange={(k, v) => setFormValues((prev) => ({ ...prev, [k]: v }))} />
             )}
           </div>
         )}
@@ -459,8 +403,8 @@ export default function AdaptersList() {
         centered
         width={400}
         footer={[
-          <Button key="cancel" onClick={() => setDeleteItem(null)}>{t("adapters.cancel")}</Button>,
-          <Button key="delete" danger type="primary" loading={saving} onClick={handleDelete}>{t("adapters.delete")}</Button>,
+          <Button key="cancel" onClick={() => setDeleteItem(null)}>{t("common.cancel")}</Button>,
+          <Button key="delete" danger type="primary" loading={saving} onClick={handleDelete}>{t("common.delete")}</Button>,
         ]}
       >
         {notify && <Alert type={notify.type} message={notify.message} showIcon closable onClose={() => setNotify(null)} style={{ marginBottom: 12 }} />}
@@ -488,20 +432,19 @@ export default function AdaptersList() {
         onClose={() => setEditItem(null)}
         footer={
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-            <Button icon={<CloseOutlined />} onClick={() => setEditItem(null)}>{t("adapters.cancel")}</Button>
-            <Button type="primary" icon={<CheckOutlined />} loading={saving} onClick={handleEditSave}>{t("adapters.save")}</Button>
+            <Button icon={<CloseOutlined />} onClick={() => setEditItem(null)}>{t("common.cancel")}</Button>
+            <Button type="primary" icon={<CheckOutlined />} loading={saving} onClick={handleEditSave}>{t("common.save")}</Button>
           </div>
         }
       >
         {notify && <Alert type={notify.type} message={notify.message} showIcon closable onClose={() => setNotify(null)} style={{ marginBottom: 12 }} />}
         <div key="edit-enabled" style={{ marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: 13, color: "var(--text)" }}>{editFormValues.enabled !== false ? t("adapters.enabled") : t("adapters.disabled")}</span>
+          <span style={{ fontSize: 13, color: "var(--text)" }}>{editFormValues.enabled !== false ? t("common.enabled") : t("common.disabled")}</span>
           <Switch checked={editFormValues.enabled !== false} onChange={(v) => setEditFormValues((prev) => ({ ...prev, enabled: v }))} />
         </div>
-        {editSchema && Object.entries(editSchema.metadata).map(([k, conf]) => {
-          const v = editFormValues[k];
-          return fieldFromSchema(k, conf, editSchema.i18n, locale, v, (nv) => setEditFormValues((prev) => ({ ...prev, [k]: nv })), editFormValues);
-        })}
+        {editSchema && (
+          <SchemaForm schema={editSchema} values={editFormValues} onChange={(k, nv) => setEditFormValues((prev) => ({ ...prev, [k]: nv }))} />
+        )}
       </Drawer>
     </div>
   );

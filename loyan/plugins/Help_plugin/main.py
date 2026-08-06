@@ -1,7 +1,7 @@
 """帮助插件 — 查询所有插件命令，返回帮助图片"""
 import collections
 import os
-from graci import get_logger, on_command, plugin_handler, PluginContext
+from graci import get_logger, on_command, plugin_handler, PluginContext, get_plugin_data_dir
 from graci import LoyanImage
 from graci import plugin_manager, config_manager
 from .core.draw import LoyanBotHelpDrawer
@@ -44,7 +44,7 @@ async def handle_help(ctx: PluginContext):
 
     try:
         image = _get_drawer().draw_help_image(dict(plugin_commands))
-        temp_path = os.path.join(os.path.dirname(__file__), "data", "temp_help.png")
+        temp_path = os.path.join(get_plugin_data_dir("Help_plugin"), "temp_help.png")
         os.makedirs(os.path.dirname(temp_path), exist_ok=True)
         with open(temp_path, "wb") as f:
             f.write(image)

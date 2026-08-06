@@ -66,6 +66,7 @@ class LoyanOneBotWS(LoyanAdapter):
         self._port = port
         self._access_token = access_token
         self._robot_id = robot_id
+        self._tag = None
         self._on_event: Callable[[LoyanEvent], None] | None = None
         self._running = False
         self._ws = None
@@ -74,6 +75,7 @@ class LoyanOneBotWS(LoyanAdapter):
         self._api_event = asyncio.Event()
         self._api_responses: dict = {}
         self._api_send_queue: asyncio.Queue = asyncio.Queue()
+        self._api_seq = 0
         self._pending_messages: list = []
         self._event_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="ws_event_")
         self._logger = logging.getLogger("Adapter.OneBot.ws")
@@ -105,8 +107,8 @@ class LoyanOneBotWS(LoyanAdapter):
         return await self._ws_send_async(action_data)
 
     async def call_api(self, action: str, params: dict = None, timeout: float = 5.0) -> Optional[dict]:
-        async with self._api_lock:
-            return await self._call_api_impl_async(action, params, timeout)
+        # OneBot echo 机制天然支持并发，无需串行锁
+        return await self._call_api_impl_async(action, params, timeout)
 
     async def _call_api_impl_async(self, action: str, params: dict, timeout: float) -> Optional[dict]:
         import time
@@ -114,7 +116,8 @@ class LoyanOneBotWS(LoyanAdapter):
             self._logger.warning(f"[OneBotWS] call_api('{action}') 失败: 未连接")
             return None
 
-        echo_id = f"loyan_api_{int(time.time() * 1000)}"
+        echo_id = f"loyan_api_{int(time.time() * 1000)}_{self._api_seq}"
+        self._api_seq += 1
         t_api = time.time()
         action_data = {
             "action": action,
@@ -140,7 +143,7 @@ class LoyanOneBotWS(LoyanAdapter):
             return data.get("data", {})
         self._logger.warning(
             f"[OneBotWS] API '{action}' 返回失败: "
-            f"retcode={data.get('retcode') if data else '?'}, msg={data.get('msg', '')}"
+            f"retcode={data.get('retcode') if data else '?'}, msg={(data or {}).get('msg', '')}"
         )
         return None
 
@@ -168,15 +171,12 @@ class LoyanOneBotWS(LoyanAdapter):
                 "nickname": None,
             }
             try:
-                with ThreadPoolExecutor(max_workers=4) as ex:
-                    fut_friends = ex.submit(self.call_api, "get_friend_list")
-                    fut_groups = ex.submit(self.call_api, "get_group_list")
-                    fut_version = ex.submit(self.call_api, "get_version_info")
-                    fut_login = ex.submit(self.call_api, "get_login_info")
-                    friend_list = fut_friends.result(timeout=5)
-                    group_list = fut_groups.result(timeout=5)
-                    version_info = fut_version.result(timeout=5)
-                    login_info = fut_login.result(timeout=5)
+                friend_list, group_list, version_info, login_info = await asyncio.gather(
+                    self.call_api("get_friend_list"),
+                    self.call_api("get_group_list"),
+                    self.call_api("get_version_info"),
+                    self.call_api("get_login_info"),
+                )
                 if isinstance(friend_list, list):
                     result["friend_count"] = len(friend_list)
                 if isinstance(group_list, list):
@@ -189,8 +189,9 @@ class LoyanOneBotWS(LoyanAdapter):
                     result["nickname"] = login_info.get("nickname", "")
             except Exception as e:
                 self._logger.error(f"[OneBotWS] get_platform_info 失败: {type(e).__name__}: {e}")
-            self._platform_info_cache = result
-            self._platform_info_cache_time = time.time()
+            if any(v is not None for v in result.values()):
+                self._platform_info_cache = result
+                self._platform_info_cache_time = time.time()
             return result
 
     # ── 入站：解析 OneBot JSON → LoyanEvent ──
@@ -267,6 +268,7 @@ class LoyanOneBotWS(LoyanAdapter):
             nickname=nickname,
             is_at_bot=is_at_bot,
             raw_data=data,
+            source=self._tag,
         )
 
     def parse_business_event(self, raw: dict) -> Optional["BusinessEvent"]:
@@ -391,35 +393,16 @@ class LoyanOneBotWS(LoyanAdapter):
     async def _recv_loop(self, ws) -> None:
         """共享的接收循环（正反向通用）
 
-        使用 asyncio.wait 双监听：
-        - ws.recv()：接收 OneBot 推送的消息/API 响应
-        - _api_event：call_api 入队后触发，立即唤醒 drain 队列
+        recv 用 wait_for 超时（不 cancel task，避免响应丢失）；
+        每轮先 drain 待发 API 请求，再等待接收。
         """
-        _cycle = 0
         while self._running:
-            _cycle += 1
-            #  消费 worker 线程入队的 API 请求（由本线程发送）
             await self._drain_api_send_queue_async(ws)
 
-            # 双监听：recv 或 队列事件（入队即唤醒）
-            self._api_event.clear()
-            recv_task = asyncio.create_task(ws.recv())
-            event_task = asyncio.create_task(self._api_event.wait())
-
-            done, pending = await asyncio.wait(
-                [recv_task, event_task],
-                timeout=0.5,
-                return_when=asyncio.FIRST_COMPLETED,
-            )
-
-            for task in pending:
-                task.cancel()
-
-            if recv_task not in done:
-                continue
-
             try:
-                raw = recv_task.result()
+                raw = await asyncio.wait_for(ws.recv(), timeout=0.5)
+            except asyncio.TimeoutError:
+                continue
             except websockets.ConnectionClosed as e:
                 self._logger.warning(f"[OneBotWS] 远端关闭连接: {e}")
                 break
@@ -436,14 +419,14 @@ class LoyanOneBotWS(LoyanAdapter):
             if isinstance(status_val, str) and "echo" in data:
                 echo = data.get("echo", "")
                 self._api_responses[echo] = data
-                self._api_event.set()
                 continue
 
             event = self._parse_ws_message(data)
             if event:
                 try:
                     from loyan.core.event import event_bus
-                    await event_bus.publish(event)
+                    # 异步派发，不阻塞 recv_loop（否则事件处理期间 API 响应收不到）
+                    asyncio.create_task(event_bus.publish(event))
                 except Exception as e:
                     self._logger.error(f"[OneBotWS] EventBus 派发失败: {e}")
             else:

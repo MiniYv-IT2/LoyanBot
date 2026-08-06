@@ -3,7 +3,6 @@
 import logging
 import time
 
-from loyan.i18n import t
 
 _logger = logging.getLogger("Brain.router.circuit")
 
@@ -25,12 +24,12 @@ class CircuitBreaker:
     def state(self) -> str:
         if self._state == STATE_OPEN and time.time() - self._last_failure > self.cooldown:
             self._state = STATE_HALF_OPEN
-            _logger.info(f"[{self.name}] {t('router.half_open')}")
+            _logger.info(f"[{self.name}] {'熔断状态恢复为 half_open'}")
         return self._state
 
     def call(self, func, *args, **kwargs):
         if self.state == STATE_OPEN:
-            raise CircuitBreakerOpenError(t("router.circuit_open_msg", name=self.name))
+            raise CircuitBreakerOpenError("{name} 已被熔断器拦截，请稍后重试".format(name=self.name))
 
         try:
             result = func(*args, **kwargs)
@@ -42,7 +41,7 @@ class CircuitBreaker:
 
     async def acall(self, func, *args, **kwargs):
         if self.state == STATE_OPEN:
-            raise CircuitBreakerOpenError(t("router.circuit_open_msg", name=self.name))
+            raise CircuitBreakerOpenError("{name} 已被熔断器拦截，请稍后重试".format(name=self.name))
 
         try:
             result = await func(*args, **kwargs)
@@ -61,10 +60,10 @@ class CircuitBreaker:
         self._last_failure = time.time()
         if self._failures >= self.threshold:
             self._state = STATE_OPEN
-            _logger.warning(t("router.circuit_tripped", name=self.name, count=self._failures, cooldown=self.cooldown))
+            _logger.warning("[{name}] 连续 {count} 次失败，熔断 {cooldown}s".format(name=self.name, count=self._failures, cooldown=self.cooldown))
         elif self._state == STATE_HALF_OPEN:
             self._state = STATE_OPEN
-            _logger.warning(t("router.circuit_half_open_failed", name=self.name))
+            _logger.warning("[{name}] 试探失败，继续熔断".format(name=self.name))
 
 
 class CircuitBreakerOpenError(Exception):

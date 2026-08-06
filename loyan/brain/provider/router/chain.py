@@ -3,7 +3,6 @@
 import logging
 from typing import Any, Optional
 
-from loyan.i18n import t
 from loyan.brain.provider.manager import ProviderManager
 from loyan.brain.provider.router.circuit import CircuitBreaker, CircuitBreakerOpenError
 
@@ -33,18 +32,18 @@ class FailoverChain:
                     return await cb.acall(self._call_method, provider, method, *args, **kwargs)
                 return await self._call_method(provider, method, *args, **kwargs)
             except CircuitBreakerOpenError:
-                _logger.warning(f"[{name}] {t('router.circuit_open')}")
-                last_error = t("router.circuit_open_detail", name=name)
+                _logger.warning(f"[{name}] {'已熔断，跳过'}")
+                last_error = "{name} 已熔断".format(name=name)
                 continue
             except Exception as e:
                 last_error = f"{name}: {e}"
-                _logger.warning(f"[{name}] {t('router.failover')}: {e}")
+                _logger.warning(f"[{name}] {'失败，切下一个'}: {e}")
                 continue
 
-        raise RuntimeError(t("router.all_failed", detail=last_error or ""))
+        raise RuntimeError("所有提供商失败: {detail}".format(detail=last_error or ""))
 
     async def _call_method(self, provider, method: str, *args, **kwargs):
         func = getattr(provider, method, None)
         if func is None:
-            raise AttributeError(f"{provider.name} {t('router.no_method')} {method}")
+            raise AttributeError(f"{provider.name} {'没有方法'} {method}")
         return await func(*args, **kwargs)

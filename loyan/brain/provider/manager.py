@@ -80,8 +80,18 @@ class ProviderManager:
                 _logger.warning("Skipping provider type '%s': %s", name, e)
 
     def get(self, instance_id: Optional[str] = None) -> Optional[BaseProvider]:
+        return self.resolve(instance_id)[1]
+
+    def resolve(self, instance_id: Optional[str] = None) -> tuple[Optional[str], Optional[BaseProvider]]:
+        """返回 (实际实例 id, provider)——未指定时选第一个有模型的实例"""
         instance_id = instance_id or self._default
-        return self._providers.get(instance_id)
+        prov = self._providers.get(instance_id)
+        if prov is not None and prov.models:
+            return instance_id, prov
+        for pid, p in self._providers.items():
+            if p.models:
+                return pid, p
+        return instance_id, prov
 
     async def close_all(self):
         for inst_id, prov in self._providers.items():

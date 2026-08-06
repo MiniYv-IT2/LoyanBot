@@ -33,6 +33,8 @@ class StatsCollector:
         _logger.info("用量统计已初始化")
 
     async def record(self, provider: str, model: str, tokens: dict, latency: float, success: bool):
+        if self._db is None:
+            await self.init()
         pt = tokens.get("prompt", 0) or tokens.get("prompt_tokens", 0)
         ct = tokens.get("completion", 0) or tokens.get("completion_tokens", 0)
         cost = calculate(provider, model, pt, ct)
@@ -42,6 +44,8 @@ class StatsCollector:
         )
 
     async def summary(self, hours: int = 24) -> dict:
+        if self._db is None:
+            await self.init()
         cutoff = time.time() - hours * 3600
         row = await self._db.fetchone(
             "SELECT COUNT(*), SUM(success=0), SUM(total_tokens), AVG(latency), SUM(cost) FROM usage WHERE time > ?",
@@ -62,7 +66,7 @@ class StatsCollector:
             "failed": failed or 0,
             "total_tokens": tokens or 0,
             "avg_latency_ms": round(avg_lat or 0, 2),
-            "total_cost": round(total_cost or 0, 6),
+            "total_cost": f"{total_cost or 0:.2f}",
             "by_provider": by_provider,
         }
 
