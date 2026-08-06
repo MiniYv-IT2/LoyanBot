@@ -44,6 +44,7 @@ def register_routes(app) -> None:
             if os.path.isfile(cfg_path):
                 with open(cfg_path, encoding="utf-8") as f:
                     cfg = json.load(f)
+                cfg.pop("instance_id", None)  # 机器内部标识，不暴露给面板表单
                 for k in _MASKED_KEYS:
                     if k in cfg and cfg[k]:
                         cfg[k] = _mask_secret(cfg[k])
@@ -89,6 +90,7 @@ def register_routes(app) -> None:
         for k in _MASKED_KEYS:
             if k in data and _is_masked(data[k]):
                 data.pop(k)
+        data.pop("instance_id", None)  # 机器内部标识，拒绝前端覆盖
         old_bot_name = cfg.get("bot_name", name)
         new_bot_name = data.get("bot_name", old_bot_name)
         cfg.update(data)

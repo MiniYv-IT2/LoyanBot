@@ -510,3 +510,69 @@ def test_set_event_callback_propagation(monkeypatch):
     manager_mod.set_event_callback(cb)
     assert manager_mod._on_event_callback is cb
     assert mgr._event_callback is cb
+
+
+# ══════════════════════════════════════════════════════════
+# instance_id 持久化 / 注入 / 写盘净化
+# ══════════════════════════════════════════════════════════
+
+
+def test_ensure_instance_id_generates_and_persists(tmp_path):
+    """缺失 instance_id → 生成短 uid 并写回 config.json"""
+    path = _write_config(str(tmp_path), "bot1", instance_id=None)
+    with open(path, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+    iid = manager_mod._ensure_instance_id(path, cfg)
+    assert len(iid) > 0
+    with open(path, "r", encoding="utf-8") as f:
+        written = json.load(f)
+    assert written.get("instance_id") == iid
+
+
+def test_ensure_instance_id_keeps_existing(tmp_path):
+    """已有 instance_id → 原样返回且不重写"""
+    path = _write_config(str(tmp_path), "bot1", instance_id="iid_existing")
+    with open(path, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+    assert manager_mod._ensure_instance_id(path, cfg) == "iid_existing"
+
+
+def test_ensure_instance_id_never_writes_internal_keys(tmp_path):
+    """写盘不得包含 _dir_name / _config_path 等运行时内部键"""
+    path = _write_config(str(tmp_path), "bot1")
+    with open(path, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+    cfg["_dir_name"] = "bot1"
+    cfg["_config_path"] = path
+    manager_mod._ensure_instance_id(path, cfg)
+    with open(path, "r", encoding="utf-8") as f:
+        written = json.load(f)
+    assert "_dir_name" not in written
+    assert "_config_path" not in written
+    assert written.get("enabled") is True  # 用户字段完整保留
+
+
+def test_discover_instances_injects_instance_id(instances_dir, monkeypatch):
+    """发现实例时自动补 instance_id 并注入 cfg"""
+    path = _write_config(instances_dir, "bot1")
+    with open(path, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+    assert "instance_id" not in cfg  # 旧配置：无该字段
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(cfg, f)
+
+    results = manager_mod._discover_instance_configs()
+    assert len(results) == 1
+    assert results[0]["instance_id"]
+    with open(path, "r", encoding="utf-8") as f:
+        written = json.load(f)
+    assert written["instance_id"] == results[0]["instance_id"]
+
+
+def test_build_runtime_injects_instance_id():
+    """_build_runtime 把 instance_id 注入 IdentityTag"""
+    cfg = {"_dir_name": "bot1", "robot_id": "r1", "master_id": "m1",
+           "platform": "onebot", "bot_name": "bot1", "instance_id": "iid_x"}
+    runtime = manager_mod._build_runtime(cfg, plugin_manager=SimpleNamespace(),
+                                         adapter_pool=FakePool())
+    assert runtime.adapter_tag.instance_id == "iid_x"

@@ -2,6 +2,7 @@ import os
 import json
 import asyncio
 import logging
+import time
 from typing import Optional, Dict, List, Any
 from threading import Lock
 
@@ -20,7 +21,7 @@ _DEFAULT_CONFIG = {
     "default_expire_minutes": 30,
     "auto_cleanup_interval": 60,
     "max_context_messages": 50,
-    "shared_group_session": False
+    "shared_group_session": True
 }
 
 
@@ -43,8 +44,29 @@ class LoyanSessionManager:
         self._default_expire_minutes = self._config.get("default_expire_minutes", 30)
         self._max_context_messages = self._config.get("max_context_messages", 50)
         self._auto_cleanup_interval = self._config.get("auto_cleanup_interval", 60)
-        self._shared_group_session = self._config.get("shared_group_session", False)
+        self._shared_group_session = self._config.get("shared_group_session", True)
+        await self._ensure_im_tables()
         self._start_auto_cleanup()
+
+    async def _ensure_im_tables(self) -> None:
+        """确保 im_sessions / im_messages 分表存在（面板表由 panel api 管理，互不干扰）"""
+        from loyan.core.db_manager import get_db
+        db = await get_db("chat_sessions")
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS im_sessions (
+                id TEXT PRIMARY KEY,
+                created REAL
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS im_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT,
+                role TEXT,
+                content TEXT,
+                created REAL
+            )
+        """)
 
     async def _load_config(self, config_path: Optional[str]) -> Dict[str, Any]:
         if config_path is None:
@@ -147,6 +169,80 @@ class LoyanSessionManager:
 
         return False
 
+    # ── IM 会话（统一会话层，落库 im_sessions / im_messages） ──
+
+    async def get_or_create_im_session(
+        self,
+        platform: str,
+        instance_id: str,
+        chat_type: str,
+        sender_id: str = "",
+        target_id: str = "",
+        sub_id: Optional[str] = None,
+    ) -> "LoyanSession":
+        """获取或创建 IM 会话（内存缓存 + 落库）；群聊默认公共记忆（无 sub_id）"""
+        from loyan.core.loyan_session.resolve import resolve_im_session_id
+        peer_id = target_id if chat_type == "group" else sender_id
+        session_id = resolve_im_session_id(platform, instance_id, chat_type, peer_id, sub_id)
+        if not session_id:
+            raise ValueError("cannot resolve im session id without peer")
+
+        with self._lock:
+            session = self._sessions.get(session_id)
+            if session is not None and not session.is_expired():
+                return session
+
+        from loyan.core.db_manager import get_db
+        db = await get_db("chat_sessions")
+        row = await db.fetchone("SELECT created FROM im_sessions WHERE id = ?", session_id)
+        if row is None:
+            await db.execute("INSERT INTO im_sessions (id, created) VALUES (?, ?)", session_id, time.time())
+            session = LoyanSession(
+                session_id=session_id,
+                sender_id=sender_id or None,
+                target_id=target_id or None,
+                expire_minutes=self._default_expire_minutes,
+            )
+        else:
+            session = LoyanSession(
+                session_id=session_id,
+                sender_id=sender_id or None,
+                target_id=target_id or None,
+                expire_minutes=self._default_expire_minutes,
+            )
+            rows = await db.fetchall(
+                "SELECT role, content FROM im_messages WHERE session_id = ? ORDER BY id", session_id)
+            for role, content in rows:
+                if content:
+                    session.context.append({"role": role, "content": content})
+
+        with self._lock:
+            self._sessions[session_id] = session
+        return session
+
+    async def add_im_context(self, session: "LoyanSession", role: str, content: str) -> None:
+        """向 IM 会话追加一条上下文并落库"""
+        session.add_context(role, content)
+        from loyan.core.db_manager import get_db
+        db = await get_db("chat_sessions")
+        await db.execute(
+            "INSERT INTO im_messages (session_id, role, content, created) VALUES (?, ?, ?, ?)",
+            session.session_id, role, content, time.time())
+
+    async def clear_im_session(self, session_id: str) -> None:
+        """清空 IM 会话（删 im_messages / im_sessions 行，内存同步移除）"""
+        from loyan.core.db_manager import get_db
+        db = await get_db("chat_sessions")
+        await db.execute("DELETE FROM im_messages WHERE session_id = ?", session_id)
+        await db.execute("DELETE FROM im_sessions WHERE id = ?", session_id)
+        with self._lock:
+            self._sessions.pop(session_id, None)
+
+    def get_im_context(self, session: "LoyanSession", limit: Optional[int] = None) -> List[Dict[str, str]]:
+        """获取 IM 会话上下文（AI 对话用，含 system 过滤）"""
+        msgs = session.get_context(limit or self._max_context_messages)
+        return [m for m in msgs if m.get("role") in ("user", "assistant")]
+
     def cleanup_expired_sessions(self) -> int:
         """清理过期会话，返回清理数量"""
         expired_count = 0
@@ -236,6 +332,29 @@ def loyan_get_context(
 def loyan_clear_context(session: LoyanSession) -> None:
     """清空对话上下文"""
     session.clear_context()
+
+
+async def loyan_get_or_create_im_session(
+    platform: str,
+    instance_id: str,
+    chat_type: str,
+    sender_id: str = "",
+    target_id: str = "",
+    sub_id: Optional[str] = None,
+) -> LoyanSession:
+    """获取或创建 IM 会话（统一会话层）"""
+    return await loyan_get_session_manager().get_or_create_im_session(
+        platform, instance_id, chat_type, sender_id, target_id, sub_id)
+
+
+async def loyan_add_im_context(session: LoyanSession, role: str, content: str) -> None:
+    """向 IM 会话追加上下文并落库"""
+    await loyan_get_session_manager().add_im_context(session, role, content)
+
+
+async def loyan_clear_im_session(session_id: str) -> None:
+    """清空 IM 会话"""
+    await loyan_get_session_manager().clear_im_session(session_id)
 
 
 def loyan_set_state(session: LoyanSession, key: str, value: Any) -> None:

@@ -217,6 +217,7 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const abortRef = useRef(null);
+  const taskIdRef = useRef(null);
   const streamingRef = useRef(false);
 
   // 初始加载：会话列表 + 提供商 + 人设
@@ -245,31 +246,6 @@ export default function ChatPage() {
     return () => { cancel = true; };
   }, []);
 
-  // 切换会话时加载历史消息
-  useEffect(() => {
-    if (!activeId) {
-      setMessages([]);
-      return;
-    }
-    let cancel = false;
-    setMessages([]);
-    fetch(`/api/loyanui/chat/sessions/${activeId}/messages`)
-      .then((r) => r.json())
-      .then((res) => {
-        if (cancel || streamingRef.current) return;
-        const data = Array.isArray(res?.data) ? res.data : [];
-        setMessages(data.map((m) => ({
-          id: nextKey(),
-          role: m.role === "user" ? "user" : "assistant",
-          content: m.content || "",
-          reasoning: m.reasoning || "",
-          duration: m.duration || 0,
-        })));
-      })
-      .catch(() => { if (!cancel) message.error(t("chat.loadFailed")); });
-    return () => { cancel = true; };
-  }, [activeId]);
-
   // 卸载时中止在途请求
   useEffect(() => () => abortRef.current?.abort(), []);
 
@@ -282,6 +258,117 @@ export default function ChatPage() {
   const patchMessage = useCallback((id, updater) => {
     setMessages((prev) => prev.map((m) => (m.id === id ? updater(m) : m)));
   }, []);
+
+  // 订阅任务事件流，增量渲染到指定消息；返回是否收到 close 完成
+  const consumeTaskStream = useCallback(async (taskId, aiId, controller) => {
+    const res = await fetch(`/api/loyanui/chat/tasks/${taskId}/events`, { signal: controller.signal });
+    if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    let pendReasoning = "";
+    let pendContent = "";
+    let flushTimer = null;
+    const flushPend = () => {
+      flushTimer = null;
+      if (!pendReasoning && !pendContent) return;
+      const r = pendReasoning;
+      const c = pendContent;
+      pendReasoning = "";
+      pendContent = "";
+      patchMessage(aiId, (m) => ({ ...m, reasoning: (m.reasoning || "") + r, content: (m.content || "") + c }));
+    };
+    const scheduleFlush = () => {
+      if (!flushTimer) flushTimer = setTimeout(flushPend, 60);
+    };
+    let finished = false;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let idx;
+      while ((idx = buf.indexOf("\n\n")) >= 0) {
+        const chunk = buf.slice(0, idx);
+        buf = buf.slice(idx + 2);
+        const line = chunk.trim();
+        if (!line.startsWith("data:")) continue;
+        let evt;
+        try { evt = JSON.parse(line.slice(5).trim()); } catch { continue; }
+        if (evt?.type === "reasoning" && evt.content) {
+          pendReasoning += evt.content;
+          scheduleFlush();
+        } else if (evt?.type === "text" && evt.content) {
+          pendContent += evt.content;
+          scheduleFlush();
+        } else if (evt?.type === "close") {
+          finished = true;
+          flushPend();
+          break;
+        } else if (evt?.type === "done") {
+          const dur = typeof evt.elapsed === "number" ? evt.elapsed : typeof evt.time === "number" ? evt.time : 0;
+          if (dur > 0) {
+            patchMessage(aiId, (m) => ({ ...m, duration: dur }));
+          }
+        }
+      }
+      if (finished) break;
+    }
+    flushPend();
+    return finished;
+  }, [patchMessage]);
+
+  // 切换会话时加载历史消息；若该会话有运行中任务则续收流
+  useEffect(() => {
+    if (!activeId) {
+      setMessages([]);
+      return;
+    }
+    let cancel = false;
+    setMessages([]);
+    fetch(`/api/loyanui/chat/sessions/${activeId}/messages`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (cancel || streamingRef.current) return;
+        const data = Array.isArray(res?.data) ? res.data : [];
+        const list = data.map((m) => ({
+          id: nextKey(),
+          role: m.role === "user" ? "user" : "assistant",
+          content: m.content || "",
+          reasoning: m.reasoning || "",
+          duration: m.duration || 0,
+        }));
+        setMessages(list);
+        fetch("/api/loyanui/chat/tasks")
+          .then((r) => r.json())
+          .then((tRes) => {
+            if (cancel) return;
+            const tasks = Array.isArray(tRes?.data) ? tRes.data : [];
+            const active = tasks.find((t) => t.session_id === activeId && t.status === "running");
+            if (!active) return;
+            const aiId = nextKey();
+            setMessages((prev) => [...prev, { id: aiId, role: "assistant", content: "", reasoning: "", duration: 0 }]);
+            setStreaming(true);
+            streamingRef.current = true;
+            const controller = new AbortController();
+            abortRef.current = controller;
+            taskIdRef.current = active.task_id;
+            consumeTaskStream(active.task_id, aiId, controller)
+              .then(() => {
+                taskIdRef.current = null;
+                setStreaming(false);
+                streamingRef.current = false;
+              })
+              .catch(() => {
+                taskIdRef.current = null;
+                setStreaming(false);
+                streamingRef.current = false;
+              });
+          })
+          .catch(() => {});
+      })
+      .catch(() => { if (!cancel) message.error(t("chat.loadFailed")); });
+    return () => { cancel = true; };
+  }, [activeId, consumeTaskStream, t]);
 
   const createSession = useCallback(async (name) => {
     try {
@@ -354,8 +441,9 @@ export default function ChatPage() {
     const controller = new AbortController();
     abortRef.current = controller;
     let finished = false;
+    let taskId = null;
     try {
-      const res = await fetch("/api/loyanui/chat/stream", {
+      const taskRes = await fetch("/api/loyanui/chat/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -365,61 +453,17 @@ export default function ChatPage() {
           persona: persona || "",
           strip_think: !showThinking,
         }),
-        signal: controller.signal,
       });
-      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = "";
-      let pendReasoning = "";
-      let pendContent = "";
-      let flushTimer = null;
-      const flushPend = () => {
-        flushTimer = null;
-        if (!pendReasoning && !pendContent) return;
-        const r = pendReasoning;
-        const c = pendContent;
-        pendReasoning = "";
-        pendContent = "";
-        patchMessage(aiId, (m) => ({ ...m, reasoning: (m.reasoning || "") + r, content: (m.content || "") + c }));
-      };
-      const scheduleFlush = () => {
-        if (!flushTimer) flushTimer = setTimeout(flushPend, 60);
-      };
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        let idx;
-        while ((idx = buf.indexOf("\n\n")) >= 0) {
-          const chunk = buf.slice(0, idx);
-          buf = buf.slice(idx + 2);
-          const line = chunk.trim();
-          if (!line.startsWith("data:")) continue;
-          let evt;
-          try { evt = JSON.parse(line.slice(5).trim()); } catch { continue; }
-          if (evt?.type === "reasoning" && evt.content) {
-            pendReasoning += evt.content;
-            scheduleFlush();
-          } else if (evt?.type === "text" && evt.content) {
-            pendContent += evt.content;
-            scheduleFlush();
-          } else if (evt?.type === "done") {
-            finished = true;
-            flushPend();
-            const dur = typeof evt.elapsed === "number" ? evt.elapsed : typeof evt.time === "number" ? evt.time : 0;
-            if (dur > 0) {
-              patchMessage(aiId, (m) => ({ ...m, duration: dur }));
-            }
-            break;
-          }
-        }
-        if (finished) break;
-      }
-      flushPend();
+      if (!taskRes.ok) throw new Error(`HTTP ${taskRes.status}`);
+      const taskData = await taskRes.json();
+      if (!taskData?.success || !taskData?.data?.task_id) throw new Error("task_create_failed");
+      taskId = taskData.data.task_id;
+      taskIdRef.current = taskId;
+      finished = await consumeTaskStream(taskId, aiId, controller);
     } catch (e) {
       if (e?.name !== "AbortError") message.error(t("chat.sendFailed"));
     } finally {
+      taskIdRef.current = null;
       setStreaming(false);
       streamingRef.current = false;
       if (abortRef.current === controller) abortRef.current = null;
@@ -430,7 +474,7 @@ export default function ChatPage() {
           .catch(() => {});
       }
     }
-  }, [activeId, streaming, instanceId, persona, showThinking, appendMessage, patchMessage, createSession, t]);
+  }, [activeId, streaming, instanceId, persona, showThinking, appendMessage, createSession, consumeTaskStream, t]);
 
   const items = useMemo(
     () => messages.map((m) => ({ key: m.id, role: m.role, content: m.content, reasoning: m.reasoning })),
@@ -617,7 +661,11 @@ export default function ChatPage() {
               onChange={setInput}
               onSubmit={(msg) => send(msg)}
               loading={streaming}
-              onCancel={() => abortRef.current?.abort()}
+              onCancel={() => {
+                const tid = taskIdRef.current;
+                if (tid) fetch(`/api/loyanui/chat/tasks/${tid}/cancel`, { method: "POST" }).catch(() => {});
+                abortRef.current?.abort();
+              }}
               placeholder={t("chat.inputPlaceholder")}
               disabled={!instanceId}
               autoSize={{ minRows: 2, maxRows: 6 }}

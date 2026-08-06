@@ -43,6 +43,22 @@ async def _ensure():
         await db.execute("ALTER TABLE messages ADD COLUMN reasoning TEXT DEFAULT ''")
     if "duration" not in names:
         await db.execute("ALTER TABLE messages ADD COLUMN duration REAL DEFAULT 0")
+    # IM 会话分表（与面板表隔离，幂等）
+    await db.execute("""
+        CREATE TABLE IF NOT EXISTS im_sessions (
+            id TEXT PRIMARY KEY,
+            created REAL
+        )
+    """)
+    await db.execute("""
+        CREATE TABLE IF NOT EXISTS im_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT,
+            role TEXT,
+            content TEXT,
+            created REAL
+        )
+    """)
 
 
 def _clean_title(raw: str) -> str:
@@ -102,6 +118,74 @@ def register_routes(app) -> None:
             return await _chat_stream_impl()
         except Exception as e:
             return {"success": False, "message": str(e)}, 500
+
+    # ── 后台任务化：创建 / 订阅 / 列表 / 取消 ──
+
+    @app.route("/api/loyanui/chat/tasks", methods=["POST"])
+    async def create_chat_task():
+        data = await request.get_json() or {}
+        message = (data.get("message") or "").strip()
+        if not message:
+            return {"success": False, "message": "message_required"}, 400
+        session_id = data.get("session_id") or ""
+        instance_id = data.get("instance_id") or ""
+        persona = data.get("persona") or ""
+        strip_think = data.get("strip_think", True)
+        from loyan.core.loyan_session.task import task_manager
+        await _ensure()
+        db = await _db()
+        if session_id:
+            await db.execute(
+                "INSERT INTO messages (session_id, role, content, created) VALUES (?, 'user', ?, ?)",
+                session_id, message, time.time())
+        task = task_manager.create(
+            session_id=session_id,
+            message=message,
+            provider=instance_id,
+            persona=persona,
+            strip_think=strip_think,
+        )
+        return {"success": True, "data": task.snapshot()}
+
+    @app.route("/api/loyanui/chat/tasks", methods=["GET"])
+    async def list_chat_tasks():
+        from loyan.core.loyan_session.task import task_manager
+        return {"success": True, "data": [t.snapshot() for t in task_manager.list_all()]}
+
+    @app.route("/api/loyanui/chat/tasks/<task_id>", methods=["GET"])
+    async def get_chat_task(task_id):
+        from loyan.core.loyan_session.task import task_manager
+        task = task_manager.get(task_id)
+        if task is None:
+            return {"success": False, "error": "task_not_found"}, 404
+        return {"success": True, "data": task.snapshot()}
+
+    @app.route("/api/loyanui/chat/tasks/<task_id>/events", methods=["GET"])
+    async def chat_task_events(task_id):
+        """SSE 订阅任务事件流（可断线重连：重连时全量补发已累积事件）"""
+        from loyan.core.loyan_session.task import task_manager
+        task = task_manager.get(task_id)
+        if task is None:
+            return {"success": False, "error": "task_not_found"}, 404
+
+        async def _gen():
+            sent = 0
+            while True:
+                while sent < len(task.events):
+                    yield _sse(task.events[sent])
+                    sent += 1
+                if task.finished.is_set():
+                    yield _sse({"type": "close"})
+                    return
+                await asyncio.sleep(0.05)
+
+        return Response(stream_with_context(_gen)(), content_type="text/event-stream")
+
+    @app.route("/api/loyanui/chat/tasks/<task_id>/cancel", methods=["POST"])
+    async def cancel_chat_task(task_id):
+        from loyan.core.loyan_session.task import task_manager
+        ok = await task_manager.cancel(task_id)
+        return {"success": ok}
 
     async def _chat_stream_impl():
         data = await request.get_json() or {}

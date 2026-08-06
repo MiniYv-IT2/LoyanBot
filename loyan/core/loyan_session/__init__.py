@@ -29,8 +29,12 @@ from .loyan_session_manager import (
     loyan_set_state,
     loyan_get_state,
     loyan_session,
+    loyan_get_or_create_im_session,
+    loyan_add_im_context,
+    loyan_clear_im_session,
 )
 from .loyan_session_handler import handle_session_command
+from .resolve import resolve_im_session_id, resolve_from_context
 
 __all__ = [
     "LoyanSession",
@@ -47,4 +51,9 @@ __all__ = [
     "loyan_get_state",
     "loyan_session",
     "handle_session_command",
+    "loyan_get_or_create_im_session",
+    "loyan_add_im_context",
+    "loyan_clear_im_session",
+    "resolve_im_session_id",
+    "resolve_from_context",
 ]

@@ -30,8 +30,9 @@ class ChatEngine:
             try:
                 from loyan.core.db_manager import get_db
                 db = await get_db("chat_sessions")
+                table = "im_messages" if session_id.startswith("chat_") and not session_id.startswith("chat_panel_web_") else "messages"
                 rows = await db.fetchall(
-                    "SELECT role, content FROM messages WHERE session_id = ? AND role IN ('user','assistant') ORDER BY id",
+                    f"SELECT role, content FROM {table} WHERE session_id = ? AND role IN ('user','assistant') ORDER BY id",
                     session_id)
                 for role, content in rows:
                     if content:

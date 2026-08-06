@@ -35,6 +35,11 @@ class IdentityTag:
     conn_type: str = ""          # 连接方式，如 "HTTP" / "WS" / "WebSocket Gateway"，由工厂函数设置
     instance_id: str = field(default_factory=_short_uid)
 
+    def __post_init__(self) -> None:
+        # instance_id 可外部注入（实例 config 持久化）；空值回落随机生成
+        if not self.instance_id:
+            self.instance_id = _short_uid()
+
     @property
     def log_tag(self) -> str:
         """日志标签，如 [onebot:主号:a1b2c3d4]（示例，实际取决于 platform/bot_name）"""

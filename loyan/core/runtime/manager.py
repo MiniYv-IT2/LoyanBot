@@ -16,7 +16,7 @@ import logging
 import os
 
 from loyan.core.config import BOT_VERSION
-from loyan.core.loyan_adapter.identity import IdentityTag
+from loyan.core.loyan_adapter.identity import IdentityTag, _short_uid
 from loyan.core.loyan_adapter.pool import adapter_pool
 from loyan.core.loyan_adapter.send import loyan_send_msg
 from loyan.core.loyan_adapter.message import LoyanText
@@ -57,11 +57,28 @@ def _discover_instance_configs() -> list[dict]:
                 continue
             cfg["_dir_name"] = entry
             cfg["_config_path"] = cfg_path
+            _ensure_instance_id(cfg_path, cfg)
             results.append(cfg)
         except Exception as e:
             _logger.error(f"invalid config: {entry} - {e}")
 
     return results
+
+
+def _ensure_instance_id(cfg_path: str, cfg: dict) -> str:
+    """实例 config 持久化 instance_id：缺失时生成并写回文件，返回现有/新生成值"""
+    iid = cfg.get("instance_id") or ""
+    if iid:
+        return iid
+    iid = _short_uid()
+    cfg["instance_id"] = iid
+    try:
+        write_cfg = {k: v for k, v in cfg.items() if not k.startswith("_")}
+        with open(cfg_path, "w", encoding="utf-8") as f:
+            json.dump(write_cfg, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        _logger.warning(f"write instance_id failed: {cfg_path} - {e}")
+    return iid
 
 
 def _build_runtime(cfg: dict, plugin_manager=None, adapter_pool=None) -> Runtime:
@@ -71,7 +88,7 @@ def _build_runtime(cfg: dict, plugin_manager=None, adapter_pool=None) -> Runtime
     master_id = cfg.get("master_id", "")
     platform = cfg.get("platform", "")
     bot_name = cfg.get("bot_name", instance_name)
-    tag = IdentityTag(platform=platform, bot_name=bot_name)
+    tag = IdentityTag(platform=platform, bot_name=bot_name, instance_id=cfg.get("instance_id", ""))
     pm = plugin_manager if plugin_manager is not None else _module_plugin_manager
     ap = adapter_pool if adapter_pool is not None else _module_adapter_pool
     runtime = Runtime(
@@ -125,7 +142,8 @@ async def _create_and_prepare_adapter(cfg: dict, runtime=None):
     bot_name = cfg.get("bot_name", cfg.get("_dir_name", "unknown"))
     robot_id = runtime.robot_id if runtime else cfg.get("robot_id", "")
     master_id = runtime.master_id if runtime else cfg.get("master_id", "")
-    tag = runtime.adapter_tag if runtime else IdentityTag(platform=platform, bot_name=bot_name)
+    tag = runtime.adapter_tag if runtime else IdentityTag(
+        platform=platform, bot_name=bot_name, instance_id=cfg.get("instance_id", ""))
 
     try:
         module = importlib.import_module(f"loyan.core.loyan_adapter.platform.{platform}.adapter")
@@ -323,6 +341,7 @@ class InstanceManager:
                 cfg = json.load(f)
             cfg["_dir_name"] = name
             cfg["_config_path"] = cfg_path
+            _ensure_instance_id(cfg_path, cfg)
 
             old_adapter, old_tag = self._find_in_pool(name)
             was_default = self._is_default(old_tag)
@@ -397,6 +416,7 @@ class InstanceManager:
             cfg = json.load(f)
         cfg["_dir_name"] = name
         cfg["_config_path"] = cfg_path
+        _ensure_instance_id(cfg_path, cfg)
 
         try:
             runtime = None
@@ -413,7 +433,10 @@ class InstanceManager:
                 self._registry.register(runtime)
             else:
                 self._registry.unregister(runtime)
-                runtime.adapter_tag = IdentityTag(platform=cfg.get("platform", ""), bot_name=cfg.get("bot_name", name))
+                runtime.adapter_tag = IdentityTag(
+                    platform=cfg.get("platform", ""),
+                    bot_name=cfg.get("bot_name", name),
+                    instance_id=cfg.get("instance_id", ""))
                 self._registry.register(runtime)
 
             result = await _create_and_prepare_adapter(cfg, runtime=runtime)
