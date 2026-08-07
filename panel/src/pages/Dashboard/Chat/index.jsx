@@ -4,7 +4,6 @@ import { Drawer, Select, Switch, message } from "antd";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
-import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -135,7 +134,7 @@ const Markdown = memo(function Markdown({ source }) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkBreaks]}
-      rehypePlugins={[rehypeRaw, rehypeSanitize]}
+      rehypePlugins={[rehypeSanitize]}
       components={{
         code({ inline, className, children, ...props }) {
           const match = /language-(\w+)/.exec(className || "");

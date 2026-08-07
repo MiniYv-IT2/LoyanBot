@@ -17,6 +17,7 @@ from loyan.core.webserv.panel.static import register_routes as _static_register
 
 def create_panel_app() -> Quart:
     app = Quart("LoyanUI")
+    app.config["RESPONSE_TIMEOUT"] = None  # 取消 60s 响应超时,SSE 长流不再被掐断
     _api_register(app)
     _static_register(app)
 
