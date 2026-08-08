@@ -105,3 +105,32 @@ def test_generate_session_id_group_shared_default():
     a = m._generate_session_id("u1", "888")
     b = m._generate_session_id("u2", "888")
     assert a == b == "group:888"
+
+
+@pytest.mark.asyncio
+async def test_cleanup_expired_im_rows(mgr):
+    """DB 过期行清理：过期且内存无 → 删；内存活跃 → 留"""
+    await mgr._ensure_im_tables()
+    db = await db_manager.get_db("chat_sessions")
+
+    # 会话 A: 过期(created 很早) 且不在内存
+    await db.execute("INSERT INTO im_sessions (id, created) VALUES (?, ?)",
+                     "chat_onebot_a_private_old", 1.0)
+    await db.execute("INSERT INTO im_messages (session_id, role, content, created) VALUES (?, 'user', 'x', 1.0)",
+                     "chat_onebot_a_private_old")
+    # 会话 B: created 很旧但内存活跃(get_or_create 会刷新 created 吗? 不会, 用新会话模拟活跃)
+    s_b = await mgr.get_or_create_im_session("onebot", "b", "private", sender_id="active")
+    # 把 B 的 created 改老, 但保留在内存中
+    await db.execute("UPDATE im_sessions SET created = ? WHERE id = ?", 1.0, s_b.session_id)
+
+    mgr._default_expire_minutes = 30
+    n = await mgr.cleanup_expired_im_rows()
+    assert n == 1
+    # 过期行已删
+    assert await db.fetchone("SELECT id FROM im_sessions WHERE id = ?",
+                             "chat_onebot_a_private_old") is None
+    assert await db.fetchone(
+        "SELECT id FROM im_messages WHERE session_id = ?",
+        "chat_onebot_a_private_old") is None
+    # 内存活跃的 B 保留
+    assert await db.fetchone("SELECT id FROM im_sessions WHERE id = ?", s_b.session_id) is not None

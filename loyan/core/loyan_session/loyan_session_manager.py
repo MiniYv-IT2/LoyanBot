@@ -91,6 +91,7 @@ class LoyanSessionManager:
                 try:
                     await asyncio.sleep(self._auto_cleanup_interval)
                     self.cleanup_expired_sessions()
+                    await self.cleanup_expired_im_rows()
                 except asyncio.CancelledError:
                     break
 
@@ -260,6 +261,37 @@ class LoyanSessionManager:
             self._logger.debug(f"清理了 {expired_count} 个过期会话")
 
         return expired_count
+
+    async def cleanup_expired_im_rows(self) -> int:
+        """清理 DB 中过期的 IM 会话行（im_sessions / im_messages）
+
+        以 created 时间 + 过期分钟数 判定；仅清理内存中已不存在的会话，
+        防止活跃会话刚被 get_or_create 刷新却被误删。
+        """
+        if self._default_expire_minutes <= 0:
+            return 0
+        from loyan.core.db_manager import get_db
+        db = await get_db("chat_sessions")
+        threshold = time.time() - self._default_expire_minutes * 60
+        rows = await db.fetchall("SELECT id FROM im_sessions WHERE created < ?", threshold)
+        if not rows:
+            return 0
+
+        expired_ids = []
+        with self._lock:
+            alive = set(self._sessions.keys())
+        for row in rows:
+            sid = row[0]
+            if sid not in alive:  # 内存中还活跃的会话不删，避免误删刚刷新的
+                expired_ids.append(sid)
+
+        for sid in expired_ids:
+            await db.execute("DELETE FROM im_messages WHERE session_id = ?", sid)
+            await db.execute("DELETE FROM im_sessions WHERE id = ?", sid)
+
+        if expired_ids:
+            self._logger.debug(f"清理了 {len(expired_ids)} 个过期 IM 会话记录")
+        return len(expired_ids)
 
     def get_all_sessions(self) -> List[LoyanSession]:
         """获取所有会话"""

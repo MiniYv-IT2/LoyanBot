@@ -63,13 +63,29 @@ async def get_db(plugin_name: str) -> DBHandle:
     safe = _sanitize(plugin_name)
     if not safe:
         safe = "unnamed"
-    from loyan.core.tools.paths import get_db_path
-    path = get_db_path(safe)
+    from loyan.core.tools.paths import get_db_path, get_plugin_data_dir
+    # 插件数据库归插件数据目录（storage/data/plugins/{name}/），框架数据库保持 storage/data/
+    if _is_plugin_db(safe):
+        path = os.path.join(get_plugin_data_dir(safe), f"{safe}.db")
+    else:
+        path = get_db_path(safe)
 
     async with _db_instances_lock:
         if path not in _db_instances:
             _db_instances[path] = DBHandle(plugin_name, path)
         return _db_instances[path]
+
+
+def _is_plugin_db(name: str) -> bool:
+    """判断 name 是否为已注册插件（插件数据库归插件数据目录）"""
+    try:
+        from loyan.core.plugin_manager import plugin_manager
+        return any(
+            (p.get("name") == name or p.get("plugin_path", "").endswith(name))
+            for p in plugin_manager.registry
+        )
+    except Exception:
+        return False
 
 
 async def close_all():
