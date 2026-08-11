@@ -26,7 +26,6 @@ class ChatEngine:
         if prompt:
             msgs.append({"role": "system", "content": prompt})
         if session_id:
-            loaded = False
             try:
                 from loyan.core.db_manager import get_db
                 db = await get_db("chat_sessions")
@@ -37,11 +36,8 @@ class ChatEngine:
                 for role, content in rows:
                     if content:
                         msgs.append({"role": role, "content": content})
-                loaded = bool(rows)
             except Exception:
                 pass
-            if loaded:
-                return msgs
         msgs.append({"role": "user", "content": message})
         return msgs
 
@@ -63,7 +59,7 @@ class ChatEngine:
         if not model:
             return " " + "未指定模型"
 
-        messages = await self._build_messages(message)
+        messages = await self._build_messages(message, session_id=session_id)
         start = time.time()
 
         try:

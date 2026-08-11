@@ -30,12 +30,22 @@ _logger = logging.getLogger("Adapter.QQOfficial.protocol")
 # ── 调试埋点 ──
 import urllib.request
 import json as _json
+import threading
 _DEBUG_URL = "http://127.0.0.1:19809"
 def _dbg(event: str, **kw):
+    """调试埋点：后台线程发送，避免阻塞事件循环"""
     try:
         data = _json.dumps({"event": event, **kw}).encode()
-        urllib.request.urlopen(urllib.request.Request(f"{_DEBUG_URL}/debug", data=data), timeout=0.5)
-    except:
+
+        def _send():
+            try:
+                urllib.request.urlopen(
+                    urllib.request.Request(f"{_DEBUG_URL}/debug", data=data), timeout=0.5)
+            except Exception:
+                pass
+
+        threading.Thread(target=_send, daemon=True).start()
+    except Exception:
         pass
 
 
@@ -52,7 +62,9 @@ def parse_event(raw: dict, source: Optional[IdentityTag] = None) -> Optional[Loy
     if event_type == "C2C_MESSAGE_CREATE":
         return _parse_c2c_message(raw, source)
     elif event_type == "GROUP_AT_MESSAGE_CREATE":
-        return _parse_group_message(raw, source)
+        return _parse_group_message(raw, source, is_at=True)
+    elif event_type == "GROUP_MESSAGE_CREATE":
+        return _parse_group_message(raw, source, is_at=False)
     elif event_type == "DIRECT_MESSAGE_CREATE":
         return _parse_direct_message(raw, source)
 
@@ -88,8 +100,8 @@ def _parse_c2c_message(raw: dict, source: Optional[IdentityTag]) -> LoyanEvent:
     )
 
 
-def _parse_group_message(raw: dict, source: Optional[IdentityTag]) -> LoyanEvent:
-    """解析群聊 @消息"""
+def _parse_group_message(raw: dict, source: Optional[IdentityTag], is_at: bool = False) -> LoyanEvent:
+    """解析群聊消息（is_at=True 为 @机器人 事件，False 为全群消息）"""
     data = raw.get("data", raw)
     author = data.get("author", {})
     content = data.get("content", "")
@@ -110,7 +122,7 @@ def _parse_group_message(raw: dict, source: Optional[IdentityTag]) -> LoyanEvent
         raw_text=raw_text,
         message_id=message_id,
         nickname=nickname,
-        is_at_bot=True,  # 群聊只有 @机器人 才会触发
+        is_at_bot=is_at,  # @事件=True；全群消息=False（需插件 is_at_required 或 fallback 闸门约束）
         raw_data=data,
         source=source,
     )
