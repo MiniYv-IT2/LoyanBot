@@ -154,3 +154,44 @@ class ProviderManager:
     async def get_usage_summary(self, hours: int = 24) -> dict:
         from loyan.brain.provider.monitor.stats import stats as _stats
         return await _stats.summary(hours=hours)
+
+
+# ── 门面函数（面板等外部绕开 graci 直接调用）──
+
+
+def _provider_facade():
+    from loyan.brain import get_brain
+    return get_brain().provider
+
+
+def list_provider_types():
+    return list(_registry.keys())
+
+
+def list_vendor_types():
+    from loyan.brain.provider.types.litellm import list_vendors
+    return list_vendors()
+
+
+async def list_providers():
+    return await _provider_facade().instance_manager.list()
+
+
+async def add_provider(data: dict) -> str:
+    return await _provider_facade().instance_manager.add(data)
+
+
+async def update_provider(instance_id: str, data: dict):
+    return await _provider_facade().instance_manager.update(instance_id, data)
+
+
+async def delete_provider(instance_id: str):
+    return await _provider_facade().instance_manager.delete(instance_id)
+
+
+async def list_models(instance_id: str) -> list:
+    return await _provider_facade().get_models(instance_id)
+
+
+async def get_usage_summary(hours: int = 24) -> dict:
+    return await _provider_facade().get_usage_summary(hours=hours)

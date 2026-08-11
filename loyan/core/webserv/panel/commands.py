@@ -2,13 +2,15 @@
 
 import httpx
 
-from graci import PluginContext, get_logger, on_command, plugin_handler, require_master
+from loyan.core.decorators import on_command, plugin_handler, require_master
+from loyan.core.decorators.context import PluginContext
+from loyan.core.utils import logger as core_logger
 
 from loyan.core.webserv.panel.auth import (
     change_password, get_port, validate_password, verify_password,
 )
 
-logger = get_logger("Panel")
+logger = core_logger.getChild("Panel")
 
 
 async def _get_ip_addresses():

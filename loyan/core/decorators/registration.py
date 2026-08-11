@@ -1,12 +1,15 @@
-"""命令注册装饰器 — @on_command / @on_regex / @on_keyword / @loyan_plugin
+"""命令注册装饰器 — @on_command / @on_regex / @on_keyword / @loyan_plugin / @brain_tool
 
-注册中心 DECORATOR_COMMAND_REGISTRY 存储所有通过装饰器声明的命令映射。
+注册中心 DECORATOR_COMMAND_REGISTRY 与 AI_TOOL_REGISTRY 存储所有通过装饰器声明的映射。
 plugin_manager.py 会扫描此注册中心，与 TOML 元数据合并。
 """
 
 import re
 import inspect
+import logging
 from typing import List, Callable, Dict, Optional, Set
+
+_logger = logging.getLogger("Core.Registration")
 
 # ── 全局注册中心 ──
 
@@ -26,6 +29,10 @@ DECORATOR_COMMAND_REGISTRY: List[Dict] = []
 # ── 未匹配消息兜底处理器 ──
 # 当 CommandMatcher 无匹配时，会按注册顺序依次调用这些 handler
 FALLBACK_HANDLERS: List[Dict] = []
+
+# ── AI 工具注册中心 ──
+# 每项: {"name", "description", "params", "handler_func", "plugin_name", "permission"}
+AI_TOOL_REGISTRY: List[Dict] = []
 
 
 # ── @on_fallback ──
@@ -114,6 +121,35 @@ class OnKeywordDecorator:
 def on_keyword(*keywords: str) -> OnKeywordDecorator:
     """声明关键词触发"""
     return OnKeywordDecorator(*keywords)
+
+
+# ── @brain_tool ──
+
+class BrainToolDecorator:
+    """@brain_tool 装饰器 — 声明 AI 可调用工具"""
+
+    def __init__(self, name, description="", params=None, permission="admin"):
+        if not name:
+            raise ValueError("@brain_tool 至少需要一个工具名")
+        self._name = name
+        self._description = description
+        self._params = params or {}
+        self._permission = permission
+
+    def __call__(self, func):
+        # 标记函数，供 plugin_manager 扫描注册
+        func._loyan_ai_tool = {
+            "name": self._name,
+            "description": self._description,
+            "params": self._params,
+            "permission": self._permission,
+        }
+        return func
+
+
+def brain_tool(name, description="", params=None, permission="admin"):
+    """声明 AI 工具触发入口，供 AI 模型调用"""
+    return BrainToolDecorator(name, description, params, permission)
 
 
 # ── @loyan_plugin — 插件类装饰器 ──
@@ -221,12 +257,57 @@ def _ensure_plugin_load_context(func) -> None:
     )
 
 
+def _register_ai_tool_function(func, plugin_name: str = ""):
+    """将 @brain_tool 标记的函数注册到 AI_TOOL_REGISTRY"""
+    if not hasattr(func, "_loyan_ai_tool"):
+        raise ValueError(f"函数 {func.__name__} 没有 @brain_tool 标记")
+    meta = func._loyan_ai_tool
+    name = meta["name"]
+    permission = "admin" if meta["permission"] == "master" else meta["permission"]
+    for existing in AI_TOOL_REGISTRY:
+        if existing["name"] == name:
+            _logger.warning(
+                f"AI tool '{name}' already registered by {existing['plugin_name']}, overwritten by {plugin_name}"
+            )
+            AI_TOOL_REGISTRY.remove(existing)
+            break
+    AI_TOOL_REGISTRY.append({
+        "name": name,
+        "description": meta["description"],
+        "params": meta["params"],
+        "handler_func": func,
+        "plugin_name": plugin_name,
+        "permission": permission,
+    })
+
+
+def list_brain_tools() -> List[Dict]:
+    """返回全部已注册 AI 工具(薄透传)"""
+    return list(AI_TOOL_REGISTRY)
+
+
+async def call_brain_tool(name: str, args: dict, ctx=None) -> str:
+    """手动调用 AI 工具(薄透传): 查注册表并执行"""
+    import inspect
+    entry = next((t for t in AI_TOOL_REGISTRY if t["name"] == name), None)
+    if not entry:
+        return f"tool not found: {name}"
+    try:
+        result = entry["handler_func"](ctx, **(args or {}))
+        if inspect.isawaitable(result):
+            result = await result
+        return str(result) if result is not None else ""
+    except Exception as e:
+        return f"tool execution failed: {e}"
+
+
 # ── 清理 ──
 
 def clear_registry():
     """清空注册中心（主要用于测试/热重载）"""
     DECORATOR_COMMAND_REGISTRY.clear()
     FALLBACK_HANDLERS.clear()
+    AI_TOOL_REGISTRY.clear()
 
 
 def _register_fallback_function(

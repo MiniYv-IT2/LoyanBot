@@ -6,6 +6,8 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
+import typer
+
 from .utils import find_plugins_dir, system_plugins_dir, pip_install
 
 
@@ -51,7 +53,7 @@ def list_plugins(root: Path) -> list[dict]:
 def _install_deps(target: Path) -> None:
     req = target / "requirements.txt"
     if req.exists():
-        print(f"   安装依赖...")
+        typer.echo("   Installing dependencies...")
         pip_install([], req_file=str(req))
 
 
@@ -62,10 +64,10 @@ def _install_from_store(source: str) -> bool:
     from loyan.core.plugin_store import plugin_store
     try:
         asyncio.run(plugin_store.store_install(plugin_id, skip_reload=True))
-        print(f"   商店安装完成: {plugin_id}")
+        typer.echo(f"   Store install complete: {plugin_id}")
         return True
     except Exception as e:
-        print(f"   商店安装失败: {e}")
+        typer.echo(f"   Store install failed: {e}")
         return False
 
 
@@ -84,11 +86,11 @@ def install_plugin(root: Path, source: str) -> bool:
         if existing.is_dir():
             req = existing / "requirements.txt"
             if req.exists():
-                print(f"   安装 {source} 的依赖...")
+                typer.echo(f"   Installing dependencies from {source}...")
                 pip_install([], req_file=str(req))
-                print(f"   依赖安装完成")
+                typer.echo("   Dependencies installed")
             else:
-                print(f"   {source} 没有 requirements.txt")
+                typer.echo(f"   No requirements.txt in {source}")
             return True
 
     # 本地路径（相对/绝对）→ 直接复制
@@ -97,14 +99,14 @@ def install_plugin(root: Path, source: str) -> bool:
         name = src.name
         target = plugins_dir / name
         if target.exists():
-            print(f"   插件 {name} 已存在")
+            typer.echo(f"   Plugin {name} already exists")
             return False
         shutil.copytree(src, target, ignore=shutil.ignore_patterns(
             "__pycache__", ".git", ".venv", "node_modules"
         ))
-        print(f"   复制完成: {name}")
+        typer.echo(f"   Copied: {name}")
         _install_deps(target)
-        print(f"   已安装到: {plugins_dir / name}")
+        typer.echo(f"   Installed to: {plugins_dir / name}")
         return True
 
     # GitHub 简写: "user/repo" → 优先商店通道
@@ -118,36 +120,36 @@ def install_plugin(root: Path, source: str) -> bool:
             name = source.rstrip("/").split("/")[-1].replace(".git", "")
             target = plugins_dir / name
             if target.exists():
-                print(f"   插件 {name} 已存在")
+                typer.echo(f"   Plugin {name} already exists")
                 return False
             subprocess.check_call(
                 ["git", "clone", source, str(target)],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60
             )
-            print(f"   克隆完成: {name}")
+            typer.echo(f"   Cloned: {name}")
         else:
             src = Path(source).resolve()
             if not src.exists():
-                print(f"   路径不存在: {source}")
+                typer.echo(f"   Path not found: {source}")
                 return False
             name = src.name
             target = plugins_dir / name
             if target.exists():
-                print(f"   插件 {name} 已存在")
+                typer.echo(f"   Plugin {name} already exists")
                 return False
             shutil.copytree(src, target, ignore=shutil.ignore_patterns(
                 "__pycache__", ".git", ".venv", "node_modules"
             ))
-            print(f"   复制完成: {name}")
+            typer.echo(f"   Copied: {name}")
 
         _install_deps(target)
-        print(f"   已安装到: {plugins_dir / name}")
+        typer.echo(f"   Installed to: {plugins_dir / name}")
         return True
     except subprocess.TimeoutExpired:
-        print(f"   操作超时（网络不佳？）")
+        typer.echo("   Operation timed out (network issue?)")
         return False
     except Exception as e:
-        print(f"   安装失败: {e}")
+        typer.echo(f"   Install failed: {e}")
         return False
 
 
@@ -156,19 +158,19 @@ def update_plugin(root: Path, name: str) -> bool:
     plugins_dir = find_plugins_dir(root)
     target = plugins_dir / name
     if not target.is_dir():
-        print(f"   插件 {name} 不存在（{plugins_dir}）")
+        typer.echo(f"   Plugin {name} not found ({plugins_dir})")
         return False
     import asyncio
     from loyan.core.plugin_store import plugin_store
     try:
         asyncio.run(plugin_store.store_update(name, skip_reload=True))
-        print(f"   更新完成: {name}")
+        typer.echo(f"   Update complete: {name}")
         return True
     except FileNotFoundError:
-        print(f"   插件 {name} 不在商店中（可能是 git 安装），请在插件目录内执行 git pull")
+        typer.echo(f"   Plugin {name} not in store (maybe git-installed); run git pull in its directory")
         return False
     except Exception as e:
-        print(f"   更新失败: {e}")
+        typer.echo(f"   Update failed: {e}")
         return False
 
 
@@ -178,10 +180,10 @@ def remove_plugin(root: Path, name: str) -> bool:
     target = user_dir / name
     if not target.exists():
         if (system_plugins_dir() / name).is_dir():
-            print(f"   插件 {name} 是系统内置插件，请勿删除（升级会还原）")
+            typer.echo(f"   Plugin {name} is a system plugin, do not remove (restored on upgrade)")
             return False
-        print(f"   插件 {name} 不存在")
+        typer.echo(f"   Plugin {name} not found")
         return False
     shutil.rmtree(target, ignore_errors=True)
-    print(f"   已删除: {name}")
+    typer.echo(f"   Deleted: {name}")
     return True

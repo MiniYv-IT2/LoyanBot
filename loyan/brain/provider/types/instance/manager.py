@@ -79,14 +79,15 @@ class InstanceManager:
         inst_id = data.get("id", "").strip()
         if not inst_id:
             raise ValueError("id is required")
-        api_key = await self._encrypt_key(data.get("api_key", ""))
+        api_key = await self._encrypt_key(data.get("api_key", "").strip())
+        api_base = (data.get("api_base", "") or "").strip().rstrip("/")
         extra_json = json.dumps(data.get("extra", {}), ensure_ascii=False)
         await self._db.execute(
             "INSERT INTO provider_instances "
             "(id, type, model, api_base, api_key, extra, enabled) "
             "VALUES (?, ?, ?, ?, ?, ?, ?)",
             inst_id, data.get("type", ""), data.get("model", ""),
-            data.get("api_base", ""), api_key, extra_json,
+            api_base, api_key, extra_json,
             1 if data.get("enabled", True) else 0,
         )
         _logger.info("Added provider instance: %s (%s)", inst_id, data.get("type"))
@@ -96,10 +97,13 @@ class InstanceManager:
         await self._ensure()
         fields = []
         values = []
-        for key in ("type", "model", "api_base", "enabled"):
+        for key in ("type", "model", "enabled"):
             if key in data:
                 fields.append(f"{key} = ?")
                 values.append(data[key])
+        if "api_base" in data:
+            fields.append("api_base = ?")
+            values.append((data.get("api_base") or "").strip().rstrip("/"))
         if "api_key" in data:
             fields.append("api_key = ?")
             values.append(await self._encrypt_key(data["api_key"]))

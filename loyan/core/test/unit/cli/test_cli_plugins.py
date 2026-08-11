@@ -80,7 +80,7 @@ def test_remove_system_plugin_refused(iso_home, capsys):
     _make_plugin(iso_home / "loyan" / "plugins", "SysOne")
     assert cli_plugins.remove_plugin(iso_home, "SysOne") is False
     assert (iso_home / "loyan" / "plugins" / "SysOne").is_dir()
-    assert "系统内置" in capsys.readouterr().out
+    assert "system plugin" in capsys.readouterr().out
 
 
 def test_remove_missing_plugin_returns_false(iso_home):

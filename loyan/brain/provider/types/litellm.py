@@ -19,6 +19,7 @@ ollama/llama3、gemini/...、deepseek/...）；配置 model_prefix 可统一加�
     - 错误映射（litellm 异常 → loyan.brain.provider.errors）
 """
 
+import asyncio
 import base64
 import logging
 import os
@@ -469,12 +470,23 @@ class LiteLLMProvider(BaseProvider):
                 content = resp.choices[0].message.content or ""
                 if strip:
                     content = strip_think_block(content)
-                return {
+                result = {
                     "content": content,
                     "model": getattr(resp, "model", None) or model,
                     "usage": normalize_usage(getattr(resp, "usage", None)),
                     "time": round(time.time() - start, 2),
                 }
+                msg_tool_calls = getattr(resp.choices[0].message, "tool_calls", None)
+                if msg_tool_calls:
+                    result["tool_calls"] = [{
+                        "id": getattr(tc, "id", None),
+                        "type": "function",
+                        "function": {
+                            "name": tc.function.name,
+                            "arguments": tc.function.arguments,
+                        },
+                    } for tc in msg_tool_calls if getattr(tc, "function", None)]
+                return result
             except Exception as e:
                 last_err = e
                 if key:
@@ -514,8 +526,13 @@ class LiteLLMProvider(BaseProvider):
                     _logger.warning("api_key %s... stream failed: %s", key[:8], e)
         if resp is None:
             raise self._classify_error(last_err)
+        _CHUNK_TIMEOUT = 60  # 单块读取超时(秒), 防止连接半死永久挂起
         try:
-            async for chunk in resp:
+            while True:
+                try:
+                    chunk = await asyncio.wait_for(resp.__anext__(), timeout=_CHUNK_TIMEOUT)
+                except StopAsyncIteration:
+                    break
                 if chunk.choices:
                     delta = chunk.choices[0].delta
                     text = getattr(delta, "content", None)

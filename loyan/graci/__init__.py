@@ -9,6 +9,7 @@ graci — LoyanBot 插件公共 API 包
 
 from ._types import *
 from ._plugin import *
+from ._event import *
 from ._api import *
 from ._ai import *
 from ._store import *

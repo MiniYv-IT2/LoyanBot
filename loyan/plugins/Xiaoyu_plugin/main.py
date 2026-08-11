@@ -11,11 +11,13 @@ import threading
 from datetime import datetime
 from typing import Tuple, List, Optional
 
-from graci import get_current_master_id, get_logger, loyan_send_msg, loyan_call_api, LoyanImage, LoyanText, get_plugin_data_dir
+from graci import get_current_master_id, get_logger, loyan_send_msg, loyan_call_api, LoyanImage, LoyanText, LoyanPaths
 from .core.draw import XiaoyuHelpDrawer
 import asyncio
 
 logger = get_logger("Xiaoyu")
+
+paths = LoyanPaths("Xiaoyu_plugin")
 
 # 帮助图绘制器（模块级单例）
 _xiaoyu_drawer = None
@@ -27,7 +29,7 @@ def _get_drawer():
     return _xiaoyu_drawer
 
 # 缓存图片路径（固定文件名，每次新生成自动替换上一张）
-XIAOYU_HELP_IMG = os.path.join(get_plugin_data_dir("Xiaoyu_plugin"), "temp_xiaoyu_help.png")
+XIAOYU_HELP_IMG = os.path.join(paths.data(), "temp_xiaoyu_help.png")
 
 # ═══════════════ 黑名单路径常量 ═══════════════
 BLOCKLIST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blocklist")

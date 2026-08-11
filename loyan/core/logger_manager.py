@@ -114,7 +114,8 @@ class StructuredLogFormatter(logging.Formatter):
                 from loyan.core.tools.log_tool import parse_logger_name, build_attrs, format_console_line
                 category, module = parse_logger_name(record.name)
                 attrs = build_attrs(record)
-                return format_console_line(timestamp, category, level_name, module, attrs, final_message)
+                source = f"{record.filename}:{record.lineno}"
+                return format_console_line(timestamp, category, level_name, module, attrs, final_message, source)
             except Exception:
                 return f"{timestamp} - {record.name} - {level_name} - {final_message}"
         else:
@@ -124,11 +125,12 @@ class StructuredLogFormatter(logging.Formatter):
                 category, module = parse_logger_name(record.name)
                 attrs = build_attrs(record)
                 use_color = getattr(record, 'color_enabled', False)
+                source = f"{record.filename}:{record.lineno}"
                 if use_color:
                     cl = colorize_level(level_name)
                     cm = colorize_message(final_message, level_name)
-                    return format_console_line(timestamp, category, cl, module, attrs, cm)
-                return format_console_line(timestamp, category, level_name, module, attrs, final_message)
+                    return format_console_line(timestamp, category, cl, module, attrs, cm, source)
+                return format_console_line(timestamp, category, level_name, module, attrs, final_message, source)
             except Exception:
                 return f"{timestamp} - {record.name} - {level_name} - {final_message}"
 

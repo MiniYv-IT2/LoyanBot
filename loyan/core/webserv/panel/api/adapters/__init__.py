@@ -1,5 +1,6 @@
 """适配器接口 — 实例 CRUD / reload / rename / schema / 扫码"""
 
+import asyncio
 import json
 import os
 import shutil
@@ -27,6 +28,18 @@ def _is_masked(value) -> bool:
     return isinstance(value, str) and "****" in value
 
 
+def _load_cfg(path) -> dict:
+    """同步读取实例配置 JSON"""
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _save_cfg(path, data) -> None:
+    """同步写入实例配置 JSON"""
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
 def register_routes(app) -> None:
     @app.route("/api/loyanui/instances", methods=["GET"])
     async def panel_list_instances():
@@ -42,8 +55,7 @@ def register_routes(app) -> None:
         for name in sorted(os.listdir(base)):
             cfg_path = os.path.join(base, name, "config.json")
             if os.path.isfile(cfg_path):
-                with open(cfg_path, encoding="utf-8") as f:
-                    cfg = json.load(f)
+                cfg = await asyncio.to_thread(_load_cfg, cfg_path)
                 cfg.pop("instance_id", None)  # 机器内部标识，不暴露给面板表单
                 for k in _MASKED_KEYS:
                     if k in cfg and cfg[k]:
@@ -72,8 +84,7 @@ def register_routes(app) -> None:
         cfg_path = os.path.join(base, "config.json")
         data["enabled"] = data.get("enabled", True)
         data["bot_name"] = data.get("bot_name", name)
-        with open(cfg_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        await asyncio.to_thread(_save_cfg, cfg_path, data)
         result = await instance_service.start_instance(name)
         return {"success": result["success"]}
 
@@ -85,8 +96,7 @@ def register_routes(app) -> None:
         cfg_path = os.path.join(get_instances_dir(), name, "config.json")
         if not os.path.isfile(cfg_path):
             return {"success": False, "error": "not_found"}, 404
-        with open(cfg_path, "r", encoding="utf-8") as f:
-            cfg = json.load(f)
+        cfg = await asyncio.to_thread(_load_cfg, cfg_path)
         for k in _MASKED_KEYS:
             if k in data and _is_masked(data[k]):
                 data.pop(k)
@@ -94,8 +104,7 @@ def register_routes(app) -> None:
         old_bot_name = cfg.get("bot_name", name)
         new_bot_name = data.get("bot_name", old_bot_name)
         cfg.update(data)
-        with open(cfg_path, "w", encoding="utf-8") as f:
-            json.dump(cfg, f, ensure_ascii=False, indent=2)
+        await asyncio.to_thread(_save_cfg, cfg_path, cfg)
         if new_bot_name != name and new_bot_name != old_bot_name:
             result = await instance_service.rename_instance(name, new_bot_name)
             return {"success": result["success"], "renamed": True}

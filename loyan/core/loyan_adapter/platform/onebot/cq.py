@@ -57,7 +57,13 @@ def loyan_to_cq(segments: List[LoyanMsg]) -> str:
             parts.append(f"[CQ:reply,id={seg.message_id}]")
         elif isinstance(seg, LoyanVoice):
             if seg.file_path:
-                parts.append(f"[CQ:record,file=file://{seg.file_path}]")
+                import base64
+                try:
+                    with open(seg.file_path, "rb") as f:
+                        b64 = base64.b64encode(f.read()).decode()
+                    parts.append(f"[CQ:record,file=base64://{b64}]")
+                except OSError:
+                    parts.append(f"[CQ:record,url=file://{seg.file_path}]")
         elif isinstance(seg, LoyanFile):
             if seg.file_path:
                 parts.append(f"[CQ:file,file=file://{seg.file_path}]")

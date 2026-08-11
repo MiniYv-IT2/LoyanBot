@@ -989,14 +989,6 @@ class TestLifecycleManager:
         s = mgr.summary()
         assert not s["auto_restart"]
 
-    @pytest.mark.asyncio
-    async def test_enable_disable_auto_restart(self):
-        mgr = LifecycleManager()
-        mgr.enable_auto_restart(max_restarts=5)
-        assert mgr._auto_restart
-        assert mgr._max_restarts == 5
-        mgr.disable_auto_restart()
-        assert not mgr._auto_restart
 
     @pytest.mark.asyncio
     async def test_restart_count(self):

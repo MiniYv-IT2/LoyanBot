@@ -114,17 +114,6 @@ class LifecycleManager:
     def update_context(self, mapping: dict):
         self._context.update(mapping)
 
-    # ── 自动重启配置 ──
-
-    def enable_auto_restart(self, max_restarts: int = 3):
-        self._auto_restart = True
-        self._max_restarts = max_restarts
-        _logger.info("Auto-restart enabled (max=%d)", max_restarts)
-
-    def disable_auto_restart(self):
-        self._auto_restart = False
-        _logger.info("Auto-restart disabled")
-
     # ── 错误处理 ──
 
     def on_error(self, callback: Callable):

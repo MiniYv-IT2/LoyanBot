@@ -6,6 +6,8 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
+import typer
+
 from .utils import find_project_root, get_platform_label, has_systemd, make_archive
 
 
@@ -46,12 +48,12 @@ def _enable_autostart(plat: str, python: str, script: str, root: Path) -> bool:
                     f'@cd /d "{root}"\n@start "" "{python}" "{script}"\n',
                     encoding="gbk"
                 )
-                print("   已添加开机自启（启动文件夹）")
+                typer.echo("   Autostart enabled (Startup folder)")
                 return True
             # 方式2：schtasks（需管理员，降级）
             task = f'''schtasks /create /tn "{name}" /tr "\"{python}\" \"{script}\"" /sc onlogon /f'''
             subprocess.check_call(task, shell=True, timeout=10)
-            print("   已添加开机自启（Windows 任务计划）")
+            typer.echo("   Autostart enabled (Windows Task Scheduler)")
             return True
 
         elif plat == "linux" and has_systemd():
@@ -74,7 +76,7 @@ WantedBy=default.target
             unit_path.write_text(unit, encoding="utf-8")
             subprocess.check_call(["systemctl", "--user", "daemon-reload"], timeout=10)
             subprocess.check_call(["systemctl", "--user", "enable", "loyan"], timeout=10)
-            print("   已添加 systemd --user 自启")
+            typer.echo("   Autostart enabled (systemd --user)")
             return True
 
         elif plat == "termux":
@@ -83,7 +85,7 @@ WantedBy=default.target
             if line not in bashrc.read_text(encoding="utf-8"):
                 with open(bashrc, "a", encoding="utf-8") as f:
                     f.write(f"\n# LoyanBot autostart\n{line}\n")
-            print("   已添加 Termux 自启（~/.bashrc）")
+            typer.echo("   Autostart enabled (Termux ~/.bashrc)")
             return True
 
         elif plat == "macos":
@@ -103,7 +105,7 @@ WantedBy=default.target
             plist_path.parent.mkdir(parents=True, exist_ok=True)
             plist_path.write_text(plist, encoding="utf-8")
             subprocess.check_call(["launchctl", "load", str(plist_path)], timeout=10)
-            print("   已添加 macOS LaunchAgent 自启")
+            typer.echo("   Autostart enabled (macOS LaunchAgent)")
             return True
 
         else:
@@ -116,12 +118,12 @@ WantedBy=default.target
                         with open(rc, "a", encoding="utf-8") as f:
                             f.write(f"\n# LoyanBot autostart\n{line}\n")
                     break
-            print(f"   已添加开机自启（~/.bashrc）")
+            typer.echo("   Autostart enabled (~/.bashrc)")
             return True
 
     except Exception as e:
-        print(f"   设置自启失败: {e}")
-        print("  请手动添加开机自启命令:", f"{python} {script}")
+        typer.echo(f"   Autostart setup failed: {e}")
+        typer.echo(f"   Add autostart manually: {python} {script}")
         return False
 
 
@@ -137,7 +139,7 @@ def _disable_autostart(plat: str, python: str, script: str, root: Path) -> bool:
                 subprocess.check_call("schtasks /delete /tn LoyanBot /f", shell=True, timeout=10)
             except Exception:
                 pass
-            print("   已移除开机自启")
+            typer.echo("   Autostart removed")
             return True
         elif plat == "linux" and has_systemd():
             subprocess.check_call(["systemctl", "--user", "disable", "loyan"], timeout=10)
@@ -145,7 +147,7 @@ def _disable_autostart(plat: str, python: str, script: str, root: Path) -> bool:
             if unit.exists():
                 unit.unlink()
             subprocess.check_call(["systemctl", "--user", "daemon-reload"], timeout=10)
-            print("   已移除 systemd 自启")
+            typer.echo("   systemd autostart removed")
             return True
         elif plat == "macos":
             label = "com.loyan.runner"
@@ -153,13 +155,13 @@ def _disable_autostart(plat: str, python: str, script: str, root: Path) -> bool:
             subprocess.check_call(["launchctl", "unload", str(plist_path)], timeout=10)
             if plist_path.exists():
                 plist_path.unlink()
-            print("   已移除 macOS 自启")
+            typer.echo("   macOS autostart removed")
             return True
         else:
-            print("   请手动删除 ~/.bashrc 中的 LoyanBot 启动行")
+            typer.echo("   Remove the LoyanBot startup line from ~/.bashrc manually")
             return False
     except Exception as e:
-        print(f"   移除自启失败: {e}")
+        typer.echo(f"   Autostart removal failed: {e}")
         return False
 
 
@@ -172,16 +174,16 @@ def uninstall_bot(root: Path, backup_first: bool = True):
       3. 删除目录
     """
     if backup_first:
-        print("   先进行备份...")
+        typer.echo("   Backing up first...")
         bak_dir = Path.cwd() / "loyan_backup"
         bak_dir.mkdir(exist_ok=True)
         archive = make_archive(root, bak_dir)
         if archive:
-            print(f"   备份完成: {archive}")
+            typer.echo(f"   Backup complete: {archive}")
     _disable_autostart(get_platform_label(), sys.executable, str(root / "bot.py"), root)
-    print(f"    删除 {root} ...")
+    typer.echo(f"   Removing {root} ...")
     shutil.rmtree(root, ignore_errors=True)
-    print("   LoyanBot 已卸载")
+    typer.echo("   LoyanBot uninstalled")
 
 
 def backup_bot(root: Path) -> Optional[Path]:
@@ -190,66 +192,10 @@ def backup_bot(root: Path) -> Optional[Path]:
     bak_dir.mkdir(exist_ok=True)
     archive = make_archive(root, bak_dir)
     if archive:
-        print(f"   备份完成: {archive}")
+        typer.echo(f"   Backup complete: {archive}")
     else:
-        print("   备份失败")
+        typer.echo("   Backup failed")
     return archive
-
-
-def run_bot_process(root: Path, debug: bool = False, no_webui: bool = False):
-    """启动机器人（子进程）—— 自动检测 venv / 系统 Python"""
-    # 检测项目根目录是否有虚拟环境
-    venv_python = None
-    for venv_dir in ["venv", ".venv", "env", ".env"]:
-        candidate = root / venv_dir
-        if sys.platform == "win32":
-            py = candidate / "Scripts" / "python.exe"
-        else:
-            py = candidate / "bin" / "python"
-        if py.exists():
-            venv_python = str(py)
-            break
-
-    if venv_python:
-        python = venv_python
-        print(f"   使用虚拟环境: {os.path.basename(os.path.dirname(os.path.dirname(venv_python)))}")
-    else:
-        python = sys.executable
-
-    # 检查核心依赖（有 requirements.txt 就一次性装）
-    req_file = root / "requirements.txt"
-    if req_file.exists():
-        r = subprocess.run(
-            [python, "-c", "import typer, quart, hypercorn, requests, websockets, psutil"],
-            capture_output=True, timeout=5
-        )
-        if r.returncode != 0:
-            print(f"   安装核心依赖 ...")
-            from .utils import pip_install
-            if not pip_install([], req_file=str(req_file), python=python):
-                print(f"   核心依赖安装失败")
-                sys.exit(1)
-
-    script = str(root / "bot.py")
-    env = os.environ.copy()
-    env.setdefault("PYTHONIOENCODING", "utf-8")
-    if debug:
-        env["GRACY_DEBUG"] = "1"
-    elif "GRACY_DEBUG" in env:
-        del env["GRACY_DEBUG"]
-    if no_webui:
-        env["GRACY_NO_WEBUI"] = "1"
-    elif "GRACY_NO_WEBUI" in env:
-        del env["GRACY_NO_WEBUI"]
-
-    print(f"   启动 LoyanBot ...")
-    try:
-        subprocess.check_call([python, script], env=env, cwd=str(root))
-    except KeyboardInterrupt:
-        print("\n   已停止")
-    except Exception as e:
-        print(f"   启动失败: {e}")
-        sys.exit(1)
 
 
 def stop_bot_process():
@@ -278,14 +224,14 @@ def stop_bot_process():
                 subprocess.run(f'taskkill /f /pid {pid_str} 2>nul', shell=True, timeout=5)
                 killed = True
             if killed:
-                print("   已停止")
+                typer.echo("   Stopped")
             else:
-                print("  ℹ  没有找到运行中的 LoyanBot")
+                typer.echo("   No running LoyanBot found")
         else:
             subprocess.check_call(
                 ["pkill", "-f", "python.*bot.py"],
                 timeout=5,
             )
-            print("   已停止")
+            typer.echo("   Stopped")
     except Exception as e:
-        print(f"   停止失败: {e}")
+        typer.echo(f"   Stop failed: {e}")

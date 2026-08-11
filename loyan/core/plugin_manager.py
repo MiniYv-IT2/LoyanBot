@@ -12,12 +12,14 @@ from typing import Dict, List, Callable, Optional, Set, Tuple
 import re
 from loyan.core.utils import logger
 from loyan.core.tools.validator import load_plugin_toml, TOMLPluginError
-from loyan.core.tools.paths import get_plugins_dir, get_disabled_plugins_path, get_res_config_dir, get_project_root, get_user_plugins_dir
+from loyan.core.tools.paths import get_plugins_dir, get_disabled_plugins_path, get_res_config_dir, get_project_root, get_user_plugins_dir, _current_plugin
 from loyan.core.decorators.registration import (
     DECORATOR_COMMAND_REGISTRY,
     FALLBACK_HANDLERS,
+    AI_TOOL_REGISTRY,
     _register_decorated_function,
     _register_fallback_function,
+    _register_ai_tool_function,
     clear_registry,
 )
 from loyan.core.lifecycle import lifecycle, LifecycleEvent
@@ -451,7 +453,11 @@ class PluginManager:
                 sys.modules[parent_name] = parent_pkg
             spec = importlib.util.spec_from_file_location(name=mod_name, location=core_path)
             module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
+            _token = _current_plugin.set(plugin_name)
+            try:
+                spec.loader.exec_module(module)
+            finally:
+                _current_plugin.reset(_token)
 
             handler_name = meta["handler"]
             if not hasattr(module, handler_name):
@@ -479,6 +485,8 @@ class PluginManager:
                         plugin_name=pname,
                         chat_type=meta.get("chat_type", ["private", "group"]),
                     )
+                if callable(attr_val) and hasattr(attr_val, "_loyan_ai_tool"):
+                    _register_ai_tool_function(attr_val, plugin_name=pname)
 
             self._registry.append({
                 **meta,
@@ -546,6 +554,8 @@ class PluginManager:
                                 chat_type=meta.get("chat_type", ["private", "group"]),
                                 is_at_required=meta.get("is_at_required", False),
                             )
+                        if callable(attr_val) and hasattr(attr_val, "_loyan_ai_tool"):
+                            _register_ai_tool_function(attr_val, plugin_name=pname)
                 except Exception as e:
                     self.logger.error(f" 子模块扫描失败 {mod_name}: {e}")
 
@@ -670,6 +680,7 @@ class PluginManager:
         """按插件名清理命令注册中心，防止重载后重复注册"""
         DECORATOR_COMMAND_REGISTRY[:] = [e for e in DECORATOR_COMMAND_REGISTRY if e.get("plugin_name") != plugin_name]
         FALLBACK_HANDLERS[:] = [e for e in FALLBACK_HANDLERS if e.get("plugin_name") != plugin_name]
+        AI_TOOL_REGISTRY[:] = [e for e in AI_TOOL_REGISTRY if e.get("plugin_name") != plugin_name]
 
     def _schedule_async_load(self) -> None:
         """重载后重新加载：有事件循环则异步执行，否则同步兜底"""

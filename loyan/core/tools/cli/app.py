@@ -65,8 +65,8 @@ def _ensure_local_root() -> Path:
     root = find_project_root()
     if root and is_local_project(root):
         return root
-    typer.echo(" 此命令需要在 LoyanBot 项目目录下运行")
-    typer.echo("   请 cd 到包含 bot.py 的目录，或克隆项目仓库")
+    typer.echo(" This command must be run in the LoyanBot project directory")
+    typer.echo("   cd to the directory containing bot.py, or clone the project repository")
     raise typer.Exit(1)
 
 
@@ -98,13 +98,13 @@ def cmd_run(
     elif "GRACY_NO_WEBUI" in os.environ:
         del os.environ["GRACY_NO_WEBUI"]
 
-    print("   启动 LoyanBot ...")
+    typer.echo("   Starting LoyanBot ...")
     try:
         asyncio.run(run_bot())
     except KeyboardInterrupt:
-        print("\n   已停止")
+        typer.echo("\n   Stopped")
     except Exception as e:
-        print(f"   启动失败: {e}")
+        typer.echo(f"   Startup failed: {e}")
         sys.exit(1)
 
 
@@ -138,9 +138,9 @@ def cmd_status():
     robot_id = getattr(default, '_instance_robot_id', '') if default else ''
 
     typer.echo(f"  LoyanBot {BOT_VERSION}")
-    typer.echo(f"  项目路径: {root}")
-    typer.echo(f"  Bot ID: {robot_id or '（未配置）'}  |  管理员: {MASTER_ID}")
-    typer.echo(f"  平台: {plat}  |  虚拟环境: {'是' if in_venv() else '否'}")
+    typer.echo(f"  Project path: {root}")
+    typer.echo(f"  Bot ID: {robot_id or '(not set)'}  |  Master: {MASTER_ID}")
+    typer.echo(f"  Platform: {plat}  |  Virtualenv: {'yes' if in_venv() else 'no'}")
     typer.echo(f"  Python: {sys.version.split()[0]}")
 
     # 检查进程
@@ -161,9 +161,9 @@ def cmd_status():
                 capture_output=True, text=True, shell=True, timeout=5
             )
             running = bool(r.stdout.strip())
-        typer.echo(f"  运行状态: {' 运行中' if running else '⏹  未运行'}")
+        typer.echo(f"  Status: {'running' if running else '⏹  not running'}")
     except Exception:
-        typer.echo("  运行状态:  无法检测")
+        typer.echo("  Status: cannot detect")
 
 
 @loyan_cli.command("version")
@@ -190,15 +190,15 @@ def cmd_ins(
         if existing.is_dir() and (existing / "requirements.txt").exists():
             # 自动走插件依赖安装
             req = existing / "requirements.txt"
-            typer.echo(f"   检测到插件 {package}，安装依赖...")
+            typer.echo(f"   Plugin {package} detected, installing dependencies...")
             pip_install([], req_file=str(req))
-            typer.echo(f"   安装完成")
+            typer.echo("   Installation complete")
             return
 
     # 普通 Python 包安装
-    typer.echo(f"   安装 {package}...")
+    typer.echo(f"   Installing {package}...")
     pip_install([package])
-    typer.echo(f"   安装完成")
+    typer.echo("   Installation complete")
 
 
 @loyan_cli.command("set")
@@ -217,8 +217,8 @@ def cmd_set(
     }
     real_key = key_map.get(key, key)
     if real_key not in ("master_id", "robot_id"):
-        typer.echo(f"   不支持的配置项: {key}")
-        typer.echo(f"  支持: master, bot (robot)")
+        typer.echo(f"   Unsupported config key: {key}")
+        typer.echo("  Supported: master, bot (robot)")
         raise typer.Exit(1)
 
     cfg = {}
@@ -239,9 +239,9 @@ def cmd_plugin_list():
     root = _ensure_root()
     plugins = list_plugins(root)
     if not plugins:
-        typer.echo("  ℹ  没有安装任何插件")
+        typer.echo("  ℹ  No plugins installed")
         return
-    typer.echo(f"  共 {len(plugins)} 个插件:")
+    typer.echo(f"  {len(plugins)} plugins in total:")
     for p in plugins:
         mark = "[系统]" if p["source"] == "system" else "[用户]"
         deps = " " if p["has_requirements"] else ""
@@ -284,17 +284,17 @@ def cmd_disable(
     plugins_dir = Path(get_plugins_dir())
     target = plugins_dir / name
     if not target.is_dir():
-        typer.echo(f"   插件 {name} 不存在（目录: {plugins_dir}）")
+        typer.echo(f"   Plugin {name} not found (dir: {plugins_dir})")
         raise typer.Exit(1)
 
     disabled = plugin_manager.load_disabled_plugins()
     if name in disabled:
-        typer.echo(f"   插件 {name} 已被禁用")
+        typer.echo(f"   Plugin {name} is disabled")
         return
     disabled.add(name)
     plugin_manager.save_disabled_plugins(disabled)
-    typer.echo(f"   已禁用插件 {name}（下次启动生效）")
-    typer.echo(f"   若机器人正在运行，需重启或到面板操作")
+    typer.echo(f"   Disabled plugin {name} (takes effect on next start)")
+    typer.echo("   If the bot is running, restart it or use the panel")
 
 
 @loyan_cli.command("enable")
@@ -304,11 +304,11 @@ def cmd_enable(
     """启用插件（下次启动生效）"""
     disabled = plugin_manager.load_disabled_plugins()
     if name not in disabled:
-        typer.echo(f"  ℹ 插件 {name} 未被禁用")
+        typer.echo(f"  ℹ Plugin {name} is not disabled")
         return
     disabled.discard(name)
     plugin_manager.save_disabled_plugins(disabled)
-    typer.echo(f"   已启用插件 {name}（下次启动生效）")
+    typer.echo(f"   Enabled plugin {name} (takes effect on next start)")
 
 
 @loyan_cli.command("disabled")
@@ -316,9 +316,9 @@ def cmd_disabled():
     """查看已禁用的插件"""
     disabled = plugin_manager.load_disabled_plugins()
     if not disabled:
-        typer.echo("  ℹ 没有已禁用的插件")
+        typer.echo("  ℹ No disabled plugins")
         return
-    typer.echo(f"  共 {len(disabled)} 个已禁用插件:")
+    typer.echo(f"  {len(disabled)} disabled plugins in total:")
     for p in sorted(disabled):
         typer.echo(f"    • {p}")
 
@@ -339,7 +339,7 @@ def cmd_config_show():
                 v_str = v_str[:57] + "..."
             typer.echo(f"  {k}: {v_str}")
     else:
-        typer.echo("  ℹ  配置文件不存在")
+        typer.echo("  ℹ  Config file not found")
 
 
 @config_cli.command("edit")
@@ -360,10 +360,10 @@ def cmd_config_edit():
                 capture_output=True, text=True
             ).stdout.split()[0])
             subprocess.run([editor, str(cfg_file)], check=True)
-        typer.echo("   配置已保存")
+        typer.echo("   Config saved")
     except Exception as e:
-        typer.echo(f"   无法打开编辑器: {e}")
-        typer.echo(f"  请手动编辑: {cfg_file}")
+        typer.echo(f"   Cannot open editor: {e}")
+        typer.echo(f"   Edit manually: {cfg_file}")
 
 
 # ═══════════════════════════ 系统管理 ═══════════════════════════
@@ -391,25 +391,25 @@ def cmd_uninstall(
 ):
     """卸载机器人"""
     root = _ensure_local_root()
-    typer.echo(f"  即将卸载 LoyanBot: {root}")
+    typer.echo(f"   About to uninstall LoyanBot: {root}")
     if not no_backup:
-        typer.echo("  将先进行备份")
+        typer.echo("   A backup will be created first")
     if typer.confirm("  确定继续？"):
         uninstall_bot(root, backup_first=not no_backup)
     else:
-        typer.echo("  已取消")
+        typer.echo("   Cancelled")
 
 
 @loyan_cli.command("info")
 def cmd_info():
     """显示系统环境信息"""
     import platform
-    typer.echo(f"  系统: {platform.system()} {platform.release()}")
+    typer.echo(f"  System: {platform.system()} {platform.release()}")
     typer.echo(f"  Python: {sys.version}")
-    typer.echo(f"  虚拟环境: {in_venv()}")
-    typer.echo(f"  当前目录: {Path.cwd()}")
+    typer.echo(f"  Virtualenv: {in_venv()}")
+    typer.echo(f"  Current dir: {Path.cwd()}")
     root = find_project_root()
-    typer.echo(f"  项目根目录: {root or '未找到（pip 模式）'}")
+    typer.echo(f"  Project root: {root or 'not found (pip mode)'}")
 
 
 # ── 直接运行入口 ──

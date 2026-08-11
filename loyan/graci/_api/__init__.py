@@ -22,11 +22,7 @@ def get_logger(name: str):
 
 from loyan.core.security import sanitize_log
 
-from loyan.core.tools.paths import get_logs_dir
-from loyan.core.tools.paths import get_storage_dir
-from loyan.core.tools.paths import get_res_config_dir
-from loyan.core.tools.paths import get_res_dir
-from loyan.core.tools.paths import get_plugin_data_dir
+from loyan.core.tools.paths import LoyanPaths
 
 from loyan.core.db_manager import get_db
 
@@ -38,8 +34,6 @@ from loyan.core.lifecycle import lifecycle
 
 from loyan.core.pipeline import Stage
 from loyan.core.runtime import RuntimeRegistry
-from loyan.core.loyan_adapter.event import LoyanEvent
-from loyan.core.loyan_adapter.identity import IdentityTag
 
 __all__ = [
     "loyan_send_msg", "loyan_call_api", "loyan_get_platform_info",
@@ -48,41 +42,8 @@ __all__ = [
     "plugin_manager", "config_manager",
     "logger", "get_logger",
     "sanitize_log", "monitor_manager",
-    "get_logs_dir", "get_storage_dir", "get_res_config_dir",
-    "get_res_dir", "get_plugin_data_dir",
+    "LoyanPaths",
     "get_db",
     "Quart", "send_from_directory", "Blueprint", "request", "Config", "serve",
-    "Stage", "RuntimeRegistry", "LoyanEvent", "IdentityTag",
-    "check_update", "apply_update", "get_update_log",
+    "Stage", "RuntimeRegistry",
 ]
-
-
-# ── 本体更新透传 ──
-
-async def check_update():
-    """检查本体更新，返回 {available, current, latest, changelog}"""
-    from loyan.core.update_manager import update_manager
-    try:
-        return await update_manager.check()
-    finally:
-        await update_manager.close()
-
-
-async def apply_update():
-    """应用本体更新（下载+校验+覆盖）"""
-    from loyan.core.update_manager import update_manager
-    try:
-        return await update_manager.apply()
-    finally:
-        await update_manager.close()
-
-
-def get_update_log() -> list:
-    """读取本地 updates/ 更新日志文件名列表（最近在前）"""
-    import os
-    from loyan.core.tools.paths import get_project_root
-    updates_dir = os.path.join(get_project_root(), "updates")
-    if not os.path.isdir(updates_dir):
-        return []
-    files = sorted((f for f in os.listdir(updates_dir) if f.endswith(".md")), reverse=True)
-    return files[:10]

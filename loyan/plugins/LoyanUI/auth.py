@@ -7,9 +7,9 @@ import secrets
 import string
 import time
 
-from graci import get_storage_dir
+from graci import LoyanPaths
 
-_CONFIG_FILE = os.path.join(get_storage_dir(), "web_config.json")
+_CONFIG_FILE = LoyanPaths.storage("web_config.json")
 _DEFAULT_USERNAME = "Admin"
 _DEFAULT_PASSWORD = "@Loyan"
 _TOKEN_EXPIRE = 86400

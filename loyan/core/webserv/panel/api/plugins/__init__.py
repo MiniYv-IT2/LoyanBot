@@ -54,18 +54,22 @@ def register_routes(app) -> None:
 
     @app.route("/api/loyanui/plugins/<name>/remove", methods=["POST"])
     async def remove_plugin(name):
-        from graci import remove_plugin as _remove
+        from loyan.core.plugin_manager import plugin_manager as _pm
+        if _pm is None:
+            return {"success": False, "message": "not_ready"}, 503
         try:
-            ok = await _remove(name)
+            ok = await _call(_pm.remove_plugin, name)
             return {"success": bool(ok)}
         except Exception as e:
             return {"success": False, "message": str(e)}, 400
 
     @app.route("/api/loyanui/plugins/<name>/reinstall", methods=["POST"])
     async def reinstall_plugin(name):
-        from graci import reinstall_plugin as _reinstall
+        from loyan.core.plugin_manager import plugin_manager as _pm
+        if _pm is None:
+            return {"success": False, "message": "not_ready"}, 503
         try:
-            result = await _reinstall(name)
+            result = await _call(_pm.reinstall_plugin, name)
             return result if isinstance(result, dict) else {"success": bool(result)}
         except Exception as e:
             return {"success": False, "message": str(e)}, 400

@@ -9,6 +9,7 @@ from loyan.core.webserv.panel.api import monitor
 from loyan.core.webserv.panel.api import settings
 from loyan.core.webserv.panel.api import plugins
 from loyan.core.webserv.panel.api import store
+from loyan.core.webserv.panel.api import test
 
 
 def register_routes(app) -> None:
@@ -21,3 +22,4 @@ def register_routes(app) -> None:
     settings.register_routes(app)
     plugins.register_routes(app)
     store.register_routes(app)
+    test.register_routes(app)

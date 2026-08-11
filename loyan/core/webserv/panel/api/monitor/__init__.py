@@ -1,9 +1,19 @@
 """监控接口 — stats / health / metrics / status"""
 
+import asyncio
 import json
 from datetime import datetime
 
 from loyan.core.webserv.quart import request, jsonify
+
+
+def _load_enabled(cfg_path) -> bool:
+    """同步读取实例配置，enabled 默认 True；读取失败不算 enabled"""
+    try:
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            return bool(json.load(f).get("enabled", True))
+    except Exception:
+        return False
 
 
 def register_routes(app) -> None:
@@ -33,16 +43,15 @@ def register_routes(app) -> None:
                 ])
             instances_enabled = 0
             if _os.path.isdir(inst_dir):
-                for d in _os.listdir(inst_dir):
-                    cfg_path = _os.path.join(inst_dir, d, "config.json")
-                    if not _os.path.isfile(cfg_path):
-                        continue
-                    try:
-                        with open(cfg_path, "r", encoding="utf-8") as f:
-                            if json.load(f).get("enabled", True):
-                                instances_enabled += 1
-                    except Exception:
-                        pass
+                enabled_paths = [
+                    _os.path.join(inst_dir, d, "config.json")
+                    for d in _os.listdir(inst_dir)
+                    if _os.path.isfile(_os.path.join(inst_dir, d, "config.json"))
+                ]
+                results = await asyncio.gather(
+                    *(asyncio.to_thread(_load_enabled, p) for p in enabled_paths)
+                )
+                instances_enabled = sum(results)
 
             from loyan.core.decorators.registration import DECORATOR_COMMAND_REGISTRY
             plugin_cmds = sum(len(p.get("commands", [])) for p in plugin_manager.registry)

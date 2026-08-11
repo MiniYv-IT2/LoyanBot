@@ -168,18 +168,29 @@ def register_routes(app) -> None:
         if task is None:
             return {"success": False, "error": "task_not_found"}, 404
 
+        _IDLE_TIMEOUT = 120  # 空闲看门狗: 连续无新事件超过此秒数则判定任务卡死
+
         async def _gen():
             sent = 0
+            last_event = time.time()
             while True:
                 while sent < len(task.events):
                     yield _sse(task.events[sent])
                     sent += 1
+                    last_event = time.time()
                 if task.finished.is_set():
                     yield _sse({"type": "close"})
                     return
+                # 空闲看门狗: 任务未完成但长时间无事件 → 主动取消任务并结束流
+                if time.time() - last_event > _IDLE_TIMEOUT:
+                    await task_manager.cancel(task.task_id)
+                    yield _sse({"type": "error", "content": "generation timeout, task cancelled"})
+                    return
                 await asyncio.sleep(0.05)
 
-        return Response(stream_with_context(_gen)(), content_type="text/event-stream")
+        response = Response(stream_with_context(_gen)(), content_type="text/event-stream")
+        response.timeout = None  # 单响应永不因时长掐断(Quart 逐响应覆盖)
+        return response
 
     @app.route("/api/loyanui/chat/tasks/<task_id>/cancel", methods=["POST"])
     async def cancel_chat_task(task_id):
@@ -240,7 +251,9 @@ def register_routes(app) -> None:
                 yield _sse({"type": "done", "usage": {}, "elapsed": elapsed})
 
         gen = stream_with_context(_gen)
-        return Response(gen(), content_type="text/event-stream")
+        response = Response(gen(), content_type="text/event-stream")
+        response.timeout = None
+        return response
 
 
 async def _maybe_title(session_id: str) -> None:

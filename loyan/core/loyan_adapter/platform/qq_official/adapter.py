@@ -38,13 +38,23 @@ _logger = logging.getLogger("Adapter.QQOfficial")
 
 # ── 调试埋点 ──
 import urllib.request
+import threading
 _DEBUG_URL = "http://127.0.0.1:19809"
 def _dbg(event: str, **kw):
+    """调试埋点：后台线程发送，避免阻塞事件循环"""
     try:
         import json as _j
         data = _j.dumps({"event": event, **kw}).encode()
-        urllib.request.urlopen(urllib.request.Request(f"{_DEBUG_URL}/debug", data=data), timeout=0.5)
-    except:
+
+        def _send():
+            try:
+                urllib.request.urlopen(
+                    urllib.request.Request(f"{_DEBUG_URL}/debug", data=data), timeout=0.5)
+            except Exception:
+                pass
+
+        threading.Thread(target=_send, daemon=True).start()
+    except Exception:
         pass
 
 

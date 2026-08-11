@@ -59,16 +59,28 @@ class DBHandle:
                 self._conn = None
 
 
-async def get_db(plugin_name: str) -> DBHandle:
+async def get_db(plugin_name: str, db_name: str = None) -> DBHandle:
+    """获取数据库句柄
+
+    Args:
+        plugin_name: 插件名（显示名或目录名均可，自动归一化到目录名）
+        db_name: 自定义数据库文件名（可选，不传默认 {目录名}.db）
+                 支持一个插件多个库：get_db("Music_Plugin", "history")
+
+    插件数据库固定位于 storage/data/plugins/{插件目录名}/，
+    框架数据库位于 storage/data/。
+    """
     safe = _sanitize(plugin_name)
     if not safe:
         safe = "unnamed"
     from loyan.core.tools.paths import get_db_path, get_plugin_data_dir
-    # 插件数据库归插件数据目录（storage/data/plugins/{name}/），框架数据库保持 storage/data/
-    if _is_plugin_db(safe):
-        path = os.path.join(get_plugin_data_dir(safe), f"{safe}.db")
+    dir_name = _plugin_dir_name(safe)
+    if dir_name:
+        file_name = _sanitize(db_name) if db_name else dir_name
+        path = os.path.join(get_plugin_data_dir(dir_name), f"{file_name}.db")
     else:
-        path = get_db_path(safe)
+        file_name = _sanitize(db_name) if db_name else safe
+        path = get_db_path(file_name)
 
     async with _db_instances_lock:
         if path not in _db_instances:
@@ -76,16 +88,18 @@ async def get_db(plugin_name: str) -> DBHandle:
         return _db_instances[path]
 
 
-def _is_plugin_db(name: str) -> bool:
-    """判断 name 是否为已注册插件（插件数据库归插件数据目录）"""
+def _plugin_dir_name(name: str) -> Optional[str]:
+    """按显示名或注册名查找插件目录名（英文标识）；非插件返回 None"""
     try:
         from loyan.core.plugin_manager import plugin_manager
-        return any(
-            (p.get("name") == name or p.get("plugin_path", "").endswith(name))
-            for p in plugin_manager.registry
-        )
+        for p in plugin_manager.registry:
+            if p.get("name") == name:
+                return os.path.basename(p.get("plugin_path", ""))
+            if os.path.basename(p.get("plugin_path", "")) == name:
+                return name
     except Exception:
-        return False
+        pass
+    return None
 
 
 async def close_all():

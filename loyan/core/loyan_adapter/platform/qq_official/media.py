@@ -3,6 +3,7 @@
 两个入口分别处理单聊和群聊的上传。
 """
 
+import asyncio
 import base64
 import logging
 import os
@@ -67,8 +68,7 @@ class MediaMixin:
                 _logger.error(f"{log_prefix}文件不存在: {file_path}")
                 return None
             try:
-                with open(file_path, "rb") as f:
-                    payload["file_data"] = base64.b64encode(f.read()).decode("utf-8")
+                payload["file_data"] = await asyncio.to_thread(self._encode_file, file_path)
                 headers["Content-Type"] = "application/json"
                 _logger.info(f"正在上传{log_prefix}本地文件: {file_path}")
             except Exception as e:
@@ -88,6 +88,15 @@ class MediaMixin:
                     data = await resp.json()
                     _logger.info(f"{log_prefix}富媒体上传成功")
                     return data.get("file_info")
+                body = (await resp.text())[:200]
+                _logger.error(f"{log_prefix}富媒体上传失败 status={resp.status}: {body}")
                 return None
-        except Exception:
+        except Exception as e:
+            _logger.error(f"{log_prefix}富媒体上传异常: {e}")
             return None
+
+    @staticmethod
+    def _encode_file(file_path: str) -> str:
+        """同步读取文件并 base64 编码（线程内执行）"""
+        with open(file_path, "rb") as f:
+            return base64.b64encode(f.read()).decode("utf-8")

@@ -48,15 +48,21 @@ class ResponseSender(Stage):
             from loyan.core.loyan_adapter.send import loyan_send_msg
             async def _fb_send(*args, **kwargs):
                 return await loyan_send_msg(*args, **kwargs, tag=ctx.adapter_tag)
-            result = handler_func(
-                ctx.plugin_manager,
-                _fb_send,
-                self._build_plugin_data(ctx),
-                ctx.sender_id,
-                ctx.chat_type,
-                "all",
-                _logger,
-            )
+            # 新风格(ctx 单参) / 旧风格(7 参) 签名适配, 与 PluginHandler 一致
+            sig = inspect.signature(handler_func)
+            params = list(sig.parameters.values())
+            if len(params) == 1 and params[0].name in ("ctx", "self"):
+                result = handler_func(ctx)
+            else:
+                result = handler_func(
+                    ctx.plugin_manager,
+                    _fb_send,
+                    self._build_plugin_data(ctx),
+                    ctx.sender_id,
+                    ctx.chat_type,
+                    "all",
+                    _logger,
+                )
             if inspect.iscoroutine(result):
                 await result
             return None

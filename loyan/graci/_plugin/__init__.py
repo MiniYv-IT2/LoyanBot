@@ -7,37 +7,12 @@ from loyan.core.decorators import (
     rate_limit, cooldown,
     with_session, async_retry, background,
 )
-from loyan.core.decorators.registration import on_fallback, DECORATOR_COMMAND_REGISTRY
+from loyan.core.decorators.registration import (
+    on_fallback, DECORATOR_COMMAND_REGISTRY,
+    brain_tool, list_brain_tools, call_brain_tool,
+)
 from loyan.core.decorators.logger import with_logger, log_attrs
 from loyan.core.decorators.context import PluginContext
-
-
-# ── @on_event ──
-
-def on_event(event_type, priority: int = 0):
-    """插件订阅业务事件（独立注册，不经命令注册中心）
-
-    用法:
-        @on_event("group_member_joined")
-        @plugin_handler
-        async def on_join(ev: BusinessEvent): ...
-
-    参数:
-        event_type: 事件名（如 "group_member_joined"）或 EventType 枚举
-        priority:   优先级，越高越先执行（默认 0）
-    """
-    # 兼容 EventType 枚举传法
-    if hasattr(event_type, "value"):
-        event_type = event_type.value
-    key = f"biz:{event_type}"
-
-    def decorator(func):
-        # 函数内延迟 import：核心 bus.py 未就绪时不影响插件加载
-        from loyan.core.event import event_bus
-        event_bus.subscribe(key, func, priority=priority)
-        return func
-
-    return decorator
 
 
 __all__ = [
@@ -48,10 +23,9 @@ __all__ = [
     "with_session", "async_retry", "background",
     "with_logger", "log_attrs",
     "on_fallback", "DECORATOR_COMMAND_REGISTRY",
-    "on_event",
+    "brain_tool", "list_brain_tools", "call_brain_tool",
     "PluginContext",
-    "list_plugins", "enable_plugin", "disable_plugin", "reload_plugin",
-    "remove_plugin", "reinstall_plugin",
+    "disable_plugin",
 ]
 
 
@@ -64,31 +38,6 @@ async def _await_maybe(result):
     return result
 
 
-async def list_plugins():
-    from loyan.core.plugin_manager import plugin_manager
-    return await _await_maybe(plugin_manager.list_plugins())
-
-
-async def enable_plugin(name: str):
-    from loyan.core.plugin_manager import plugin_manager
-    return await _await_maybe(plugin_manager.enable_plugin(name))
-
-
 async def disable_plugin(name: str):
     from loyan.core.plugin_manager import plugin_manager
     return await _await_maybe(plugin_manager.disable_plugin(name))
-
-
-async def reload_plugin(name: str):
-    from loyan.core.plugin_manager import plugin_manager
-    return await _await_maybe(plugin_manager.reload_plugin(name))
-
-
-async def remove_plugin(name: str):
-    from loyan.core.plugin_manager import plugin_manager
-    return await _await_maybe(plugin_manager.remove_plugin(name))
-
-
-async def reinstall_plugin(name: str):
-    from loyan.core.plugin_manager import plugin_manager
-    return await _await_maybe(plugin_manager.reinstall_plugin(name))

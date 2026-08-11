@@ -88,7 +88,7 @@ class TaskManager:
             elapsed = round(time.time() - started, 1)
             task.events.append({"type": "done", "usage": {}, "elapsed": elapsed})
             try:
-                if task.session_id and reply_parts:
+                if task.status != "cancelled" and task.session_id and reply_parts:
                     await self._persist(task.session_id, "".join(reply_parts),
                                         "".join(reasoning_parts), elapsed)
                     await self._maybe_title(task.session_id)

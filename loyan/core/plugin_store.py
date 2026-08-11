@@ -43,6 +43,14 @@ def _read_toml_version(path: str) -> Optional[str]:
         return None
 
 
+def _write_download(dest: str, chunks: list) -> None:
+    """同步写下载文件（线程内执行）"""
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    with open(dest, "wb") as f:
+        for chunk in chunks:
+            f.write(chunk)
+
+
 class PluginStore:
     """商店源服务单例 — 配置、缓存、聚合、安装、更新回滚"""
 
@@ -263,6 +271,14 @@ class PluginStore:
             return f"{base}/plugins/{repo}"
         return f"https://codeload.github.com/{repo}/zip/refs/heads/{branch}"
 
+    @staticmethod
+    def _write_download(dest: str, chunks: list) -> None:
+        """同步写下载文件（线程内执行）"""
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        with open(dest, "wb") as f:
+            for chunk in chunks:
+                f.write(chunk)
+
     async def _download_with_mirrors(self, url: str, dest: str) -> None:
         mirrors = self.get_config().get("git_mirrors", [])
         attempts = [url] + [m.rstrip("/") + "/" + url.lstrip("/") for m in mirrors if m]
@@ -272,10 +288,10 @@ class PluginStore:
                 async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
                     async with client.stream("GET", attempt) as resp:
                         resp.raise_for_status()
-                        os.makedirs(os.path.dirname(dest), exist_ok=True)
-                        with open(dest, "wb") as f:
-                            async for chunk in resp.aiter_bytes():
-                                f.write(chunk)
+                        chunks = []
+                        async for chunk in resp.aiter_bytes():
+                            chunks.append(chunk)
+                await asyncio.to_thread(_write_download, dest, chunks)
                 return
             except Exception as e:
                 last_err = e

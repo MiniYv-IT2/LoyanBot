@@ -95,10 +95,11 @@ def format_console_line(
     module: str,
     attrs: List[str],
     message: str,
+    source: str = "",
 ) -> str:
     """组装终端显示行
 
-    格式: {timestamp} - [{category}] - {level} - [{module}] [{attr1}] ... {message}
+    格式: {timestamp} - [{category}] - {level} - [{module}:{file}:{line}] [{attr1}] ... {message}
 
     Args:
         timestamp: 时间戳字符串
@@ -107,14 +108,19 @@ def format_console_line(
         module: 模块名
         attrs: 属性列表
         message: 日志消息
+        source: 源码定位 "文件名:行号"（如 "send.py:88"），为空则保持旧格式
 
     Returns:
         格式化后的字符串
     """
     parts = [f"{timestamp} - [{category}] - {level}"]
 
-    if module:
+    if module and source:
+        parts.append(f" - [{module}:{source}]")
+    elif module:
         parts.append(f" - [{module}]")
+    elif source:
+        parts.append(f" - [{source}]")
     else:
         parts.append("")
 
