@@ -94,15 +94,15 @@ AGENTS.md
 # 大文件排除
 *.tar
 *.tar.gz
-
-# 大文件排除
-*.tar
-*.tar.gz
 gracybot-*.tar
 gracybot-*.tar.gz
-*.png
-*.otf
-gracybot-*
 
-# 统计卡片（由 Actions 自动生成）
+# ─── 字体排除 ───
+*.otf
+
+# ─── 保留平台图标 ───
+!loyan/res/resource/platforms/*.png
+!loyan/res/resource/platforms/*.svg
+
+# ─── 统计卡片排除（由 Actions 自动生成） ───
 svg/
