@@ -12,7 +12,6 @@ services:
       - ./plugins_custom:/loyan/plugins_custom:ro
     environment:
       - TZ=Asia/Shanghai
-      # GRACYBOT_HOME 不设则自动检测 CWD（/loyan 下有 bot.py）
     restart: unless-stopped
     stop_grace_period: 30s
 

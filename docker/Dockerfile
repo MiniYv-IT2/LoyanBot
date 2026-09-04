@@ -37,7 +37,7 @@ WORKDIR /build
 COPY pyproject.toml MANIFEST.in ./
 COPY loyan/ loyan/
 COPY res/ res/
-COPY graci.py bot.py ./
+COPY bot.py ./
 
 # 安装 LoyanBot + 全部依赖
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
@@ -72,7 +72,6 @@ ENV PATH="/venv/bin:$PATH"
 WORKDIR /loyan
 COPY --from=builder /build/loyan/ ./loyan/
 COPY --from=builder /build/res/ ./res/
-COPY --from=builder /build/graci.py ./graci.py
 COPY --from=builder /build/bot.py ./bot.py
 COPY --from=builder /build/pyproject.toml ./
 
