@@ -274,7 +274,7 @@ class PluginManager:
         user_dir = get_user_plugins_dir()
         target = os.path.join(user_dir, name)
         if not os.path.isdir(target):
-            if os.path.isdir(os.path.join(get_plugins_dir(), name)):
+            if os.path.isdir(os.path.join(get_user_plugins_dir(), name)):
                 self.logger.error(f" system plugin cannot be removed: {name}")
                 return False
             self.logger.error(f" plugin not found: {name}")
@@ -374,7 +374,7 @@ class PluginManager:
         self._dep_graph.clear()
         self._ready_hooks.clear()
 
-        sys_plugin_dir = os.path.abspath(get_plugins_dir())
+        sys_plugin_dir = os.path.abspath(get_user_plugins_dir())
         user_plugin_dir = os.path.abspath(get_user_plugins_dir())
         os.makedirs(user_plugin_dir, exist_ok=True)
 
