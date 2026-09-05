@@ -197,7 +197,29 @@ class PluginManager:
                 except Exception as e:
                     self.logger.error(f" 内置插件加载异常: {e}", exc_info=True)
 
+        # 先加载builtin（包内）
+        builtin_dir = get_builtin_plugins_dir()
+        if os.path.isdir(builtin_dir):
+            toml_path = os.path.join(builtin_dir, "metadata.toml")
+            if os.path.exists(toml_path):
+                try:
+                    meta = load_plugin_toml(toml_path, builtin_dir)
+                    meta["plugin_path"] = builtin_dir
+                    meta["source"] = "builtin"
+                    plugin_name = meta.get("name", "builtin")
+                    self._dep_graph[plugin_name] = []
+                    plugins_meta[plugin_name] = meta
+                    self.logger.info(f" 内置插件: {plugin_name}")
+                except Exception as e:
+                    self.logger.error(f" 内置插件加载异常: {e}", exc_info=True)
+
         # 再扫描用户插件目录
+        # 先扫描builtin
+        builtin_dir = get_builtin_plugins_dir()
+        builtin_meta = self._scan_plugins_metadata(builtin_dir, "builtin")
+        plugins_meta.update(builtin_meta)
+        
+        # 再扫描用户插件
         for root, source in ((get_user_plugins_dir(), "user"),):
             if not os.path.isdir(root):
                 continue
@@ -379,7 +401,7 @@ class PluginManager:
         os.makedirs(user_plugin_dir, exist_ok=True)
 
         plugins_meta = {}
-        sys_meta = self._scan_plugins_metadata(sys_plugin_dir)
+        sys_meta = {}
         user_meta = self._scan_plugins_metadata(user_plugin_dir)
         plugins_meta.update(sys_meta)
         plugins_meta.update(user_meta)
@@ -423,7 +445,7 @@ class PluginManager:
 
     # ── 第一阶段：扫描元信息 ──
 
-    def _scan_plugins_metadata(self, plugin_dir: str) -> Dict[str, Dict]:
+    def _scan_plugins_metadata(self, plugin_dir: str, source: str = "user") -> Dict[str, Dict]:
         """扫描所有插件的 metadata.toml，返回 {name: meta}"""
         plugins_meta = {}
         if not os.path.exists(plugin_dir):

@@ -7,7 +7,12 @@ _MODULES_DIR = os.path.join(_PLUGINS_DIR, "modules")
 sys.path.insert(0, _MODULES_DIR)
 
 # 导入所有模块
-from .modules import chat, persona, help, system, about
+from .modules import help as help_module
+from .modules import xiaoyu as xiaoyu_module
+from .modules import chat
+from .modules import persona
+from .modules import system
+from .modules import about
 
 __all__ = ["chat", "persona", "help", "system", "about"]
 
