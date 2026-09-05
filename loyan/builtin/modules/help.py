@@ -1,11 +1,16 @@
 """Help Command - /help /帮助 /菜单"""
 import collections
 import os
-from graci import get_logger, on_command, plugin_handler, PluginContext, LoyanPaths
-from graci import LoyanImage
-from graci import plugin_manager, config_manager
+from loyan.core.decorators.handler import plugin_handler
+from loyan.core.decorators.context import PluginContext
+from loyan.core.decorators.registration import on_command
+from loyan.core.utils import logger
+from loyan.core.tools.paths import LoyanPaths
+from loyan.core.loyan_adapter.send import loyan_send_msg
+from loyan.core.loyan_adapter.message import LoyanImage
+from loyan.core.plugin_manager import plugin_manager
 
-logger = get_logger("Builtin.help")
+logger = logger.getChild("Builtin.help")
 
 paths = LoyanPaths("builtin")
 _drawer = None
@@ -14,9 +19,8 @@ _drawer = None
 def _get_drawer():
     global _drawer
     if _drawer is None:
-        config = config_manager.get_plugin("builtin")
         from .core.draw import LoyanBotHelpDrawer
-        _drawer = LoyanBotHelpDrawer(config)
+        _drawer = LoyanBotHelpDrawer({})
     return _drawer
 
 
@@ -24,7 +28,6 @@ def _get_drawer():
 @plugin_handler
 async def handle_help(ctx: PluginContext):
     """生成帮助图片并发送"""
-    from graci import plugin_manager
     plugin_commands = collections.defaultdict(list)
     for plugin in plugin_manager.registry:
         name = plugin.get("name", "未知插件")
@@ -44,10 +47,9 @@ async def handle_help(ctx: PluginContext):
         image = _get_drawer().draw_help_image(dict(plugin_commands))
         temp_path = os.path.join(paths.data(), "temp_help.png")
         os.makedirs(os.path.dirname(temp_path), exist_ok=True)
-        from PIL import Image
-        img = Image.open(image)
-        img.save(temp_path, "PNG")
-        await ctx.reply(file=LoyanImage(temp_path))
+        with open(temp_path, "wb") as f:
+            f.write(image)
+        await loyan_send_msg(ctx.target_id, LoyanImage(temp_path), chat_type=ctx.chat_type)
     except Exception as e:
         logger.error(f"生成帮助图失败: {e}", exc_info=True)
         await ctx.reply("生成帮助图失败，请检查配置")

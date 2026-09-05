@@ -3,6 +3,7 @@ import asyncio
 import platform
 import subprocess
 import os
+import sys
 from loyan.core.decorators.handler import plugin_handler
 from loyan.core.decorators.context import PluginContext
 from loyan.core.pipeline.builtin_commands import register_builtin_command
