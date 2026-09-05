@@ -156,6 +156,12 @@ async def run_bot():
     except Exception as e:
         logger.error(f"brain load failed: {e}")
 
+    # 确保脑已启动
+    from loyan.brain import get_brain
+    _b = get_brain()
+    if not _b.ready:
+        await _b.start()
+
     await _lifecycle.fire_event_async(LifecycleEvent.AFTER_BRAIN_READY)
 
 

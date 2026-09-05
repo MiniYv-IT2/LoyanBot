@@ -20,6 +20,7 @@ from .security import require_permission, require_master, require_admin, rate_li
 from .handler import plugin_handler
 from .session import with_session
 from .async_utils import async_retry, background
+from .scheduler import on_interval, on_cron, on_delayed
 
 __all__ = [
     "PluginContext",
@@ -28,4 +29,5 @@ __all__ = [
     "plugin_handler",
     "with_session",
     "async_retry", "background",
+    "on_interval", "on_cron", "on_delayed",
 ]

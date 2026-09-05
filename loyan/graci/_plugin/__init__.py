@@ -6,6 +6,7 @@ from loyan.core.decorators import (
     require_permission, require_master, require_admin,
     rate_limit, cooldown,
     with_session, async_retry, background,
+    on_interval, on_cron, on_delayed,
 )
 from loyan.core.decorators.registration import (
     on_fallback, DECORATOR_COMMAND_REGISTRY,
@@ -25,6 +26,7 @@ __all__ = [
     "on_fallback", "DECORATOR_COMMAND_REGISTRY",
     "brain_tool", "list_brain_tools", "call_brain_tool",
     "PluginContext",
+    "on_interval", "on_cron", "on_delayed",
     "disable_plugin",
 ]
 

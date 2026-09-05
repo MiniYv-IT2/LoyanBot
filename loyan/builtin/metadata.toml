@@ -1,0 +1,16 @@
+[plugin]
+name = "builtin"
+version = "1.0.0"
+author = "LoyanBot"
+description = "框架内置命令：聊天、人设、帮助、系统管理"
+priority = 100
+icon = ""
+
+[handler]
+entry = "handle_main"
+
+[trigger]
+commands = ["/chat", "/ai", "/persona", "/帮助", "/菜单", "/关机", "/重启", "/开机", "/关于"]
+chat_type = ["private", "group"]
+permission = "all"
+is_at_required = false

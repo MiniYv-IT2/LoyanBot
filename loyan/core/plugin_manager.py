@@ -592,6 +592,13 @@ class PluginManager:
                 if cmd not in plugin["commands"]:
                     plugin["commands"].append(cmd)
                 plugin.setdefault("command_handlers", {})[cmd] = entry["handler_func"]
+            # 合并权限配置（使用 TOML 中的配置覆盖装饰器默认值）
+            if "permission" in entry and entry["permission"] != "all":
+                plugin["permission"] = entry["permission"]
+            if "chat_type" in entry and entry["chat_type"]:
+                plugin["chat_type"] = entry["chat_type"]
+            if "is_at_required" in entry:
+                plugin["is_at_required"] = entry["is_at_required"]
 
     # ── 指令匹配（供 Pipeline 调用） ──
 
@@ -735,6 +742,7 @@ class PluginManager:
                 return False
             if not self._load_single_plugin(plugin_name, meta):
                 return False
+            self._merge_decorator_registry()
             self._registry.sort(key=lambda p: p.get("priority", 50), reverse=True)
             self.logger.info(f" 插件 {plugin_name} 重载完成")
             self._emit_async("PLUGIN_LOADED", {"name": plugin_name})

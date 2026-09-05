@@ -184,5 +184,7 @@ class LoyanPaths:
             if ".." in parts:
                 raise ValueError(f"相对路径禁止 '..' 穿越: {rel}")
             base = os.path.join(base, *parts)
-        os.makedirs(base, exist_ok=True)
+        parent = os.path.dirname(base)
+        if parent and parent != base:
+            os.makedirs(parent, exist_ok=True)
         return base

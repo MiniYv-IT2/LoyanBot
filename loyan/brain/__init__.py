@@ -52,6 +52,10 @@ from loyan.brain.commands import chat as _chat_cmds  # noqa: F402
 from loyan.brain.commands import persona as _persona_cmds  # noqa: F402
 
 
-# ── 模块导入时自启 ──
+# ── 模块导入时自启（仅在有运行中 event loop 时调度）──
 _b = get_brain()
-asyncio.ensure_future(_b.start())
+try:
+    asyncio.get_running_loop()
+    asyncio.ensure_future(_b.start())
+except RuntimeError:
+    pass  # 无运行中 loop，脑初始化将在 run_bot 的 async 上下文中完成

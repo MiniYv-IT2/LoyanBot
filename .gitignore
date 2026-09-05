@@ -99,6 +99,7 @@ gracybot-*.tar.gz
 
 # ─── 字体排除 ───
 *.otf
+!loyan/res/resource/DouyinSansBold.otf
 
 # ─── 保留平台图标 ───
 !loyan/res/resource/platforms/*.png
