@@ -188,3 +188,8 @@ class LoyanPaths:
         if parent and parent != base:
             os.makedirs(parent, exist_ok=True)
         return base
+
+@functools.lru_cache(maxsize=1)
+def get_builtin_plugins_dir() -> str:
+    """获取内置插件目录（包内绝对路径）"""
+    return os.path.join(get_project_root(), "loyan", "builtin")

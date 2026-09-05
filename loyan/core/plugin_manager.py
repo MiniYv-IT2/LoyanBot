@@ -12,7 +12,7 @@ from typing import Dict, List, Callable, Optional, Set, Tuple
 import re
 from loyan.core.utils import logger
 from loyan.core.tools.validator import load_plugin_toml, TOMLPluginError
-from loyan.core.tools.paths import get_plugins_dir, get_disabled_plugins_path, get_res_config_dir, get_project_root, get_user_plugins_dir, _current_plugin
+from loyan.core.tools.paths import get_builtin_plugins_dir, get_disabled_plugins_path, get_res_config_dir, get_project_root, get_user_plugins_dir, _current_plugin
 from loyan.core.decorators.registration import (
     DECORATOR_COMMAND_REGISTRY,
     FALLBACK_HANDLERS,
@@ -164,10 +164,16 @@ class PluginManager:
 
     def _find_plugin_dir(self, plugin_name: str) -> Optional[str]:
         """按目录名查找插件目录（用户目录优先）"""
-        for root in (get_user_plugins_dir(), get_plugins_dir()):
-            candidate = os.path.join(root, plugin_name)
-            if os.path.isdir(candidate) and os.path.exists(os.path.join(candidate, "metadata.toml")):
-                return candidate
+        # 内置插件从包内绝对路径导入
+        builtin_dir = get_builtin_plugins_dir()
+        if plugin_name == "builtin":
+            toml_path = os.path.join(builtin_dir, "metadata.toml")
+            if os.path.exists(toml_path):
+                return builtin_dir
+        # 用户插件从storage/plugins/加载
+        candidate = os.path.join(get_user_plugins_dir(), plugin_name)
+        if os.path.isdir(candidate) and os.path.exists(os.path.join(candidate, "metadata.toml")):
+            return candidate
         return None
 
     def list_plugins(self) -> List[Dict]:
@@ -176,7 +182,23 @@ class PluginManager:
         disabled = self.load_disabled_plugins()
         plugins = []
         seen = set()
-        for root, source in ((get_plugins_dir(), "system"), (get_user_plugins_dir(), "user")):
+        # 先扫描builtin（包内绝对路径）
+        builtin_dir = get_builtin_plugins_dir()
+        if os.path.isdir(builtin_dir):
+            toml_path = os.path.join(builtin_dir, "metadata.toml")
+            if os.path.exists(toml_path):
+                try:
+                    meta = load_plugin_toml(toml_path, builtin_dir)
+                    meta["plugin_path"] = builtin_dir
+                    meta["source"] = "builtin"
+                    plugin_name = meta.get("name", "builtin")
+                    self._dep_graph[plugin_name] = []
+                    plugins_meta[plugin_name] = meta
+                except Exception as e:
+                    self.logger.error(f" 内置插件加载异常: {e}", exc_info=True)
+
+        # 再扫描用户插件目录
+        for root, source in ((get_user_plugins_dir(), "user"),):
             if not os.path.isdir(root):
                 continue
             for dir_name in sorted(os.listdir(root)):
@@ -244,7 +266,11 @@ class PluginManager:
     def remove_plugin(self, name: str) -> bool:
         """卸载插件：运行时卸载 + 删除目录（仅用户插件，系统内置拒绝）"""
         import shutil
-        from loyan.core.tools.paths import get_user_plugins_dir, get_plugins_dir
+        from loyan.core.tools.paths import get_user_plugins_dir, get_builtin_plugins_dir
+        # 内置插件不可热重载
+        if name == "builtin":
+            self.logger.warning(f" 内置插件不支持热重载")
+            return False
         user_dir = get_user_plugins_dir()
         target = os.path.join(user_dir, name)
         if not os.path.isdir(target):
@@ -859,7 +885,7 @@ class PluginManager:
             self.logger.error("start_watcher requires a running event loop")
             return False
         os.makedirs(get_user_plugins_dir(), exist_ok=True)
-        self._watcher_roots = [os.path.abspath(get_plugins_dir()), os.path.abspath(get_user_plugins_dir())]
+        self._watcher_roots = [os.path.abspath(get_user_plugins_dir())]
         self._watcher_stop = threading.Event()
         self._watcher_task = loop.create_task(self._watch_loop())
         self.logger.debug("plugin watcher started")
