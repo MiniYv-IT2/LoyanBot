@@ -1,7 +1,7 @@
 """Help Command - 帮助菜单（完整复刻原Help_plugin）"""
 import collections
 import io
-import logging
+
 import os
 import textwrap
 from typing import Any, Dict, List, Optional, Tuple
@@ -17,8 +17,8 @@ from loyan.core.loyan_adapter.message import LoyanImage
 from loyan.core.plugin_manager import plugin_manager
 from loyan.core.config_manager import config_manager
 
-from loyan.core.utils import logger
-logger = logger.getChild("Builtin.help")
+
+logger = logging.getLogger("Builtin.help")
 
 # 资源路径
 _BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
