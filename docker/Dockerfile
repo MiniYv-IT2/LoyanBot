@@ -24,25 +24,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 验证 Python 版本 >= 3.11
 RUN python3 --version
 
-# 创建虚拟环境
-RUN python3 -m venv /venv
-ENV PATH="/venv/bin:$PATH"
-
 # pip 换阿里源
 RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 
 WORKDIR /build
 
 # 先拷依赖定义，利用 Docker 缓存
-COPY pyproject.toml MANIFEST.in ./
-COPY loyan/ loyan/
-COPY bot.py ./
+COPY pyproject.toml ./
 
-# 安装 LoyanBot + 全部依赖
+# 安装依赖（不安装包本身，只装依赖）
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir "."
-
-
+    pip install --no-cache-dir -r pyproject.toml 2>/dev/null || \
+    pip install --no-cache-dir typer quart hypercorn aiohttp requests websockets tomli openai Pillow numpy psutil py-cpuinfo mss aiosqlite cryptography litellm pycryptodome python-telegram-bot watchfiles
 
 # ─── Stage 2: runtime ────────────────────────────────────
 FROM ubuntu:26.04 AS runtime
@@ -61,18 +54,17 @@ RUN sed -i 's/archive.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list.d/u
     tini \
     && rm -rf /var/lib/apt/lists/*
 
-# 从 builder 拷 venv
-COPY --from=builder /venv /venv
-ENV PATH="/venv/bin:$PATH"
+# 从 builder 拷已安装的依赖
+COPY --from=builder /usr/local/lib/python3.14/site-packages /usr/local/lib/python3.14/site-packages
+COPY --from=builder /usr/bin/python3 /usr/bin/python3
 
-# 项目文件（只读）
+# 项目源码（唯一来源）
 WORKDIR /loyan
 COPY --from=builder /build/loyan/ ./loyan/
 COPY --from=builder /build/bot.py ./bot.py
 COPY --from=builder /build/pyproject.toml ./
-
-# 入口脚本
 COPY docker/docker-entrypoint.sh /usr/local/bin/
+
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # 持久化目录
