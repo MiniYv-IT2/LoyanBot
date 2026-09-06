@@ -14,7 +14,7 @@ from loyan.core.loyan_session import (
 )
 
 import logging
-logger = logging.getLogger("Loyan.Builtin.chat")
+logger = logging.getLogger("Loyan.builtin.chat")
 
 
 async def _im_session(ctx: PluginContext):

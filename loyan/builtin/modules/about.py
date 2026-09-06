@@ -12,7 +12,7 @@ from loyan.core.plugin_manager import plugin_manager
 
 
 import logging
-logger = logging.getLogger("Loyan.Builtin.about")
+logger = logging.getLogger("Loyan.builtin.about")
 
 
 @plugin_handler

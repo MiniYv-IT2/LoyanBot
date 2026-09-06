@@ -1,4 +1,4 @@
-import logging
+
 """System Commands - /关机 /重启"""
 import asyncio
 import platform
@@ -15,7 +15,8 @@ from loyan.core.loyan_adapter.message import LoyanText
 
 
 import logging
-logger = logging.getLogger("Loyan.Builtin.system")
+
+logger = logging.getLogger("Loyan.builtin.system")
 
 
 @plugin_handler

@@ -19,7 +19,7 @@ from loyan.core.plugin_manager import plugin_manager
 from loyan.core.config import get_current_master_id
 
 import logging
-logger = logging.getLogger("Loyan.Builtin.xiaoyu")
+logger = logging.getLogger("Loyan.builtin.xiaoyu")
 
 paths = LoyanPaths("builtin")
 
