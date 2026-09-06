@@ -40,10 +40,8 @@ COPY bot.py ./
 
 # 安装 LoyanBot + 全部依赖
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir ".[all]"
+    pip install --no-cache-dir "."
 
-# Playwright 浏览器（search 功能，无则降级）
-RUN python -m playwright install chromium 2>/dev/null || true
 
 
 # ─── Stage 2: runtime ────────────────────────────────────

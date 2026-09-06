@@ -1,1 +1,5 @@
-# LoyanBot 框架核心依赖
+# GracyBot Framework Requirements
+typer>=0.15.0
+quart>=0.20.0
+hypercorn>=0.17.0
+aiohttp>=3.9.0

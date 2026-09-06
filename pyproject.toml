@@ -46,14 +46,10 @@ dependencies = [
     "watchfiles>=0.21.0",
 ]
 
-[project.optional-dependencies]
-llm = [
-]
-search = [
-    "playwright>=1.40.0",
+[
 ]
 all = [
-    "loyan[llm,search]",
+    "loyan",
 ]
 
 [project.urls]
@@ -74,7 +70,7 @@ include-package-data = false
 "loyan.res" = ["*.py", "resource/*", "resource/**/*"]
 "loyan.plugins.Help_plugin" = ["*.toml", "*.json", "config.py"]
 "loyan.plugins.Xiaoyu_plugin" = ["*.toml", "*.json", "config.py"]
-"loyan.plugins.LoyanUI" = ["requirements.txt"]
+# 
 "loyan.panel-dist" = ["*", "assets/*", "assets/**/*"]
 "loyan.core.config" = ["*.json"]
 "loyan.core.config.i18n" = ["*.json"]
