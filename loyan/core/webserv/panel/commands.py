@@ -10,7 +10,8 @@ from loyan.core.webserv.panel.auth import (
     change_password, get_port, validate_password, verify_password,
 )
 
-logger = core_logger.getChild("Panel")
+import logging
+logger = logging.getLogger("Panel")
 
 
 async def _get_ip_addresses():

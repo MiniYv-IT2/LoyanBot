@@ -13,7 +13,8 @@ from loyan.core.loyan_session import (
     loyan_clear_im_session,
 )
 
-logger = logger.getChild("Brain.cmd")
+import logging
+logger = logging.getLogger("Brain.cmd")
 
 
 async def _im_session(ctx: PluginContext):
