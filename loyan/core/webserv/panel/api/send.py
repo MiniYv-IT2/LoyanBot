@@ -1,15 +1,11 @@
-"""Message injection test endpoint — simulates user event through full pipeline.
-
-DEPRECATED: Use /api/v1/chat/send for external programmatic access.
-This endpoint remains for backward compatibility with internal scripts.
-"""
+"""Send message to bot - external API and internal testing."""
 
 from loyan.core.webserv.quart import request, jsonify
 
 
 def register_routes(app) -> None:
-    @app.route("/api/loyanui/test/send", methods=["POST"])
-    async def test_send():
+    @app.route("/api/loyanui/send", methods=["POST"])
+    async def send_message():
         data = await request.get_json() or {}
         platform = (data.get("platform") or "").strip()
         sender = (data.get("sender") or "").strip()
@@ -30,12 +26,11 @@ def register_routes(app) -> None:
             chat_type="private",
             segments=[LoyanText(text=text)],
             raw_text=text,
-            message_id=f"test_send_{sender}",
-            nickname="脚本测试",
+            message_id=f"send_{sender}",
+            nickname="API",
             is_at_bot=False,
             source=tag,
         )
-        # 面板跑在独立 loop, 需把事件丢到 bot 主 loop 执行(避免跨 loop 使用 aiohttp session)
         from loyan.core.plugin_manager import plugin_manager
         main_loop = getattr(plugin_manager, "_main_loop", None)
         if main_loop is None or main_loop.is_closed():

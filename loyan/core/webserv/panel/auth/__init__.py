@@ -6,6 +6,7 @@ import re
 import secrets
 import string
 import time
+from typing import Optional
 
 from loyan.core.tools.paths import get_storage_dir
 
@@ -18,7 +19,7 @@ _CAPTCHA_EXPIRE = 300
 _tokens: dict[str, float] = {}
 _captchas: dict[str, dict] = {}
 
-_PASSWORD_RE = re.compile(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{6,}$")
+_PASSWORD_RE = re.compile(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,}$")
 
 
 def _load_config() -> dict:
@@ -31,7 +32,7 @@ def _load_config() -> dict:
     return {}
 
 
-def _save_config(config: dict):
+def _save_config(config: dict) -> None:
     os.makedirs(os.path.dirname(_CONFIG_FILE), exist_ok=True)
     with open(_CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(config, f, ensure_ascii=False, indent=2)
@@ -75,10 +76,10 @@ def verify_password(password: str) -> bool:
 
 
 def validate_password(password: str) -> tuple[bool, str]:
-    if len(password) < 6:
-        return False, "密码至少 6 位"
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters"
     if not _PASSWORD_RE.match(password):
-        return False, "密码须包含大写字母、小写字母和特殊字符"
+        return False, "Password must contain uppercase, lowercase, digit and special character"
     return True, ""
 
 
@@ -92,6 +93,68 @@ def change_password(old_pw: str, new_pw: str) -> bool:
     config["salt"] = salt
     _save_config(config)
     return True
+
+
+class AccountChangeError(Exception):
+    pass
+
+
+def change_account(username: Optional[str] = None, old_password: Optional[str] = None,
+                   new_password: Optional[str] = None, confirm_password: Optional[str] = None) -> bool:
+    """Change account name and/or password.
+    At least one of username or new_password must be provided.
+    If changing password, old_password and confirm_password are required.
+    """
+    has_new_username = username is not None and username.strip() != ""
+    has_new_password = new_password is not None and new_password.strip() != ""
+
+    if not has_new_username and not has_new_password:
+        raise AccountChangeError("At least one of username or password must be changed")
+
+    current_username = get_username()
+
+    if has_new_username:
+        username = username.strip()
+        if len(username) < 5:
+            raise AccountChangeError("Username must be at least 5 characters")
+        config = _load_config()
+        config["username"] = username
+        _save_config(config)
+
+    if has_new_password:
+        if not old_password:
+            raise AccountChangeError("Old password is required to change password")
+        if not verify_password(old_password):
+            raise AccountChangeError("Old password is incorrect")
+        if new_password != confirm_password:
+            raise AccountChangeError("New password and confirmation do not match")
+        # Factory default password is exempt from strength requirements
+        if new_password != _DEFAULT_PASSWORD:
+            ok, msg = validate_password(new_password)
+            if not ok:
+                raise AccountChangeError(msg)
+        config = _load_config()
+        if new_password == _DEFAULT_PASSWORD:
+            # Restore to plain-text default
+            config["password"] = _DEFAULT_PASSWORD
+            if "salt" in config:
+                del config["salt"]
+        else:
+            salt = secrets.token_hex(16)
+            h = hashlib.md5((new_password + salt).encode()).hexdigest()
+            config["password"] = h
+            config["salt"] = salt
+        _save_config(config)
+
+    return True
+
+
+def logout() -> bool:
+    """Invalidate all active tokens."""
+    global _tokens
+    count = len(_tokens)
+    _tokens.clear()
+    return count > 0
 
 
 def get_panel_settings() -> dict:
@@ -160,3 +223,33 @@ def verify_captcha(captcha_id: str, captcha_code: str) -> bool:
         return False
     del _captchas[captcha_id]
     return data["code"].upper() == captcha_code.upper()
+
+
+# ── API Key 认证（只读验证，管理需手动编辑 web_config.json）──
+
+def _get_keys() -> list[dict]:
+    config = _load_config()
+    return config.get("api_keys", [])
+
+
+def verify_api_key(raw_key: str) -> Optional[dict]:
+    """验证 API Key，返回权限信息"""
+    if not raw_key or len(raw_key) != 64:
+        return None
+    now = int(time.time())
+    for k in _get_keys():
+        if k["key"] == raw_key:
+            k["last_used"] = now
+            # 更新存储
+            config = _load_config()
+            config["api_keys"] = _get_keys()
+            _save_config(config)
+            return {"id": k["id"], "permissions": k["permissions"], "last_used": now}
+    return None
+
+
+def check_permission(permissions: list[str], required: str) -> bool:
+    """检查权限"""
+    if required == "read":
+        return True
+    return "write" in set(permissions)

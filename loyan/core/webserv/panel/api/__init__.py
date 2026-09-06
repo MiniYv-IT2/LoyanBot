@@ -1,4 +1,4 @@
-"""接口路由层 — 按资源分目录"""
+"""Interface route layer — organized by resource directory."""
 
 from loyan.core.webserv.panel.api import auth
 from loyan.core.webserv.panel.api import adapters
@@ -10,6 +10,8 @@ from loyan.core.webserv.panel.api import settings
 from loyan.core.webserv.panel.api import plugins
 from loyan.core.webserv.panel.api import store
 from loyan.core.webserv.panel.api import test
+from loyan.core.webserv.panel.api import send
+from loyan.core.webserv.panel.api import apikeys
 
 
 def register_routes(app) -> None:
@@ -23,3 +25,5 @@ def register_routes(app) -> None:
     plugins.register_routes(app)
     store.register_routes(app)
     test.register_routes(app)
+    send.register_routes(app)
+    apikeys.register_routes(app)

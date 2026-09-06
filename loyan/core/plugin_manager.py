@@ -12,7 +12,7 @@ from typing import Dict, List, Callable, Optional, Set, Tuple
 import re
 from loyan.core.utils import logger
 from loyan.core.tools.validator import load_plugin_toml, TOMLPluginError
-from loyan.core.tools.paths import get_builtin_plugins_dir, get_disabled_plugins_path, get_res_config_dir, get_project_root, get_user_plugins_dir, _current_plugin
+from loyan.core.tools.paths import get_builtin_plugins_dir, get_disabled_plugins_path, get_res_config_dir, get_project_root, get_plugins_dir, get_user_plugins_dir, _current_plugin
 from loyan.core.decorators.registration import (
     DECORATOR_COMMAND_REGISTRY,
     FALLBACK_HANDLERS,
@@ -182,14 +182,7 @@ class PluginManager:
         disabled = self.load_disabled_plugins()
         plugins = []
         seen = set()
-        # 先扫描builtin（包内绝对路径）
-        builtin_dir = get_builtin_plugins_dir()
-        builtin_meta = self._scan_plugins_metadata(builtin_dir, "builtin")
-        plugins_meta.update(builtin_meta)
-        self.logger.info(f" 内置插件已加载: {len(builtin_meta)} 个")
-
-        # 再扫描用户插件目录
-        for root, source in ((get_user_plugins_dir(), "user"),):
+        for root, source in ((get_plugins_dir(), "system"), (get_user_plugins_dir(), "user")):
             if not os.path.isdir(root):
                 continue
             for dir_name in sorted(os.listdir(root)):
