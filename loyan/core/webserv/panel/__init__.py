@@ -29,6 +29,7 @@ _PUBLIC_PREFIXES = (
     "/health",
     "/metrics",
     "/api/loyanui/qqbot/",
+    "/",
 )
 
 # 只读查询 - 支持 JWT 或 API Key
