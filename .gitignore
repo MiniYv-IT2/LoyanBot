@@ -107,3 +107,6 @@ gracybot-*.tar.gz
 
 # ─── 统计卡片排除（由 Actions 自动生成） ───
 svg/
+PLUGIN_DEVELOPMENT_TASK.md
+scripts/
+storage/logs/
