@@ -394,8 +394,7 @@ async def handle_help(ctx: PluginContext):
     """生成帮助图片并发送"""
     # 直接访问 registry
     registry = plugin_manager.registry
-    logger.info(f"[DEBUG] registry count: {len(registry)}")
-    
+
     plugin_commands: Dict[str, list] = collections.defaultdict(list)
     for plugin in registry:
         name = plugin.get("name", "未知插件")
@@ -406,8 +405,6 @@ async def handle_help(ctx: PluginContext):
         for cmd in plugin.get("commands", []):
             cmd_desc = cmd_descs.get(cmd, "") or desc
             plugin_commands[name].append(f"{cmd}#{cmd_desc}" if cmd_desc else cmd)
-
-    logger.info(f"[DEBUG] plugin_commands: {dict(plugin_commands)}")
 
     if not plugin_commands:
         await ctx.reply("没有找到任何插件或命令")
