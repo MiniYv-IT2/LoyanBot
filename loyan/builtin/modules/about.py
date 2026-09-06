@@ -11,7 +11,7 @@ from loyan.core.loyan_adapter.pool import adapter_pool
 from loyan.core.plugin_manager import plugin_manager
 
 
-logger = logging.getLogger("Builtin.about")
+logger = logging.getLogger("Loyan.Builtin.about")
 
 
 @plugin_handler

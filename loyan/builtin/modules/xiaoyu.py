@@ -18,7 +18,7 @@ from loyan.core.loyan_adapter.message import LoyanImage, LoyanText
 from loyan.core.plugin_manager import plugin_manager
 from loyan.core.config import get_current_master_id
 
-logger = logging.getLogger("Builtin.xiaoyu")
+logger = logging.getLogger("Loyan.Builtin.xiaoyu")
 
 paths = LoyanPaths("builtin")
 

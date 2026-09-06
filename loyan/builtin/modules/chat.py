@@ -13,7 +13,7 @@ from loyan.core.loyan_session import (
     loyan_clear_im_session,
 )
 
-logger = logging.getLogger("Builtin.chat")
+logger = logging.getLogger("Loyan.Builtin.chat")
 
 
 async def _im_session(ctx: PluginContext):
