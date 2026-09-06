@@ -1,5 +1,6 @@
 """Help Command - 帮助菜单（完整复刻原Help_plugin）"""
 import collections
+import logging
 import io
 
 import os
