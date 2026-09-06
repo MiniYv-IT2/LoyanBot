@@ -19,7 +19,7 @@ from loyan.core.plugin_manager import plugin_manager
 from loyan.core.config_manager import config_manager
 
 
-logger = logging.getLogger("Loyan.Builtin.help")
+logger = logger.getChild("Builtin.help")
 
 # 资源路径
 _BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
