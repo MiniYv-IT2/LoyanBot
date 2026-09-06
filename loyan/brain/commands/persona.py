@@ -7,7 +7,7 @@ from loyan.brain.chat.persona import persona_mgr
 from loyan.core.pipeline.builtin_commands import register_builtin_command
 
 import logging
-logger = logging.getLogger("Brain.cmd")
+logger = logger.getChild("Brain.cmd")
 
 
 @plugin_handler

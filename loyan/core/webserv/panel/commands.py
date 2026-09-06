@@ -11,7 +11,7 @@ from loyan.core.webserv.panel.auth import (
 )
 
 import logging
-logger = logging.getLogger("Panel")
+logger = core_logger.getChild("Panel")
 
 
 async def _get_ip_addresses():

@@ -14,6 +14,7 @@ from loyan.core.loyan_adapter.send import loyan_send_msg
 from loyan.core.loyan_adapter.message import LoyanText
 
 
+import logging
 logger = logging.getLogger("Loyan.Builtin.system")
 
 

@@ -6,7 +6,8 @@ from loyan.core.utils import logger
 from loyan.brain.chat.persona import persona_mgr
 from loyan.core.pipeline.builtin_commands import register_builtin_command
 
-logger = logger.getChild("Builtin.persona")
+import logging
+logger = logging.getLogger("Loyan.Builtin.persona")
 
 
 @plugin_handler

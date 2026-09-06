@@ -14,7 +14,7 @@ from loyan.core.loyan_session import (
 )
 
 import logging
-logger = logging.getLogger("Brain.cmd")
+logger = logger.getChild("Brain.cmd")
 
 
 async def _im_session(ctx: PluginContext):
