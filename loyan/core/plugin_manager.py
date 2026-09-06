@@ -184,42 +184,11 @@ class PluginManager:
         seen = set()
         # 先扫描builtin（包内绝对路径）
         builtin_dir = get_builtin_plugins_dir()
-        if os.path.isdir(builtin_dir):
-            toml_path = os.path.join(builtin_dir, "metadata.toml")
-            if os.path.exists(toml_path):
-                try:
-                    meta = load_plugin_toml(toml_path, builtin_dir)
-                    meta["plugin_path"] = builtin_dir
-                    meta["source"] = "builtin"
-                    plugin_name = meta.get("name", "builtin")
-                    self._dep_graph[plugin_name] = []
-                    plugins_meta[plugin_name] = meta
-                except Exception as e:
-                    self.logger.error(f" 内置插件加载异常: {e}", exc_info=True)
-
-        # 先加载builtin（包内）
-        builtin_dir = get_builtin_plugins_dir()
-        if os.path.isdir(builtin_dir):
-            toml_path = os.path.join(builtin_dir, "metadata.toml")
-            if os.path.exists(toml_path):
-                try:
-                    meta = load_plugin_toml(toml_path, builtin_dir)
-                    meta["plugin_path"] = builtin_dir
-                    meta["source"] = "builtin"
-                    plugin_name = meta.get("name", "builtin")
-                    self._dep_graph[plugin_name] = []
-                    plugins_meta[plugin_name] = meta
-                    self.logger.info(f" 内置插件: {plugin_name}")
-                except Exception as e:
-                    self.logger.error(f" 内置插件加载异常: {e}", exc_info=True)
-
-        # 再扫描用户插件目录
-        # 先扫描builtin
-        builtin_dir = get_builtin_plugins_dir()
         builtin_meta = self._scan_plugins_metadata(builtin_dir, "builtin")
         plugins_meta.update(builtin_meta)
-        
-        # 再扫描用户插件
+        self.logger.info(f" 内置插件已加载: {len(builtin_meta)} 个")
+
+        # 再扫描用户插件目录
         for root, source in ((get_user_plugins_dir(), "user"),):
             if not os.path.isdir(root):
                 continue
@@ -396,12 +365,16 @@ class PluginManager:
         self._dep_graph.clear()
         self._ready_hooks.clear()
 
-        sys_plugin_dir = os.path.abspath(get_user_plugins_dir())
+        sys_plugin_dir = os.path.abspath(get_builtin_plugins_dir())
         user_plugin_dir = os.path.abspath(get_user_plugins_dir())
         os.makedirs(user_plugin_dir, exist_ok=True)
 
         plugins_meta = {}
         sys_meta = {}
+        if os.path.isdir(sys_plugin_dir) and os.path.exists(os.path.join(sys_plugin_dir, "metadata.toml")):
+            sys_meta["builtin"] = self._load_root_plugin_metadata(sys_plugin_dir, "builtin")
+        else:
+            sys_meta = self._scan_plugins_metadata(sys_plugin_dir, "builtin")
         user_meta = self._scan_plugins_metadata(user_plugin_dir)
         plugins_meta.update(sys_meta)
         plugins_meta.update(user_meta)
@@ -417,7 +390,7 @@ class PluginManager:
 
     async def async_load(self) -> None:
         """第二阶段（异步）：加载模块 → 扫描子目录 → 合并注册表"""
-        if not getattr(self, '_plugins_meta', None):
+        if getattr(self, '_plugins_meta', None) is None:
             self.logger.error(" 请先调用 init()")
             return
 
@@ -444,6 +417,24 @@ class PluginManager:
             self.logger_manager.log_with_context(self.logger, logging.INFO, f"   {idx}. {plugin['name']}{ver_info}{pri_info} | 指令：{show_cmds}")
 
     # ── 第一阶段：扫描元信息 ──
+
+    def _load_root_plugin_metadata(self, plugin_dir: str, plugin_name: str) -> Optional[Dict]:
+        """加载根目录插件的 metadata（如 builtin，metadata.toml 直接在目录内而非子目录）"""
+        toml_path = os.path.join(plugin_dir, "metadata.toml")
+        if not os.path.exists(toml_path):
+            return None
+        try:
+            meta = load_plugin_toml(toml_path, plugin_dir)
+            meta["plugin_path"] = plugin_dir
+            deps = meta.get("dependencies", [])
+            self._dep_graph[plugin_name] = [d["name"] for d in deps] if deps else []
+            return meta
+        except TOMLPluginError as e:
+            self.logger.error(f" {e}", exc_info=True)
+            return None
+        except Exception as e:
+            self.logger.error(f" 插件 {plugin_name} metadata.toml 加载异常: {e}", exc_info=True)
+            return None
 
     def _scan_plugins_metadata(self, plugin_dir: str, source: str = "user") -> Dict[str, Dict]:
         """扫描所有插件的 metadata.toml，返回 {name: meta}"""
@@ -752,7 +743,7 @@ class PluginManager:
     def _sync_load_plugins(self) -> None:
         """无事件循环时同步加载插件（跳过子模块异步扫描）"""
         meta = getattr(self, '_plugins_meta', None)
-        if not meta:
+        if meta is None:
             return
         self._load_plugins_by_dependency(meta)
         self._merge_decorator_registry()
@@ -976,8 +967,13 @@ class PluginManager:
         self._purge_all_plugin_modules()
         clear_registry()
         self._initialized = False
-        self.init()
-        await self.async_load()
+        self._plugins_meta = None
+        try:
+            self.init()
+            await self.async_load()
+        except Exception as e:
+            self.logger.error(f"热重载扫描失败: {e}", exc_info=True)
+            self._initialized = True
 
 
 # ── 全局单例 ──

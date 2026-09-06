@@ -1,12 +1,17 @@
+import logging
 """About Command - /关于"""
 from loyan.core.decorators.handler import plugin_handler
 from loyan.core.decorators.context import PluginContext
 from loyan.core.pipeline.builtin_commands import register_builtin_command
+from loyan.core.utils import logger
 from loyan.core.loyan_adapter.send import loyan_send_msg
 from loyan.core.loyan_adapter.message import LoyanText
 from loyan.core.config import BOT_VERSION
 from loyan.core.loyan_adapter.pool import adapter_pool
 from loyan.core.plugin_manager import plugin_manager
+
+
+logger = logging.getLogger("Builtin.about")
 
 
 @plugin_handler
@@ -39,3 +44,5 @@ async def handle_about(ctx: PluginContext):
 
 # ── 框架内置指令注册 ──
 register_builtin_command("/关于", handle_about)
+register_builtin_command("/about", handle_about)
+register_builtin_command("/About", handle_about)

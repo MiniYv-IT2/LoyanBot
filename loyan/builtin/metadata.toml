@@ -2,7 +2,7 @@
 name = "builtin"
 version = "1.0.0"
 author = "LoyanBot"
-description = "框架内置命令：聊天、人设、帮助、系统管理"
+description = "框架内置命令：聊天、人设、帮助、系统管理、小禹功能"
 priority = 100
 icon = ""
 
@@ -10,7 +10,35 @@ icon = ""
 entry = "handle_main"
 
 [trigger]
-commands = ["/chat", "/ai", "/persona", "/帮助", "/菜单", "/关机", "/重启", "/开机", "/关于"]
+commands = [
+    "/chat", "/ai", "/chat reset",
+    "/persona",
+    "/帮助", "/help", "/菜单", "/menu", "/helps",
+    "/关机", "/重启", 
+    "/关于", "/about", "/About",
+    "/查看时间", "/几点了", "/时间", "/时间查询", "/time",
+    "/复读",
+    "/更改主人", "/更改机器人", "/互换主人",
+    "/黑名单",
+    "/热重载",
+    "/点赞", "/赞我",
+    "/戳一戳",
+    "/小禹帮助", "/xiaoyu帮助"
+]
 chat_type = ["private", "group"]
 permission = "all"
 is_at_required = false
+
+[trigger.command_descriptions]
+"/chat" = "与AI对话"
+"/帮助" = "显示帮助菜单"
+"/关于" = "显示关于信息"
+"/persona" = "人设管理"
+"/关机" = "关机（仅主人）"
+"/重启" = "重启（仅主人）"
+"/查看时间" = "查看当前时间"
+"/复读" = "复读机"
+"/黑名单" = "黑名单管理"
+"/热重载" = "热重载开关"
+"/点赞" = "点赞功能"
+"/戳一戳" = "戳一戳功能"

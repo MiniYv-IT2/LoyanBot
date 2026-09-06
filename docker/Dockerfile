@@ -36,7 +36,6 @@ WORKDIR /build
 # 先拷依赖定义，利用 Docker 缓存
 COPY pyproject.toml MANIFEST.in ./
 COPY loyan/ loyan/
-COPY res/ res/
 COPY bot.py ./
 
 # 安装 LoyanBot + 全部依赖
@@ -71,12 +70,11 @@ ENV PATH="/venv/bin:$PATH"
 # 项目文件（只读）
 WORKDIR /loyan
 COPY --from=builder /build/loyan/ ./loyan/
-COPY --from=builder /build/res/ ./res/
 COPY --from=builder /build/bot.py ./bot.py
 COPY --from=builder /build/pyproject.toml ./
 
 # 入口脚本
-COPY docker-entrypoint.sh /usr/local/bin/
+COPY docker/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # 持久化目录

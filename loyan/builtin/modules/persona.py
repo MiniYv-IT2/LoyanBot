@@ -1,3 +1,4 @@
+import logging
 """Persona Command - /persona"""
 from loyan.core.decorators.handler import plugin_handler
 from loyan.core.decorators.context import PluginContext
@@ -5,7 +6,7 @@ from loyan.core.utils import logger
 from loyan.brain.chat.persona import persona_mgr
 from loyan.core.pipeline.builtin_commands import register_builtin_command
 
-logger = logger.getChild("Builtin.persona")
+logger = logging.getLogger("Builtin.persona")
 
 
 @plugin_handler

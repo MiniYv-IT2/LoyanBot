@@ -1,3 +1,4 @@
+import logging
 """Chat Command - /chat /ai"""
 from loyan.core.decorators.handler import plugin_handler
 from loyan.core.decorators.context import PluginContext
@@ -12,7 +13,7 @@ from loyan.core.loyan_session import (
     loyan_clear_im_session,
 )
 
-logger = logger.getChild("Builtin.chat")
+logger = logging.getLogger("Builtin.chat")
 
 
 async def _im_session(ctx: PluginContext):

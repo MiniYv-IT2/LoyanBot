@@ -1,4 +1,4 @@
-"""Stage: BuiltinCommands — 框架级内置命令（/关机, /重启, /开机, /关于）"""
+"""Stage: BuiltinCommands — 框架级内置命令（/关机, /重启, /关于）"""
 
 import asyncio
 import logging
@@ -70,7 +70,7 @@ async def _dispatch_registered(ctx: PluginContext) -> Optional[PluginContext]:
 class BuiltinCommands(Stage):
     """内置命令处理器
 
-    处理 /关机, /重启, /开机, /关于 等框架级命令。
+    处理 /关机, /重启, /关于 等框架级命令。
     """
 
     async def process(self, ctx: PluginContext) -> Optional[PluginContext]:
@@ -168,40 +168,6 @@ class BuiltinCommands(Stage):
                 _logger.warning(f"[安全防护] 用户{sender_id}尝试重启，权限不足")
             return None
 
-        if canonical == "/开机":
-            if is_master_user:
-                await loyan_send_msg(target_id, LoyanText(text=" 正在执行开机操作...机器人服务将在3秒后启动"), chat_type=chat_type)
-                _logger.info(f"[内置命令] 主人{sender_id}执行/开机命令")
-
-                async def delayed_startup():
-                    await asyncio.sleep(3)
-                    try:
-                        proc = await asyncio.create_subprocess_exec(
-                            'systemctl', 'start', 'bot.service',
-                            stdout=asyncio.subprocess.PIPE,
-                            stderr=asyncio.subprocess.PIPE,
-                        )
-                        _, _ = await proc.communicate()
-                        if proc.returncode == 0:
-                            _logger.info("[开机指令] systemd启动成功")
-                            return
-                    except Exception:
-                        pass
-                    if platform.system() == "Windows":
-                        subprocess.Popen(
-                            [sys.executable] + sys.argv,
-                            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
-                            close_fds=True,
-                        )
-                    else:
-                        subprocess.Popen([sys.executable] + sys.argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    _logger.info("[开机指令] 新进程已启动")
-
-                asyncio.ensure_future(delayed_startup())
-            else:
-                await loyan_send_msg(target_id, LoyanText(text=" 权限不足！只有主人可以执行开机操作"), chat_type=chat_type)
-                _logger.warning(f"[安全防护] 用户{sender_id}尝试开机，权限不足")
-            return None
 
         if canonical == "/关于":
             try:
