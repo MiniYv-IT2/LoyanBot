@@ -44,6 +44,7 @@ dependencies = [
     "pycryptodome>=3.23.0",
     "python-telegram-bot>=22.0",
     "watchfiles>=0.21.0",
+    "argon2-cffi>=23.1.0",
 ]
 
 [

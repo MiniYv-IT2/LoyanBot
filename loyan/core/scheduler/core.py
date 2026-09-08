@@ -246,3 +246,22 @@ class Scheduler:
 
 
 scheduler = Scheduler()
+
+
+# 自动启动scheduler - 使用lifecycle事件
+async def _try_start_scheduler(ctx=None):
+    try:
+        if not scheduler._running and scheduler._tasks:
+            scheduler.start()
+    except Exception as e:
+        import logging
+        logging.getLogger("Core.Scheduler").error(f"启动scheduler失败: {e}")
+
+# 注册到lifecycle - 在插件加载完成后启动
+try:
+    from loyan.core.lifecycle import lifecycle, LifecycleEvent
+    lifecycle.register_hook(LifecycleEvent.AFTER_PLUGINS_LOADED, _try_start_scheduler, name="scheduler_start", priority=100)
+except ImportError:
+    # 如果lifecycle不可用，使用延迟启动
+    import threading
+    threading.Timer(3, _try_start_scheduler).start()

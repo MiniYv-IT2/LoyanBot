@@ -14,7 +14,7 @@ from loyan.core.webserv.quart import Quart, request as _quart_request
 from loyan.core.webserv.panel.api import register_routes as _api_register
 from loyan.core.webserv.panel.static import register_routes as _static_register
 
-# 公开路由 - 无需认证
+# 公开路由 - 无需认证（API内部有自己的鉴权逻辑）
 _PUBLIC_PREFIXES = (
     "/api/loyanui/auth/",
     "/api/loyanui/version",
@@ -30,6 +30,7 @@ _PUBLIC_PREFIXES = (
     "/metrics",
     "/api/loyanui/qqbot/",
     "/",
+    "/api/loyanui/test/",
 )
 
 # 只读查询 - 支持 JWT 或 API Key
