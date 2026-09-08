@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import random
@@ -14,13 +15,6 @@ _DEFAULT_USERNAME = "Admin"
 _DEFAULT_PASSWORD = "@Loyan"
 _TOKEN_EXPIRE = 86400
 _CAPTCHA_EXPIRE = 300
-
-# Argon2参数（OWASP推荐）
-_ARGON2_TIME_COST = 3
-_ARGON2_MEMORY_COST = 65536  # 64MB
-_ARGON2_PARALLELISM = 4
-_ARGON2_HASH_LEN = 32
-_ARGON2_SALT_LEN = 16
 
 _tokens: dict[str, float] = {}
 _captchas: dict[str, dict] = {}
@@ -61,32 +55,6 @@ def _ensure_defaults():
     return config
 
 
-def _hash_password(password: str) -> str:
-    """使用Argon2id哈希密码"""
-    from argon2 import PasswordHasher
-    ph = PasswordHasher(
-        time_cost=_ARGON2_TIME_COST,
-        memory_cost=_ARGON2_MEMORY_COST,
-        parallelism=_ARGON2_PARALLELISM,
-        hash_len=_ARGON2_HASH_LEN,
-        salt_len=_ARGON2_SALT_LEN,
-    )
-    return ph.hash(password)
-
-
-def _verify_password_argon2(password: str, stored_hash: str) -> bool:
-    """验证Argon2密码"""
-    from argon2 import PasswordHasher
-    ph = PasswordHasher(
-        time_cost=_ARGON2_TIME_COST,
-        memory_cost=_ARGON2_MEMORY_COST,
-        parallelism=_ARGON2_PARALLELISM,
-        hash_len=_ARGON2_HASH_LEN,
-        salt_len=_ARGON2_SALT_LEN,
-    )
-    return ph.verify(stored_hash, password)
-
-
 def get_username() -> str:
     config = _ensure_defaults()
     return config.get("username", _DEFAULT_USERNAME)
@@ -99,16 +67,9 @@ def verify_password(password: str) -> bool:
         config = _ensure_defaults()
         stored = config["password"]
 
-    # 默认密码直接比较
     if stored == _DEFAULT_PASSWORD:
         return password == stored
-    
-    # Argon2验证
-    if stored.startswith("$argon2"):
-        return _verify_password_argon2(password, stored)
-    
-    # 降级到MD5验证（兼容旧数据）
-    import hashlib
+
     salt = config.get("salt", "")
     h = hashlib.md5((password + salt).encode()).hexdigest()
     return h == stored
@@ -126,9 +87,10 @@ def change_password(old_pw: str, new_pw: str) -> bool:
     if not verify_password(old_pw):
         return False
     config = _load_config()
-    config["password"] = _hash_password(new_pw)
-    if "salt" in config:
-        del config["salt"]
+    salt = secrets.token_hex(16)
+    h = hashlib.md5((new_pw + salt).encode()).hexdigest()
+    config["password"] = h
+    config["salt"] = salt
     _save_config(config)
     return True
 
@@ -139,6 +101,10 @@ class AccountChangeError(Exception):
 
 def change_account(username: Optional[str] = None, old_password: Optional[str] = None,
                    new_password: Optional[str] = None, confirm_password: Optional[str] = None) -> bool:
+    """Change account name and/or password.
+    At least one of username or new_password must be provided.
+    If changing password, old_password and confirm_password are required.
+    """
     has_new_username = username is not None and username.strip() != ""
     has_new_password = new_password is not None and new_password.strip() != ""
 
@@ -162,25 +128,29 @@ def change_account(username: Optional[str] = None, old_password: Optional[str] =
             raise AccountChangeError("Old password is incorrect")
         if new_password != confirm_password:
             raise AccountChangeError("New password and confirmation do not match")
+        # Factory default password is exempt from strength requirements
         if new_password != _DEFAULT_PASSWORD:
             ok, msg = validate_password(new_password)
             if not ok:
                 raise AccountChangeError(msg)
         config = _load_config()
         if new_password == _DEFAULT_PASSWORD:
+            # Restore to plain-text default
             config["password"] = _DEFAULT_PASSWORD
             if "salt" in config:
                 del config["salt"]
         else:
-            config["password"] = _hash_password(new_password)
-            if "salt" in config:
-                del config["salt"]
+            salt = secrets.token_hex(16)
+            h = hashlib.md5((new_password + salt).encode()).hexdigest()
+            config["password"] = h
+            config["salt"] = salt
         _save_config(config)
 
     return True
 
 
 def logout() -> bool:
+    """Invalidate all active tokens."""
     global _tokens
     count = len(_tokens)
     _tokens.clear()
@@ -188,11 +158,13 @@ def logout() -> bool:
 
 
 def get_panel_settings() -> dict:
+    """面板设置（不回密码）"""
     config = _ensure_defaults()
     return {k: config.get(k) for k in ("username", "port", "ssl_enable", "ssl_cert", "ssl_key")}
 
 
 def save_panel_settings(data: dict, old_password: str = "", new_password: str = "") -> tuple[bool, str]:
+    """保存面板设置；提供新旧密码时改密"""
     config = _ensure_defaults()
     for key in ("username", "port", "ssl_enable", "ssl_cert", "ssl_key"):
         if key in data:
@@ -203,9 +175,10 @@ def save_panel_settings(data: dict, old_password: str = "", new_password: str = 
         ok, msg = validate_password(new_password)
         if not ok:
             return False, msg
-        config["password"] = _hash_password(new_password)
-        if "salt" in config:
-            del config["salt"]
+        salt = secrets.token_hex(16)
+        h = hashlib.md5((new_password + salt).encode()).hexdigest()
+        config["password"] = h
+        config["salt"] = salt
     _save_config(config)
     return True, ""
 
@@ -252,18 +225,22 @@ def verify_captcha(captcha_id: str, captcha_code: str) -> bool:
     return data["code"].upper() == captcha_code.upper()
 
 
+# ── API Key 认证（只读验证，管理需手动编辑 web_config.json）──
+
 def _get_keys() -> list[dict]:
     config = _load_config()
     return config.get("api_keys", [])
 
 
 def verify_api_key(raw_key: str) -> Optional[dict]:
+    """验证 API Key，返回权限信息"""
     if not raw_key or len(raw_key) != 64:
         return None
     now = int(time.time())
     for k in _get_keys():
         if k["key"] == raw_key:
             k["last_used"] = now
+            # 更新存储
             config = _load_config()
             config["api_keys"] = _get_keys()
             _save_config(config)
@@ -272,6 +249,7 @@ def verify_api_key(raw_key: str) -> Optional[dict]:
 
 
 def check_permission(permissions: list[str], required: str) -> bool:
+    """检查权限"""
     if required == "read":
         return True
     return "write" in set(permissions)
