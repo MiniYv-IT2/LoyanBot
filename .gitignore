@@ -45,11 +45,37 @@ hotreload.json
 # ─── Trae AI IDE ───
 .trae/
 
-# ─── IDE ───
+# ─── 测试缓存 ───
+.pytest_cache/
+.hypothesis/
+.pytype/
+
+# ─── 代码质量工具缓存 ───
+.mypy_cache/
+.ruff_cache/
+.tox/
+.eggs/
+.python-version
+.pyvenv.cfg
+
+# ─── 覆盖率报告 ───
+.htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# ─── IDE 配置（项目级） ───
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
+
+# ─── 环境变量 ───
+.env
+.env.*
+!.env.example
 
 # ─── 系统 ───
 .DS_Store
@@ -90,6 +116,26 @@ AGENTS.md
 
 # ─── 用户管理的插件禁用状态（不提交） ───
 .loyan_disabled.json
+
+# ─── 根目录工作文件（报告、设计、调试图片、日历等，不纳入版本管理） ───
+API_KEY_AUTH_DESIGN.md
+APOLOGY.md
+DIFF.md
+JWT_AUTH_FIX_EXPLANATION.md
+PLUGIN_FIX_FINAL_REPORT.md
+PLUGIN_STATUS_REPORT.md
+*.ics
+*_week.png
+test_v3.png
+week_fixed.png
+傻逼.png
+docs/PANEL_DEVELOPMENT.md
+loyan/brain/TREE.md
+loyan/core/webserv/panel/auth/*.bak.*
+loyan/res/resource/Loyan.png
+loyan/res/resource/gracy.png
+loyan/res/resource/gracybot_logo.png
+loyan/res/resource/loyan_logo.png
 ---
 # 大文件排除
 *.tar
